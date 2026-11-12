@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bulwark Vertical Reformat</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px; background: #1e1e1e; color: #e6e6e6; font: 13px/1.45 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  h1 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+  label { display: block; margin: 0 0 6px; color: #b5b5b5; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  select { width: 100%; padding: 4px; outline: none; margin-bottom: 10px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 13px; }
+  select option { padding: 4px 6px; border-radius: 4px; }
+  select option:checked { background: #3a6ff2 linear-gradient(0deg, #3a6ff2 0%, #3a6ff2 100%); color: #fff; }
+  label.check { display: flex; gap: 6px; align-items: center; margin: 0 0 12px; color: #d0d0d0; }
+  .ver { color: #777; font-weight: 400; font-size: 11px; margin-left: 6px; }
+  button.small { padding: 5px 8px; font-size: 11px; font-weight: 500; margin: -4px 0 12px; }
+  hr { border: 0; border-top: 1px solid #383838; margin: 18px 0 14px; }
+  #rout { margin-top: 10px; color: #b5b5b5; white-space: pre-line; } #rout.ok { color: #7fd38a; } #rout.err { color: #ff7b7b; }
+  #review { margin-top: 8px; color: #f0c674; white-space: pre-line; } #bout, #cout { white-space: pre-line; }
+  #sections { margin: -2px 0 12px; }
+  #sections .sec { padding: 6px 0; border-top: 1px solid #333; }
+  #sections .what { color: #d0d0d0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #sections .what b { color: #fff; font-weight: 600; margin-right: 6px; }
+  #sections .chips { display: flex; gap: 4px; margin-top: 4px; }
+  #sections .chip { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
+  #sections .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
+  input[type=number] { width: 80px; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
+  button { display: block; width: 100%; padding: 9px 10px; margin-bottom: 8px; background: #3a6ff2; color: #fff; border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  button.secondary { background: #3a3a3a; }
+  button:disabled { opacity: .5; cursor: default; }
+  #out { margin-top: 10px; min-height: 36px; color: #b5b5b5; white-space: pre-line; }
+  #out.ok { color: #7fd38a; } #out.err { color: #ff7b7b; }
+  .hint { color: #777; font-size: 11px; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div id="update"></div>
+  <h1>Reformat to 9x16 <span class="ver" id="ver"></span></h1>
+  <label for="show">Show</label>
+  <select id="show" size="6"></select>
+  <label for="layout">When media is on screen</label>
+  <select id="layout" size="4">
+    <option value="2up" selected>2-up: speaker over media</option>
+    <option value="mid3">3-UP: two people, media in the middle</option>
+    <option value="pip">PIP: one on top, media, two below</option>
+    <option value="full">Full screen: media over a blurred copy</option>
+  </select>
+  <div id="sections"></div>
+  <label for="order">Wide shot: who goes where (when the panel builds the vertical wide)</label>
+  <select id="order" size="7"></select>
+  <button id="refresh" class="secondary small">Refresh names from the open sequence</button>
+  <label class="check"><input type="checkbox" id="rebuild"> Build a new vertical wide even if one already exists</label>
+  <label class="check"><input type="checkbox" id="blur" checked> Full-screen images: add a blurred copy behind</label>
+  <label class="check"><input type="checkbox" id="centre" checked> Centre each person on their face (Mac)</label>
+  <button id="vert">Make vertical version of this sequence</button>
+  <div id="rout"></div>
+  <div id="review"></div>
+  <div class="hint" id="style"></div>
+  <hr>
+  <label>Re-centre people after a recut</label>
+  <button id="centrebtn" class="secondary">Centre people in the open vertical sequence</button>
+  <div id="cout" class="hint"></div>
+  <div class="hint">Finds each person's face and slides their camera sideways so they sit in the middle of their window. One measurement per camera, so framing does not jump between cuts. Run it again any time after you recut.</div>
+  <hr>
+  <label>Bring an image full screen</label>
+  <button id="blursel" class="secondary">Toggle full screen + blurred background (selected image)</button>
+  <div id="bout" class="hint"></div>
+  <div class="hint">Select an image in any sequence and click. A sharp copy is fitted to the frame over a blurred copy that fills it, above the cameras and frame but below titles. Click again with the image selected to switch it back.</div>
+  <div class="hint">Open the 16x9 sequence first. A copy named "… VERT" is made at 1080x1920; the original is not changed. Wide shots use the vertical version of the wide nest, which is built for you if it does not exist.</div>
+  <script src="lib/CSInterface.js"></script>
+  <script src="lib/update-source.js"></script>
+  <script src="lib/updater.js"></script>
+  <script>
+    var csi = new CSInterface();
+    BulwarkUpdater.start({ panel: 'com.bulwark.reformat', banner: document.getElementById('update'), versionEl: document.getElementById('ver') });
+    var out = document.getElementById('out');
+    // ---- Reformat to 9x16 ----
+    var TEXT_STYLES = {
+      "9x16 TNL": "TNL SOCIAL TEXT", "9x16 BULWARK TAKES": "BULWARK TAKES SOCIAL CLIPS", "9x16 Bulwark Daily": "DAILY POD TEXT STYLE",
+      "9x16 Focus Group": "FG SOCIAL TEXT STYLE", "9x16 Huddled Masses": "HUDDLED MASSES", "9x16 Illegal News": "Illegal News",
+      "9x16 Live Clipping": "LIVE CLIPPING TEXT STYLE", "9x16 Mona": "MONA SOCIAL TEXT STYLE", "9x16 Morning Shots Live": "Morning Shots Text style",
+      "9x16 Press Pass": "Press Pass", "9x16 Reciepts": "RECIEPTS SOCIAL TEXT STYLE", "9x16 Trio:MAGA Monday": "Trio and Maga Monday Social Text style"
+    };
+    var showSel = document.getElementById('show'), rout = document.getElementById('rout'),
+        reviewEl = document.getElementById('review'), styleEl = document.getElementById('style'), vertBtn = document.getElementById('vert');
+    var layoutSel = document.getElementById('layout');
+    try { var savedLayout = localStorage.getItem('bulwarkLayout'); if (savedLayout) layoutSel.value = savedLayout; } catch (e) {}
+    layoutSel.addEventListener('change', function () { localStorage.setItem('bulwarkLayout', layoutSel.value); });
+    var orderSel = document.getElementById('order'), rebuildBox = document.getElementById('rebuild');
+    function permutations(a) {
+      if (a.length < 2) return [a];
+      var out = [];
+      for (var i = 0; i < a.length; i++) {
+        var rest = permutations(a.slice(0, i).concat(a.slice(i + 1)));
+        for (var j = 0; j < rest.length; j++) out.push([a[i]].concat(rest[j]));
+      }
+      return out;
+    }
+    // cams: [{track: 1, name: "JVL"}, ...] from the open sequence's wide nest; falls back to V1/V2/V3
+    function fillOrders(cams) {
+      var keep = orderSel.value || 'auto';
+      try { keep = localStorage.getItem('bulwarkOrder') || keep; } catch (e) {}
+      if (!cams || cams.length < 2) cams = [{ track: 1, name: 'V1' }, { track: 2, name: 'V2' }, { track: 3, name: 'V3' }];
+      cams = cams.slice(0, 3);
+      var slots = cams.length === 2 ? ['Top', 'Bottom'] : ['Top', 'Middle', 'Bottom'];
+      orderSel.innerHTML = '';
+      function add(value, text) {
+        var o = document.createElement('option'); o.value = value; o.textContent = text;
+        if (value === keep) o.selected = true;
+        orderSel.appendChild(o);
+      }
+      add('auto', 'Auto: left to right becomes top to bottom');
+      var perms = permutations(cams);
+      for (var i = 0; i < perms.length; i++) {
+        var val = [], txt = [];
+        for (var j = 0; j < perms[i].length; j++) { val.push(perms[i][j].track); txt.push(slots[j] + ' ' + perms[i][j].name); }
+        add(val.join(','), txt.join(' · '));
+      }
+      if (!orderSel.value) orderSel.value = 'auto';
+    }
+    // ---- one layout per media section ----
+    var sectionsEl = document.getElementById('sections'), sectionPicks = {}, sectionList = [], sectionsKey = '';
+    var CHIPS = [['', 'Same'], ['2up', '2-up'], ['mid3', '3-UP'], ['pip', 'PIP'], ['full', 'Full']];
+    function clock(sec) { var m = Math.floor(sec / 60), s = Math.floor(sec - m * 60); return m + ':' + (s < 10 ? '0' : '') + s; }
+    function drawSections() {
+      sectionsEl.innerHTML = '';
+      if (sectionList.length < 2) return;   // one piece of media: the list above is all that is needed
+      var head = document.createElement('label'); head.textContent = 'Each piece of media ("Same" = the choice above)'; sectionsEl.appendChild(head);
+      sectionList.forEach(function (sec) {
+        var row = document.createElement('div'); row.className = 'sec';
+        var what = document.createElement('div'); what.className = 'what'; what.title = sec.names;
+        var b = document.createElement('b'); b.textContent = clock(sec.s) + '–' + clock(sec.e); what.appendChild(b);
+        what.appendChild(document.createTextNode(sec.names || 'media'));
+        var chips = document.createElement('div'); chips.className = 'chips';
+        CHIPS.forEach(function (c) {
+          var el = document.createElement('span'); el.className = 'chip' + ((sectionPicks[sec.key] || '') === c[0] ? ' on' : ''); el.textContent = c[1];
+          el.addEventListener('click', function () { if (c[0]) sectionPicks[sec.key] = c[0]; else delete sectionPicks[sec.key]; drawSections(); });
+          chips.appendChild(el);
+        });
+        row.appendChild(what); row.appendChild(chips); sectionsEl.appendChild(row);
+      });
+    }
+    function loadSections() {
+      csi.evalScript('$.bulwark.listMedia()', function (r) {
+        var p = String(r || '').split('|'), list = [];
+        if (p[0] === 'OK') for (var i = 1; i < p.length; i++) { var f = p[i].split('~'); if (f.length >= 3) list.push({ key: f[0], s: +f[0], e: +f[1], names: f.slice(2).join('~') }); }
+        var key = list.map(function (s) { return s.key + '~' + s.e + '~' + s.names; }).join('|');
+        if (key !== sectionsKey) { sectionsKey = key; sectionPicks = {}; }   // a different sequence: forget the old choices
+        sectionList = list; drawSections();
+      });
+    }
+    function sectionArg() {
+      var out = [];
+      for (var i = 0; i < sectionList.length; i++) if (sectionPicks[sectionList[i].key]) out.push(sectionList[i].key + '=' + sectionPicks[sectionList[i].key]);
+      return out.join(';');
+    }
+    function loadCameras() {
+      loadSections();
+      csi.evalScript('$.bulwark.listCameras()', function (r) {
+        var p = String(r || '').split('|'), cams = [];
+        if (p[0] === 'OK') for (var i = 2; i < p.length; i++) { var k = p[i].indexOf(':'); if (k > 0) cams.push({ track: +p[i].slice(0, k), name: p[i].slice(k + 1) }); }
+        fillOrders(cams);
+      });
+    }
+    orderSel.addEventListener('change', function () { try { localStorage.setItem('bulwarkOrder', orderSel.value); } catch (e) {} });
+    document.getElementById('refresh').addEventListener('click', function () { loadShows(); loadCameras(); });
+    window.addEventListener('focus', loadCameras);
+    function jsxStr(s) { return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'; }
+    function styleHint() {
+      var st = TEXT_STYLES[showSel.value];
+      styleEl.textContent = st ? 'Title text style for this show: ' + st + ' (VERTICAL SOCIAL TEXT STYLES bin).' : '';
+    }
+    function loadShows() {
+      csi.evalScript('$.bulwark.listShows()', function (r) {
+        var p = String(r || '').split('|');
+        var keep = showSel.value || localStorage.getItem('bulwarkShow') || '';
+        showSel.innerHTML = '';
+        if (p[0] !== 'OK') { rout.className = 'err'; rout.textContent = p.slice(1).join('|') || ('Premiere did not answer: ' + r); vertBtn.disabled = true; return; }
+        if (rout.className === 'err') { rout.className = ''; rout.textContent = ''; }
+        vertBtn.disabled = false;
+        for (var i = 1; i < p.length; i++) {
+          if (!p[i]) continue;
+          var o = document.createElement('option'); o.value = p[i]; o.textContent = p[i].replace(/^9x16\s+/i, '');
+          if (p[i] === keep) o.selected = true;
+          showSel.appendChild(o);
+        }
+        styleHint();
+      });
+    }
+    showSel.addEventListener('change', function () { localStorage.setItem('bulwarkShow', showSel.value); styleHint(); });
+    showSel.addEventListener('mousedown', function () { if (!showSel.options.length) loadShows(); });
+    vertBtn.addEventListener('click', function () {
+      if (!showSel.value) { if (!showSel.options.length) loadShows(); rout.className = 'err'; rout.textContent = 'Pick a show in the list first.'; return; }
+      vertBtn.disabled = true; rout.className = ''; rout.textContent = 'Working…'; reviewEl.textContent = '';
+      csi.evalScript('$.bulwark.reformat(' + jsxStr(showSel.value) + ',' + jsxStr(layoutSel.value || '2up') + ',' + jsxStr(orderSel.value || 'auto') + ',' + (rebuildBox.checked ? 'true' : 'false') + ',' + (blurBox.checked ? 'true' : 'false') + ',' + jsxStr(sectionArg()) + ')', function (r) {
+        vertBtn.disabled = false;
+        var p = String(r || '').split('|');
+        if (p[0] !== 'OK') { rout.className = 'err'; rout.textContent = p.slice(1).join('|') || ('Premiere did not answer: ' + r); return; }
+        rout.className = 'ok'; rout.textContent = p[1];
+        var checks = p[2] ? p.slice(2).join('|') : '';
+        reviewEl.textContent = checks ? 'Check these:\n' + checks : '';
+        if (!centreBox.checked) return;
+        vertBtn.disabled = true; rout.textContent = p[1] + '\nCentring people on their faces…';
+        centrePeople(function (ok, text, more) {
+          vertBtn.disabled = false;
+          rout.textContent = p[1] + (ok ? '\n' + text : '');
+          var all = [checks, ok ? more : 'Centring: ' + text].filter(function (s) { return s; }).join('\n');
+          reviewEl.textContent = all ? 'Check these:\n' + all : '';
+        });
+      });
+    });
+    // ---- centre people on their faces: Premiere exports frames, macOS finds the faces, Premiere moves the clips ----
+    var centreBox = document.getElementById('centre'), centreBtn = document.getElementById('centrebtn'), cout = document.getElementById('cout');
+    try { if (localStorage.getItem('bulwarkCentre') === 'off') centreBox.checked = false; } catch (e) {}
+    centreBox.addEventListener('change', function () { try { localStorage.setItem('bulwarkCentre', centreBox.checked ? 'on' : 'off'); } catch (e) {} });
+    function centrePeople(done) {   // done(ok, message, things to check)
+      if (!/Mac/i.test(navigator.platform) || !(window.cep && cep.process && cep.process.createProcess)) return done(false, 'Centring on faces only works on a Mac for now.', '');
+      csi.evalScript('$.bulwark.faceFrames()', function (r) {
+        var p = String(r || '').split('|');
+        if (p[0] !== 'OK') return done(false, p.slice(1).join('|') || ('Premiere did not answer: ' + r), '');
+        var args = ['/usr/bin/osascript', '-l', 'JavaScript', csi.getSystemPath(SystemPath.EXTENSION) + '/lib/faces.js'].concat(p.slice(1));
+        var proc = cep.process.createProcess.apply(cep.process, args), buf = '', finished = false;
+        function finish() {
+          if (finished) return; finished = true;
+          csi.evalScript('$.bulwark.centre(' + JSON.stringify(buf) + ')', function (r2) {
+            var q = String(r2 || '').split('|');
+            if (q[0] !== 'OK') return done(false, q.slice(1).join('|') || ('Premiere did not answer: ' + r2), '');
+            done(true, q[1], q.slice(2).join('|'));
+          });
+        }
+        if (proc.err) { finished = true; csi.evalScript('$.bulwark.centre("")'); return done(false, 'Could not start face detection (error ' + proc.err + ').', ''); }
+        cep.process.stdout(proc.data, function (d) { buf += d; });
+        cep.process.onquit(proc.data, function () { setTimeout(finish, 300); });
+        setTimeout(finish, 60000);   // never leave the panel waiting
+      });
+    }
+    centreBtn.addEventListener('click', function () {
+      centreBtn.disabled = true; cout.style.color = ''; cout.textContent = 'Looking for faces…';
+      centrePeople(function (ok, text, more) {
+        centreBtn.disabled = false;
+        cout.style.color = ok ? '#7fd38a' : '#ff7b7b';
+        cout.textContent = text + (more ? '\nCheck: ' + more : '');
+      });
+    });
+    var blurBox = document.getElementById('blur'), blurBtn = document.getElementById('blursel'), bout = document.getElementById('bout');
+    try { if (localStorage.getItem('bulwarkBlur') === 'off') blurBox.checked = false; } catch (e) {}
+    blurBox.addEventListener('change', function () { try { localStorage.setItem('bulwarkBlur', blurBox.checked ? 'on' : 'off'); } catch (e) {} });
+    blurBtn.addEventListener('click', function () {
+      blurBtn.disabled = true; bout.style.color = ''; bout.textContent = 'Working…';
+      csi.evalScript('$.bulwark.blurSelected()', function (r) {
+        blurBtn.disabled = false;
+        var p = String(r || '').split('|');
+        if (p[0] !== 'OK') { bout.style.color = '#ff7b7b'; bout.textContent = p.slice(1).join('|') || ('Premiere did not answer: ' + r); return; }
+        bout.style.color = '#7fd38a'; bout.textContent = p[1] + (p[2] ? '\nCheck: ' + p.slice(2).join('|') : '');
+      });
+    });
+    csi.evalScript('$.evalFile(' + jsxStr(csi.getSystemPath(SystemPath.EXTENSION) + '/jsx/reformat.jsx') + ')', function () { loadShows(); loadCameras(); });
+
+  </script>
+</body>
+</html>
