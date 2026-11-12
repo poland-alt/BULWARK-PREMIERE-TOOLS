@@ -52,6 +52,7 @@
   <div id="people"></div>
   <select id="order" size="7"></select>
   <button id="refresh" class="secondary small">Refresh names from the open sequence</button>
+  <div id="camnote" class="hint" style="margin:-2px 0 10px;"></div>
   <label class="check"><input type="checkbox" id="rebuild"> Build a new vertical wide even if one already exists</label>
   <label class="check"><input type="checkbox" id="blur" checked> Full-screen images: add a blurred copy behind</label>
   <label class="check"><input type="checkbox" id="centre" checked> Centre each person on their face (Mac)</label>
@@ -106,7 +107,14 @@
     function fillOrders(cams) {
       var keep = orderSel.value || 'auto';
       try { keep = localStorage.getItem('bulwarkOrder') || keep; } catch (e) {}
-      if (!cams || cams.length < 2) cams = [{ track: 1, name: 'V1' }, { track: 2, name: 'V2' }, { track: 3, name: 'V3' }];
+      if (!cams || cams.length < 2) {
+        // no wide nest to stack in this sequence: nothing to choose, and no made-up names
+        peopleEl.innerHTML = ''; orderSel.innerHTML = ''; lastCams = null;
+        var none = document.createElement('option'); none.value = 'auto'; none.textContent = 'No wide shot in this sequence: nothing to pick'; none.selected = true;
+        orderSel.appendChild(none); orderSel.size = 1; orderSel.disabled = true;
+        return;
+      }
+      orderSel.disabled = false; orderSel.size = 7;
       cams = cams.slice(0, 3);
       lastCams = cams;
       // 2 or 3 people in the stacked wide: a choice only when the wide nest has three cameras
@@ -181,6 +189,11 @@
         var p = String(r || '').split('|'), cams = [];
         if (p[0] === 'OK') for (var i = 2; i < p.length; i++) { var k = p[i].indexOf(':'); if (k > 0) cams.push({ track: +p[i].slice(0, k), name: p[i].slice(k + 1) }); }
         fillOrders(cams);
+        // say what was read, so a refresh always shows a result
+        var note = document.getElementById('camnote');
+        if (p[0] !== 'OK') note.textContent = p.slice(1).join('|') || 'Premiere did not answer.';
+        else if (cams.length < 2) note.textContent = 'Wide nest "' + p[1] + '" has ' + cams.length + ' camera' + (cams.length === 1 ? '' : 's') + '; a stacked wide needs 2 or 3.';
+        else note.textContent = 'Wide nest "' + p[1] + '": ' + cams.map(function (c) { return 'V' + c.track + ' ' + c.name; }).join(', ') + '.';
       });
     }
     orderSel.addEventListener('change', function () { try { localStorage.setItem('bulwarkOrder', orderSel.value); } catch (e) {} });

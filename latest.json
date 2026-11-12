@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "1.6.0",
-      "notes": "Wide shot: choose 2 people (V1 and V2, 2-up frame) or 3 people (3-UP frame), then who goes where.",
+      "version": "1.6.1",
+      "notes": "Wide shot: choose 2 people (V1 and V2, 2-up frame) or 3 people (3-UP frame), then who goes where. Refresh now says what it found, and says so when the sequence has no wide shot.",
       "files": [
         "CSXS/manifest.xml",
         "index.html",
