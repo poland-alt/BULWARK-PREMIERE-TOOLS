@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "1.5.0",
-      "notes": "Panels can now update themselves: you'll see a notice here when a new version is out.",
+      "version": "1.6.0",
+      "notes": "Wide shot: choose 2 people (V1 and V2, 2-up frame) or 3 people (3-UP frame), then who goes where.",
       "files": [
         "CSXS/manifest.xml",
         "index.html",

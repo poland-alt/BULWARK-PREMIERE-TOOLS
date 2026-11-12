@@ -1,5 +1,13 @@
-BULWARK PREMIERE TOOLS - v1.5 test build
+BULWARK PREMIERE TOOLS - v1.6 test build
 ========================================
+
+WHAT'S NEW IN v1.6
+------------------
+ - Wide shot: pick 2 people or 3 people. When the wide nest has three
+   cameras, two buttons sit above the "who goes where" list:
+     2 people  uses the cameras on V1 and V2 of the wide nest, in the 2-up
+               frame (Top V1 / Bottom V2, or the other way round)
+     3 people  all three in the 3-UP frame, any order (as before)
 
 WHAT'S NEW IN v1.5
 ------------------
@@ -136,8 +144,11 @@ on top.
    If the sequence has more than one piece of media, each one is listed
    under that with its timecode. Leave it on "Same" to use the choice above,
    or pick a different layout for just that one.
-4. Optional: pick who goes where in the stacked wide shot (the list shows the
-   camera nest names from the open sequence; click Refresh after switching).
+4. Optional: pick how many people are in the stacked wide shot (2 or 3) and
+   who goes where (the list shows the camera nest names from the open
+   sequence; click Refresh after switching). 2 people uses V1 and V2 of the
+   wide nest. If a "<wide> VERT" nest already exists it is reused as it is;
+   tick "Build a new vertical wide" to apply a new choice.
 5. Click "Make vertical version of this sequence".
 
 It makes a copy named "<sequence> VERT" at 1080x1920. The 16x9 sequence and

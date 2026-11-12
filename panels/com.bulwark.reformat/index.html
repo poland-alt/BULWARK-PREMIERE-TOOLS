@@ -22,9 +22,10 @@
   #sections .sec { padding: 6px 0; border-top: 1px solid #333; }
   #sections .what { color: #d0d0d0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #sections .what b { color: #fff; font-weight: 600; margin-right: 6px; }
-  #sections .chips { display: flex; gap: 4px; margin-top: 4px; }
-  #sections .chip { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
-  #sections .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
+  #sections .chips, #people { display: flex; gap: 4px; margin-top: 4px; }
+  #people { margin: 0 0 6px; }
+  #sections .chip, #people .chip { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
+  #sections .chip.on, #people .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
   input[type=number] { width: 80px; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
   button { display: block; width: 100%; padding: 9px 10px; margin-bottom: 8px; background: #3a6ff2; color: #fff; border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
   button.secondary { background: #3a3a3a; }
@@ -47,7 +48,8 @@
     <option value="full">Full screen: media over a blurred copy</option>
   </select>
   <div id="sections"></div>
-  <label for="order">Wide shot: who goes where (when the panel builds the vertical wide)</label>
+  <label for="order">Wide shot: how many people, and who goes where (when the panel builds the vertical wide)</label>
+  <div id="people"></div>
   <select id="order" size="7"></select>
   <button id="refresh" class="secondary small">Refresh names from the open sequence</button>
   <label class="check"><input type="checkbox" id="rebuild"> Build a new vertical wide even if one already exists</label>
@@ -88,36 +90,54 @@
     try { var savedLayout = localStorage.getItem('bulwarkLayout'); if (savedLayout) layoutSel.value = savedLayout; } catch (e) {}
     layoutSel.addEventListener('change', function () { localStorage.setItem('bulwarkLayout', layoutSel.value); });
     var orderSel = document.getElementById('order'), rebuildBox = document.getElementById('rebuild');
-    function permutations(a) {
-      if (a.length < 2) return [a];
+    // cams: [{track: 1, name: "JVL"}, ...] from the open sequence's wide nest; falls back to V1/V2/V3
+    var peopleEl = document.getElementById('people'), lastCams = null, people = 0;
+    try { people = +localStorage.getItem('bulwarkPeople') || 0; } catch (e) {}
+    // every ordered pick of n items from a
+    function arrangements(a, n) {
+      if (n === 0) return [[]];
       var out = [];
       for (var i = 0; i < a.length; i++) {
-        var rest = permutations(a.slice(0, i).concat(a.slice(i + 1)));
+        var rest = arrangements(a.slice(0, i).concat(a.slice(i + 1)), n - 1);
         for (var j = 0; j < rest.length; j++) out.push([a[i]].concat(rest[j]));
       }
       return out;
     }
-    // cams: [{track: 1, name: "JVL"}, ...] from the open sequence's wide nest; falls back to V1/V2/V3
     function fillOrders(cams) {
       var keep = orderSel.value || 'auto';
       try { keep = localStorage.getItem('bulwarkOrder') || keep; } catch (e) {}
       if (!cams || cams.length < 2) cams = [{ track: 1, name: 'V1' }, { track: 2, name: 'V2' }, { track: 3, name: 'V3' }];
       cams = cams.slice(0, 3);
-      var slots = cams.length === 2 ? ['Top', 'Bottom'] : ['Top', 'Middle', 'Bottom'];
+      lastCams = cams;
+      // 2 or 3 people in the stacked wide: a choice only when the wide nest has three cameras
+      var n = cams.length === 2 ? 2 : (people === 2 ? 2 : 3);
+      peopleEl.innerHTML = '';
+      if (cams.length > 2) [2, 3].forEach(function (k) {
+        var el = document.createElement('span'); el.className = 'chip' + (k === n ? ' on' : '');
+        el.textContent = k === 2 ? '2 people (2-up frame)' : '3 people (3-UP frame)';
+        el.addEventListener('click', function () {
+          people = k; try { localStorage.setItem('bulwarkPeople', k); localStorage.removeItem('bulwarkOrder'); } catch (e) {}
+          orderSel.value = ''; fillOrders(lastCams);
+        });
+        peopleEl.appendChild(el);
+      });
+      var slots = n === 2 ? ['Top', 'Bottom'] : ['Top', 'Middle', 'Bottom'];
       orderSel.innerHTML = '';
       function add(value, text) {
         var o = document.createElement('option'); o.value = value; o.textContent = text;
         if (value === keep) o.selected = true;
         orderSel.appendChild(o);
       }
-      add('auto', 'Auto: left to right becomes top to bottom');
-      var perms = permutations(cams);
+      // "auto" stacks every camera, so it is only offered when everyone in the wide nest is used
+      if (n === cams.length) add('auto', 'Auto: left to right becomes top to bottom');
+      // two people are always the cameras on the two lowest tracks (V1 and V2) of the wide nest
+      var perms = arrangements(n === 2 ? cams.slice(0).sort(function (x, y) { return x.track - y.track; }).slice(0, 2) : cams, n);
       for (var i = 0; i < perms.length; i++) {
         var val = [], txt = [];
         for (var j = 0; j < perms[i].length; j++) { val.push(perms[i][j].track); txt.push(slots[j] + ' ' + perms[i][j].name); }
         add(val.join(','), txt.join(' · '));
       }
-      if (!orderSel.value) orderSel.value = 'auto';
+      if (orderSel.selectedIndex < 0) orderSel.selectedIndex = 0;
     }
     // ---- one layout per media section ----
     var sectionsEl = document.getElementById('sections'), sectionPicks = {}, sectionList = [], sectionsKey = '';

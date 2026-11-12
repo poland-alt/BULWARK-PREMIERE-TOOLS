@@ -326,7 +326,8 @@ $.bulwark.vert = {
         return null;
     }
     // Builds "<wide> VERT": a 1080x1920 copy of the wide nest with its cameras stacked inside the show's frame.
-    // order: "auto" (left to right in the 16x9 becomes top to bottom) or track numbers top to bottom, e.g. "3,1,2".
+    // order: "auto" (every camera; left to right in the 16x9 becomes top to bottom) or track numbers top to bottom,
+    // e.g. "3,1,2". Only the cameras named are stacked, so "3,1" on a three-camera wide makes a two-person 2-up.
     function buildVerticalNest(wide, showBin, review, order) {
         var nestName = wide.name + " VERT", nn = 2;
         while (seqNamed(nestName)) nestName = wide.name + " VERT " + (nn++);
@@ -369,16 +370,23 @@ $.bulwark.vert = {
             for (w = 0; w < want.length; w++) {
                 for (j = 0; j < cams.length; j++) if (cams[j].track === parseInt(want[w], 10) - 1 && !cams[j].used) { cams[j].used = true; picked.push(cams[j]); }
             }
-            for (j = 0; j < cams.length; j++) if (!cams[j].used) { picked.push(cams[j]); review.push("V" + (cams[j].track + 1) + " of \"" + wide.name + "\" was not in the chosen order, so it was added last."); }
+            if (picked.length < 2) want = null;   // the order names tracks this wide does not have: stack everyone
+        }
+        var nCols = cams.length;                  // people side by side in the 16x9 wide
+        if (want) {
             // the framing maths below needs each camera's column in the 16x9 wide, which is its left-to-right rank
             var byX = cams.slice(0).sort(function (a, b) { return a.x - b.x; });
             for (j = 0; j < byX.length; j++) byX[j].col = j;
+            // cameras left out of the order are not in this vertical wide at all
+            for (j = 0; j < cams.length; j++) if (!cams[j].used) {
+                var dt = nest.videoTracks[cams[j].track];
+                for (c = dt.clips.numItems - 1; c >= 0; c--) { try { dt.clips[c].remove(false, false); } catch (eRm) {} }
+            }
             cams = picked;
         } else {
             cams.sort(function (a, b) { return a.x - b.x; });           // left to right in 16x9 becomes top to bottom
             for (var j2 = 0; j2 < cams.length; j2++) cams[j2].col = j2;
         }
-        var nCols = cams.length;
         if (cams.length > 3) { review.push("\"" + wide.name + "\" has " + cams.length + " camera tracks; only the first three were stacked."); cams.length = 3; }
         var n = cams.length, rows = n === 2 ? CFG.rows2 : CFG.rows3, rowH = n === 2 ? CFG.rowH2 : CFG.rowH3, top = 0, wideW = wide.frameSizeHorizontal;
         for (var k = 0; k < n; k++) {
