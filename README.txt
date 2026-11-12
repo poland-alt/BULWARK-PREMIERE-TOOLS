@@ -1,5 +1,13 @@
-BULWARK PREMIERE TOOLS - v1.4 test build
+BULWARK PREMIERE TOOLS - v1.5 test build
 ========================================
+
+WHAT'S NEW IN v1.5
+------------------
+ - The panels update themselves. When a panel opens it checks for a newer
+   version; if there is one, a blue notice at the top says what changed and
+   has an "Update now" button. Click it and the panel reloads on the new
+   version. Nothing updates without the click. You only need this zip once.
+ - The version you are on is shown next to the panel's title.
 
 WHAT'S NEW IN v1.4
 ------------------
@@ -57,7 +65,7 @@ Tested on Premiere Pro 2027 (27.0) on Mac.
 INSTALL (Mac) - about one minute
 --------------------------------
 1. Quit Premiere Pro.
-2. Unzip "Bulwark Premiere Tools v1.4.zip" (double-click it in Downloads).
+2. Unzip "Bulwark Premiere Tools.zip" (double-click it in Downloads).
 3. Open the "Bulwark Premiere Tools" folder.
 4. Right-click "Install on Mac.command" and choose Open, then Open again.
    (Double-clicking is blocked by macOS because the file came from the internet.
@@ -67,8 +75,9 @@ INSTALL (Mac) - about one minute
 6. Open Premiere Pro, then Window > Extensions > Bulwark Vertical Reformat
    (and Window > Extensions > Bulwark Caption Tools).
 
-Updating from an earlier version: just run the installer again. It replaces
-the old panels. Restart Premiere afterwards.
+Updating: from v1.5 on, use the "Update now" button in the panel. To come
+from an older version (or to repair a panel), run the installer again and
+restart Premiere.
 
 Manual install, if you prefer:
   a. Copy the two folders inside "panels" to
