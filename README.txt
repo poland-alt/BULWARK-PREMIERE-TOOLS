@@ -1,5 +1,24 @@
-BULWARK PREMIERE TOOLS - v1.6 test build
+BULWARK PREMIERE TOOLS - v1.7 test build
 ========================================
+
+WHAT'S NEW IN v1.7
+------------------
+ - Nests with media inside them (e.g. a "react" frame: two speakers small on
+   one side, media big on the other). The vertical version is now built as
+     2 people + media  3-UP frame: person on top, media in the middle,
+                       person below
+     1 person + media  2-up frame: person on top, media below
+   The "who goes where" list shows the two people and where the media goes.
+   Media is the clip with "media" or "screen share" in its name; if there is
+   none, the picture that is clearly bigger than the cameras. Switched-off
+   clips inside the nest are ignored.
+ - Multicam clips (AutoCut and others) are treated as a single camera and
+   scaled to fill, instead of being swapped for a stacked wide. The panel
+   cannot read which angle a multicam clip shows, so it lists a reminder
+   under "Check these": a clip showing a 2-box or media angle needs laying
+   out by hand.
+ - Framing inside a built vertical wide is measured on the 16x9 nest, which
+   puts each person closer to the middle of their window before centring.
 
 WHAT'S NEW IN v1.6
 ------------------
@@ -206,6 +225,9 @@ Known limits
    trimmed.
  - In 3-UP and PIP media sections the live camera goes on top and the others
    follow track order; swap by hand if needed.
+ - Multicam clips: the angle cannot be read, so every multicam clip is
+   scaled to fill as a single camera, and face centring skips them.
+ - A nest with three people and media in it: the media is left out.
 
 
 CAPTION TOOLS

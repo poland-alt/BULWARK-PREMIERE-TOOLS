@@ -92,7 +92,7 @@
     layoutSel.addEventListener('change', function () { localStorage.setItem('bulwarkLayout', layoutSel.value); });
     var orderSel = document.getElementById('order'), rebuildBox = document.getElementById('rebuild');
     // cams: [{track: 1, name: "JVL"}, ...] from the open sequence's wide nest; falls back to V1/V2/V3
-    var peopleEl = document.getElementById('people'), lastCams = null, people = 0;
+    var peopleEl = document.getElementById('people'), lastCams = null, lastMedia = false, people = 0;
     try { people = +localStorage.getItem('bulwarkPeople') || 0; } catch (e) {}
     // every ordered pick of n items from a
     function arrangements(a, n) {
@@ -104,32 +104,36 @@
       }
       return out;
     }
-    function fillOrders(cams) {
+    function fillOrders(cams, hasMedia) {
       var keep = orderSel.value || 'auto';
       try { keep = localStorage.getItem('bulwarkOrder') || keep; } catch (e) {}
       if (!cams || cams.length < 2) {
+        var onlyMedia = !!(cams && cams.length === 1 && hasMedia);
         // no wide nest to stack in this sequence: nothing to choose, and no made-up names
         peopleEl.innerHTML = ''; orderSel.innerHTML = ''; lastCams = null;
-        var none = document.createElement('option'); none.value = 'auto'; none.textContent = 'No wide shot in this sequence: nothing to pick'; none.selected = true;
+        var none = document.createElement('option'); none.value = 'auto'; none.textContent = onlyMedia ? cams[0].name + ' on top, media below' : 'No wide shot in this sequence: nothing to pick'; none.selected = true;
         orderSel.appendChild(none); orderSel.size = 1; orderSel.disabled = true;
         return;
       }
       orderSel.disabled = false; orderSel.size = 7;
       cams = cams.slice(0, 3);
-      lastCams = cams;
+      lastCams = cams; lastMedia = !!hasMedia;
       // 2 or 3 people in the stacked wide: a choice only when the wide nest has three cameras
       var n = cams.length === 2 ? 2 : (people === 2 ? 2 : 3);
+      // a nest with media in it: two people go above and below the media, in the 3-UP frame
+      if (hasMedia) n = 2;
       peopleEl.innerHTML = '';
-      if (cams.length > 2) [2, 3].forEach(function (k) {
+      if (cams.length > 2 && !hasMedia) [2, 3].forEach(function (k) {
         var el = document.createElement('span'); el.className = 'chip' + (k === n ? ' on' : '');
         el.textContent = k === 2 ? '2 people (2-up frame)' : '3 people (3-UP frame)';
         el.addEventListener('click', function () {
           people = k; try { localStorage.setItem('bulwarkPeople', k); localStorage.removeItem('bulwarkOrder'); } catch (e) {}
-          orderSel.value = ''; fillOrders(lastCams);
+          orderSel.value = ''; fillOrders(lastCams, lastMedia);
         });
         peopleEl.appendChild(el);
       });
       var slots = n === 2 ? ['Top', 'Bottom'] : ['Top', 'Middle', 'Bottom'];
+      var sep = hasMedia ? ' · media · ' : ' · ';
       orderSel.innerHTML = '';
       function add(value, text) {
         var o = document.createElement('option'); o.value = value; o.textContent = text;
@@ -137,13 +141,13 @@
         orderSel.appendChild(o);
       }
       // "auto" stacks every camera, so it is only offered when everyone in the wide nest is used
-      if (n === cams.length) add('auto', 'Auto: left to right becomes top to bottom');
+      if (n === cams.length) add('auto', hasMedia ? 'Auto: media in the middle, people as they are stacked' : 'Auto: left to right becomes top to bottom');
       // two people are always the cameras on the two lowest tracks (V1 and V2) of the wide nest
       var perms = arrangements(n === 2 ? cams.slice(0).sort(function (x, y) { return x.track - y.track; }).slice(0, 2) : cams, n);
       for (var i = 0; i < perms.length; i++) {
         var val = [], txt = [];
         for (var j = 0; j < perms[i].length; j++) { val.push(perms[i][j].track); txt.push(slots[j] + ' ' + perms[i][j].name); }
-        add(val.join(','), txt.join(' · '));
+        add(val.join(','), txt.join(sep));
       }
       if (orderSel.selectedIndex < 0) orderSel.selectedIndex = 0;
     }
@@ -187,13 +191,14 @@
       loadSections();
       csi.evalScript('$.bulwark.listCameras()', function (r) {
         var p = String(r || '').split('|'), cams = [];
-        if (p[0] === 'OK') for (var i = 2; i < p.length; i++) { var k = p[i].indexOf(':'); if (k > 0) cams.push({ track: +p[i].slice(0, k), name: p[i].slice(k + 1) }); }
-        fillOrders(cams);
+        var hasMedia = false;
+        if (p[0] === 'OK') for (var i = 2; i < p.length; i++) { var k = p[i].indexOf(':'); if (k > 0) { if (+p[i].slice(0, k) === 0) hasMedia = true; else cams.push({ track: +p[i].slice(0, k), name: p[i].slice(k + 1) }); } }
+        fillOrders(cams, hasMedia);
         // say what was read, so a refresh always shows a result
         var note = document.getElementById('camnote');
         if (p[0] !== 'OK') note.textContent = p.slice(1).join('|') || 'Premiere did not answer.';
-        else if (cams.length < 2) note.textContent = 'Wide nest "' + p[1] + '" has ' + cams.length + ' camera' + (cams.length === 1 ? '' : 's') + '; a stacked wide needs 2 or 3.';
-        else note.textContent = 'Wide nest "' + p[1] + '": ' + cams.map(function (c) { return 'V' + c.track + ' ' + c.name; }).join(', ') + '.';
+        else if (cams.length < 2 && !hasMedia) note.textContent = 'Wide nest "' + p[1] + '" has ' + cams.length + ' camera' + (cams.length === 1 ? '' : 's') + '; a stacked wide needs 2 or 3.';
+        else note.textContent = 'Wide nest "' + p[1] + '": ' + cams.map(function (c) { return 'V' + c.track + ' ' + c.name; }).join(', ') + (hasMedia ? ', plus media (goes in the middle window)' : '') + '.';
       });
     }
     orderSel.addEventListener('change', function () { try { localStorage.setItem('bulwarkOrder', orderSel.value); } catch (e) {} });

@@ -325,36 +325,110 @@ $.bulwark.vert = {
         }
         return null;
     }
+    // Is this timeline clip a multicam clip (it shows one angle of its nest, not all the tracks)? seq must be the open sequence.
+    function multicamOn(seq, trackIdx, clip) {
+        try {
+            app.enableQE();
+            var qt = qe.project.getActiveSequence().getVideoTrackAt(trackIdx);
+            for (var k = 0; k < qt.numItems; k++) {
+                var it = qt.getItemAt(k);
+                if (it.type !== "Empty" && Math.abs(it.start.secs - clip.start.seconds) < EPS) return it.multicamEnabled === true;
+            }
+        } catch (e) {}
+        return false;
+    }
+    // What a clip shows of the frame it sits in: its box in pixels (after Motion crops, clipped to the frame),
+    // and u = where the middle of that box falls across the clip's own picture (0.5 = its centre).
+    function visRect(cl, W, H) {
+        var sz = pixelSize(cl.projectItem) || [1920, 1080], m = motion(cl), k = getScale(cl) / 100, pos = [0.5, 0.5];
+        try { pos = prop(m, "Position").getValue(); } catch (e) {}
+        function crop(n) { var q = prop(m, n), v = 0; try { v = q ? Number(q.getValue()) : 0; } catch (e1) {} return v / 100; }
+        var w = sz[0] * k, h = sz[1] * k, left = pos[0] * W - w / 2, top = pos[1] * H - h / 2;
+        var x0 = Math.max(0, left + crop("Crop Left") * w), x1 = Math.min(W, left + w - crop("Crop Right") * w);
+        var y0 = Math.max(0, top + crop("Crop Top") * h), y1 = Math.min(H, top + h - crop("Crop Bottom") * h);
+        return { x: pos[0], y: pos[1], area: Math.max(0, x1 - x0) * Math.max(0, y1 - y0), u: w > 0 ? ((x0 + x1) / 2 - left) / w : 0.5 };
+    }
+    // Sorts what is inside a wide nest: the people (one per camera track), the media (if the nest has media in it,
+    // as in a "react" frame: people small, media big), and everything else (frames, dividers, switched-off clips).
+    // W, H: the frame the layout was made for (a vertical copy of a 16x9 nest is still measured as 16x9).
+    function nestParts(seq, W, H) {
+        W = W || seq.frameSizeHorizontal; H = H || seq.frameSizeVertical;
+        var cams = [], stills = [], junk = [], end = 0, t, c, i;
+        for (t = 0; t < seq.videoTracks.numTracks; t++) {
+            var tr = seq.videoTracks[t], first = null;
+            for (c = 0; c < tr.clips.numItems; c++) {
+                var cl = tr.clips[c];
+                if (cl.disabled) { junk.push(cl); continue; }
+                if (!isCameraClip(cl)) {
+                    if (!isGraphic(cl) && CFG.stillExt.test(String(cl.name)) && !/frame|background|logo|divider|watermark|overlay/i.test(String(cl.name))) stills.push({ track: t, clip: cl });
+                    else junk.push(cl);
+                    continue;
+                }
+                if (!first) first = cl;
+                end = Math.max(end, cl.end.seconds);
+            }
+            if (first) { var v = visRect(first, W, H); cams.push({ track: t, x: v.x, y: v.y, area: v.area, u: v.u, name: String(first.name), item: first.projectItem }); }
+        }
+        var media = null;
+        for (i = 0; i < cams.length && !media; i++) if (isMediaName(cams[i].name)) media = cams[i];
+        if (!media && cams.length > 2) {
+            // no telling name: media is the picture that is clearly bigger than every camera
+            var bySize = cams.slice(0).sort(function (p, q) { return q.area - p.area; });
+            if (bySize[0].area > bySize[1].area * 1.4) media = bySize[0];
+        }
+        if (media) { var ppl = []; for (i = 0; i < cams.length; i++) if (cams[i] !== media) ppl.push(cams[i]); cams = ppl; }
+        // an image that covers part of the frame (not a full-frame overlay) is media too
+        for (i = 0; i < stills.length; i++) {
+            var sv = visRect(stills[i].clip, W, H), part = sv.area / (W * H);
+            if (!media && cams.length && part > 0.04 && part < 0.8) { media = { track: stills[i].track, still: true, name: String(stills[i].clip.name) }; end = Math.max(end, stills[i].clip.end.seconds); }
+            else junk.push(stills[i].clip);
+        }
+        return { cams: cams, media: media, junk: junk, end: end };
+    }
+    function isMediaName(n) { return /media|screen ?share/i.test(String(n)); }
+    function shortName(n) { return String(n).replace(/\.[A-Za-z0-9]+$/, "").replace(/[-_ ]+[0-9a-f]{6,}[-_0-9a-zA-Z ]*$/, ""); }
+
     // Builds "<wide> VERT": a 1080x1920 copy of the wide nest with its cameras stacked inside the show's frame.
     // order: "auto" (every camera; left to right in the 16x9 becomes top to bottom) or track numbers top to bottom,
     // e.g. "3,1,2". Only the cameras named are stacked, so "3,1" on a three-camera wide makes a two-person 2-up.
+    // A nest with media in it becomes: 2 people + media -> 3-UP with the media in the middle; 1 person + media -> 2-up.
     function buildVerticalNest(wide, showBin, review, order) {
         var nestName = wide.name + " VERT", nn = 2;
         while (seqNamed(nestName)) nestName = wide.name + " VERT " + (nn++);
         var nest = newSequenceFromClone(wide, nestName);
         if (!nest) return null;
-        var cams = [], junk = [], t, c, end = 0;
+        var wideW = wide.frameSizeHorizontal, wideH = wide.frameSizeVertical;
+        // Measure the layout on the 16x9 original (Premiere shifts Position values when the copy's frame size changes),
+        // then pair each clip of the copy with its original: same track, same place in the track.
+        var parts = nestParts(wide), cams = parts.cams, media = parts.media, junk = [], keep = {}, t, c, j, end = parts.end;
         for (t = 0; t < nest.videoTracks.numTracks; t++) {
-            var tr = nest.videoTracks[t], isCam = false;
-            for (c = 0; c < tr.clips.numItems; c++) {
-                var cl = tr.clips[c];
-                if (!isCameraClip(cl)) junk.push(cl);
-                else { isCam = true; end = Math.max(end, cl.end.seconds); }
-            }
-            if (isCam) {
-                var first = null;
-                for (c = 0; c < tr.clips.numItems && !first; c++) if (isCameraClip(tr.clips[c])) first = tr.clips[c];
-                var p = prop(motion(first), "Position"), x = 0.5;
-                try { x = p.getValue()[0]; } catch (e) {}
-                cams.push({ track: t, x: x });
+            var role = media && media.track === t ? "media" : "";
+            for (j = 0; j < cams.length; j++) if (cams[j].track === t) role = "cam";
+            var nc = nest.videoTracks[t].clips, oc = t < wide.videoTracks.numTracks ? wide.videoTracks[t].clips : null;
+            for (c = 0; c < nc.numItems; c++) {
+                var orig = oc && c < oc.numItems ? oc[c] : null, ok = false;
+                if (role && orig && !orig.disabled) ok = (role === "media" && media.still) ? CFG.stillExt.test(String(orig.name)) : isCameraClip(orig);
+                if (!ok) { junk.push(nc[c]); continue; }
+                if (!keep[t]) keep[t] = [];
+                keep[t].push({ clip: nc[c], at: nc[c].start.seconds, v: visRect(orig, wideW, wideH), k16: getScale(orig) / 100 });
             }
         }
-        for (c = 0; c < junk.length; c++) { try { junk[c].remove(false, false); } catch (e1) {} }
+        if (media && cams.length > 2) {
+            review.push("\"" + wide.name + "\" has " + cams.length + " people and media in it; the media was left out of \"" + nest.name + "\". Add it by hand.");
+            for (c = 0; keep[media.track] && c < keep[media.track].length; c++) junk.push(keep[media.track][c].clip);
+            media = null;
+        }
+        for (c = junk.length - 1; c >= 0; c--) { try { junk[c].remove(false, false); } catch (e1) {} }
+        // clip handles can go stale once others on the track are removed: find each kept clip again by its start time
+        for (var kt in keep) {
+            var live = nest.videoTracks[parseInt(kt, 10)].clips;
+            for (c = 0; c < keep[kt].length; c++) for (j = 0; j < live.numItems; j++) if (Math.abs(live[j].start.seconds - keep[kt][c].at) < EPS) keep[kt][c].clip = live[j];
+        }
         for (t = 0; t < nest.audioTracks.numTracks; t++) {
             var at = nest.audioTracks[t];
             for (c = at.clips.numItems - 1; c >= 0; c--) at.clips[c].remove(false, false);
         }
-        if (cams.length < 2) {
+        if (cams.length === 0 || (cams.length < 2 && !media)) {
             if (cams.length === 0) {
                 // nothing usable inside: don't put an empty nest on the timeline, keep the centre-cropped wide instead
                 review.push("\"" + wide.name + "\" has no camera clips inside it, so no vertical wide was built; the wide shots stay a centre crop.");
@@ -366,39 +440,43 @@ $.bulwark.vert = {
         }
         var want = /^\d+(,\d+)*$/.test(String(order)) ? String(order).split(",") : null;
         if (want) {
-            var picked = [], w, j;
+            var picked = [], w;
             for (w = 0; w < want.length; w++) {
                 for (j = 0; j < cams.length; j++) if (cams[j].track === parseInt(want[w], 10) - 1 && !cams[j].used) { cams[j].used = true; picked.push(cams[j]); }
             }
-            if (picked.length < 2) want = null;   // the order names tracks this wide does not have: stack everyone
+            if (picked.length < (media ? 1 : 2)) want = null;   // the order names tracks this wide does not have: stack everyone
         }
         var nCols = cams.length;                  // people side by side in the 16x9 wide
+        // the framing maths below needs each camera's column in the 16x9 wide, which is its left-to-right rank
+        var byX = cams.slice(0).sort(function (a, b) { return a.x - b.x; });
+        for (j = 0; j < byX.length; j++) byX[j].col = j;
         if (want) {
-            // the framing maths below needs each camera's column in the 16x9 wide, which is its left-to-right rank
-            var byX = cams.slice(0).sort(function (a, b) { return a.x - b.x; });
-            for (j = 0; j < byX.length; j++) byX[j].col = j;
             // cameras left out of the order are not in this vertical wide at all
             for (j = 0; j < cams.length; j++) if (!cams[j].used) {
-                var dt = nest.videoTracks[cams[j].track];
-                for (c = dt.clips.numItems - 1; c >= 0; c--) { try { dt.clips[c].remove(false, false); } catch (eRm) {} }
+                var dk = keep[cams[j].track] || [];
+                for (c = 0; c < dk.length; c++) { try { dk[c].clip.remove(false, false); } catch (eRm) {} }
             }
             cams = picked;
         } else {
-            cams.sort(function (a, b) { return a.x - b.x; });           // left to right in 16x9 becomes top to bottom
-            for (var j2 = 0; j2 < cams.length; j2++) cams[j2].col = j2;
+            // left to right in 16x9 becomes top to bottom; people already one above the other keep that order
+            var stackedAlready = byX.length > 1 && byX[byX.length - 1].x - byX[0].x < 0.08;
+            cams.sort(function (a, b) { return stackedAlready ? a.y - b.y : a.x - b.x; });
         }
         if (cams.length > 3) { review.push("\"" + wide.name + "\" has " + cams.length + " camera tracks; only the first three were stacked."); cams.length = 3; }
-        var n = cams.length, rows = n === 2 ? CFG.rows2 : CFG.rows3, rowH = n === 2 ? CFG.rowH2 : CFG.rowH3, top = 0, wideW = wide.frameSizeHorizontal;
+        if (media && cams.length > 2) cams.length = 2;
+        // rows: 3 people, or 2 people around the media -> 3-UP frame; 2 people, or 1 person over the media -> 2-up frame
+        var n = cams.length, three = media ? n === 2 : n !== 2, rowH = three ? CFG.rowH3 : CFG.rowH2, top = 0;
+        var rows = media ? (three ? [CFG.rows3[0], CFG.rows3[2]] : [CFG.rows2[0]]) : (three ? CFG.rows3 : CFG.rows2);
         for (var k = 0; k < n; k++) {
-            var trk = nest.videoTracks[cams[k].track];
+            var trk = keep[cams[k].track] || [];
             top = Math.max(top, cams[k].track);
-            for (c = 0; c < trk.clips.numItems; c++) {
-                var cl2 = trk.clips[c], sz = pixelSize(cl2.projectItem) || [1920, 1080];
-                var pp = prop(motion(cl2), "Position"), px = 0.5, old16 = getScale(cl2) / 100;
-                try { px = pp.getValue()[0]; } catch (e4) {}
-                var sc = Math.max(rowH / sz[1], n === 2 ? 0 : CFG.stackScale3 / 100 * 1080 / sz[1]);
-                // where this person's column of the 16x9 wide falls in the camera's own frame (0.5 = centre)
-                var u = 0.5 + ((cams[k].col + 0.5) / nCols * wideW - px * wideW) / (sz[0] * old16);
+            for (c = 0; c < trk.length; c++) {
+                var cl2 = trk[c].clip, sz = pixelSize(cl2.projectItem) || [1920, 1080];
+                var px = trk[c].v.x, old16 = trk[c].k16;
+                var sc = Math.max(rowH / sz[1], three ? CFG.stackScale3 / 100 * 1080 / sz[1] : 0);
+                // where this person sits in the camera's own frame (0.5 = centre): in a nest with media each camera is a
+                // small window, so it is the middle of what shows; in a plain wide it is the middle of the person's column
+                var u = media ? trk[c].v.u : 0.5 + ((cams[k].col + 0.5) / nCols * wideW - px * wideW) / (sz[0] * old16);
                 var slack = Math.max(0, (sz[0] * sc - CFG.width) / 2 / CFG.width);
                 var nx = 0.5 - (u - 0.5) * sz[0] * sc / CFG.width;
                 nx = Math.max(0.5 - slack, Math.min(0.5 + slack, nx));
@@ -408,13 +486,37 @@ $.bulwark.vert = {
                 setCrop(cl2, 0, cropTB, 0, cropTB);
             }
         }
-        var frame = cams.length === 2 ? childMatching(showBin, /2\s*-\s*up/i) : childMatching(showBin, /^9x16\s*3\s*-\s*up/i);
-        if (!frame) review.push("\"" + showBin.name + "\" has no " + (cams.length === 2 ? "2-up" : "3-UP") + " frame, so \"" + nest.name + "\" has no frame on it.");
+        if (media) {
+            var mtr = keep[media.track] || [], shortfall = false;
+            top = Math.max(top, media.track);
+            for (c = 0; c < mtr.length; c++) {
+                var mc = mtr[c].clip, ms = pixelSize(mc.projectItem);
+                if (!ms) { review.push("\"" + nest.name + "\": could not read the size of " + mc.name + ", check its scale."); ms = [1920, 1080]; }
+                var ratio = ms[0] / ms[1], msc;
+                if (three && ratio > 1.6 && ratio < 1.95) {
+                    // close to the shape of the middle window: fill it, trimming the few pixels that spill over
+                    msc = Math.max(CFG.width / ms[0], CFG.rowH3 / ms[1]);
+                    var mcrop = Math.max(0, (ms[1] * msc - CFG.rowH3) / 2 / (ms[1] * msc) * 100);
+                    setCrop(mc, 0, mcrop, 0, mcrop);
+                } else {
+                    msc = three ? Math.min(CFG.midMediaMaxW / ms[0], CFG.midMediaMaxH / ms[1]) : Math.min(CFG.mediaMaxW / ms[0], CFG.mediaMaxH / ms[1]);
+                    setCrop(mc, 0, 0, 0, 0);
+                    shortfall = true;
+                }
+                setScale(mc, msc * 100);
+                setPos(mc, three ? [0.5, CFG.rows3[1]] : CFG.mediaPos);
+                // labelled so the editor can see which clip is the media, and so face centring leaves it alone
+                if (!isMediaName(mc.name)) { try { mc.name = "MEDIA " + mc.name; } catch (eN) {} }
+            }
+            if (shortfall) review.push("\"" + nest.name + "\": the media does not fill its window, so there is nothing behind its edges. Add a background plate under it if needed.");
+        }
+        var frame = three ? childMatching(showBin, /^9x16\s*3\s*-\s*up/i) : childMatching(showBin, /2\s*-\s*up/i);
+        if (!frame) review.push("\"" + showBin.name + "\" has no " + (three ? "3-UP" : "2-up") + " frame, so \"" + nest.name + "\" has no frame on it.");
         else {
             var ft = firstFreeTrack(nest, top + 1, 0, end);
             if (ft < 0 || !placeStill(nest, frame, ft, 0, end)) review.push("Could not place " + frame.name + " in \"" + nest.name + "\"; add it on the top track.");
         }
-        return { seq: nest, offset: 0, made: true };
+        return { seq: nest, offset: 0, made: true, media: !!media };
     }
 
     // Shows = the sub-bins of "9x16 Frames" that hold at least one frame.
@@ -445,7 +547,7 @@ $.bulwark.vert = {
                     if (!ns || seen[ns.sequenceID]) continue;
                     seen[ns.sequenceID] = true;
                     if (ns.frameSizeVertical > ns.frameSizeHorizontal) continue;
-                    if (populatedTracks(ns) > 1) { if (!wide) wide = ns; } else singles.push(ns);
+                    if (populatedTracks(ns) > 1) { if (!wide && !multicamOn(seq, t, seq.videoTracks[t].clips[c])) wide = ns; } else singles.push(ns);
                 }
             }
             if (!wide) return "ERR|No wide-shot nest in \"" + seq.name + "\".";
@@ -458,17 +560,13 @@ $.bulwark.vert = {
                 }
                 return null;
             }
-            var out = [];
-            for (t = 0; t < wide.videoTracks.numTracks; t++) {
-                var tr = wide.videoTracks[t];
-                for (c = 0; c < tr.clips.numItems; c++) {
-                    var k = tr.clips[c];
-                    if (!isCameraClip(k)) continue;
-                    var nm = nestNameFor(k.projectItem) || String(k.name).replace(/\.[A-Za-z0-9]+$/, "");
-                    out.push((t + 1) + ":" + nm.replace(/[|:]/g, " "));
-                    break;
-                }
+            // people only: media inside the nest and switched-off clips are not part of the order
+            var out = [], parts = nestParts(wide);
+            for (t = 0; t < parts.cams.length; t++) {
+                var nm = nestNameFor(parts.cams[t].item) || shortName(parts.cams[t].name);
+                out.push((parts.cams[t].track + 1) + ":" + nm.replace(/[|:]/g, " "));
             }
+            if (parts.media) out.push("0:media");
             return "OK|" + wide.name.replace(/[|]/g, " ") + "|" + out.join("|");
         } catch (err) { return "ERR|" + String(err); }
     };
@@ -647,7 +745,7 @@ $.bulwark.vert = {
         for (t = 0; t < nest.videoTracks.numTracks; t++) {
             var cl = nest.videoTracks[t].clips;
             for (c = 0; c < cl.numItems; c++) {
-                if (!isCameraClip(cl[c])) continue;
+                if (!isCameraClip(cl[c]) || isMediaName(cl[c].name)) continue;   // media in a window is not a person
                 var pp = prop(motion(cl[c]), "Position"), y = 0.5, hit = null;
                 try { y = pp.getValue()[1]; } catch (e) {}
                 for (i = 0; i < rows.length; i++) if (Math.abs(rows[i].y - y) < 0.03) hit = rows[i];
@@ -702,7 +800,7 @@ $.bulwark.vert = {
                 if (!s) continue;
                 if (per[id].kind === "nest") {
                     var rowsMoved = centreNest(s, per[id].frames);
-                    if (rowsMoved) notes.push("\"" + s.name + "\": " + rowsMoved + " people centred in their windows.");
+                    if (rowsMoved) notes.push("\"" + s.name + "\": " + rowsMoved + (rowsMoved === 1 ? " person" : " people") + " centred in their windows.");
                     else review.push("No faces found in \"" + s.name + "\"; it was left as it was.");
                     continue;
                 }
@@ -830,7 +928,7 @@ $.bulwark.vert = {
             }
 
             // 4. Apply the layout.
-            var nFull = 0, nTop = 0, nMedia = 0, nRemoved = 0, nCards = 0, nGraphics = 0;
+            var nFull = 0, nMulticam = 0, nTop = 0, nMedia = 0, nRemoved = 0, nCards = 0, nGraphics = 0;
             var toRemove = [], cardsToSwap = [], wideClips = [], fullStills = [], wantBlur = !(blur === false || blur === "false");
             for (i = 0; i < all.length; i++) {
                 var o2 = all[i], sg = segAt(o2);
@@ -873,7 +971,8 @@ $.bulwark.vert = {
                 }
                 setScale(o2.clip, getScale(o2.clip) * fill);
                 var wseq = seqFor(o2.item);
-                if (wseq && populatedTracks(wseq) > 1) wideClips.push(o2); else nFull++;
+                if (wseq && populatedTracks(wseq) > 1 && multicamOn(seq, o2.track, o2.clip)) { nFull++; nMulticam++; }
+                else if (wseq && populatedTracks(wseq) > 1) wideClips.push(o2); else nFull++;
             }
 
             // 5. In each media section, switch on the cameras the layout needs and put each in its window.
@@ -1025,6 +1124,7 @@ $.bulwark.vert = {
 
             notes.push("Created \"" + seq.name + "\" (" + CFG.width + "x" + CFG.height + ").");
             notes.push(nFull + " camera clips scaled to fill.");
+            if (nMulticam) review.push(nMulticam + " multicam clip" + (nMulticam === 1 ? " was" : "s were") + " scaled to fill like a single camera. The panel cannot read which angle a multicam clip shows: if one shows a 2-box or media, lay that one out by hand.");
             if (nWide) notes.push(nWide + " wide shots now use \"" + (madeNests.length ? madeNests.join(", ") : usedNests.join(", ")) + "\"" + (madeNests.length ? " (new: check each person's framing in it once)." : "."));
             var usedNames = [];
             for (var un in used) usedNames.push((segs.length > 1 ? used[un] + " " : "") + nameOf(un));

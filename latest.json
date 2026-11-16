@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "1.6.1",
-      "notes": "Wide shot: choose 2 people (V1 and V2, 2-up frame) or 3 people (3-UP frame), then who goes where. Refresh now says what it found, and says so when the sequence has no wide shot.",
+      "version": "1.7.0",
+      "notes": "Nests with media inside (react frames) now become a 3-UP: person, media, person. Multicam clips are scaled to fill as a single camera instead of being stacked.",
       "files": [
         "CSXS/manifest.xml",
         "index.html",
