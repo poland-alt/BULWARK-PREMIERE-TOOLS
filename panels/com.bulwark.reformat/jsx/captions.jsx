@@ -79,6 +79,10 @@ $.bulwark.setOutline = function (width, scope) {
         } catch (e) { return "ERR|" + e; }
     };
 
+    // where the playhead is, in seconds, with the sequence it belongs to: "OK|id|seconds"
+    $.bulwark.playhead = function () {
+        try { var seq = app.project.activeSequence; return seq ? "OK|" + seq.sequenceID + "|" + (Number(seq.getPlayerPosition().ticks) / TICKS) : "ERR|"; } catch (e) { return "ERR|" + e; }
+    };
     $.bulwark.jump = function (secs) {
         try { app.project.activeSequence.setPlayerPosition(String(Math.round(secs * TICKS))); return "OK"; } catch (e) { return "ERR|" + e; }
     };

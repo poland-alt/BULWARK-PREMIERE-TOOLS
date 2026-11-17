@@ -514,9 +514,29 @@
   });
 
   // ---- caption editor: every caption as an ordinary text box ----
+  // While the list is showing, the caption under the playhead is marked and kept in view (also during playback).
+  var capRows = [], capSeq = '', capNow = null;
+  setInterval(function () {
+    if (!capRows.length || $('tab-captions').className.indexOf('on') < 0 || document.hidden) return;
+    jsx('$.bulwark.playhead()', function (r) {
+      var p = r.split('|'), t = +p[2], hit = null;
+      if (p[0] !== 'OK' || p[1] !== capSeq) { if (capNow) capNow.className = 'cap'; capNow = null; return; }
+      for (var i = 0; i < capRows.length; i++) if (t >= capRows[i].c.s - 0.001 && t < capRows[i].c.e - 0.001) { hit = capRows[i].row; break; }
+      if (hit === capNow) return;
+      if (capNow) capNow.className = 'cap';
+      capNow = hit;
+      if (!hit) return;
+      hit.className = 'cap now';
+      var list = $('caplist'), typing = document.activeElement && list.contains(document.activeElement);
+      if (typing) return;                      // never move the list under someone who is editing
+      var top = hit.offsetTop - list.offsetTop;
+      if (top < list.scrollTop || top + hit.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = Math.max(0, top - list.clientHeight / 2);
+    });
+  }, 400);
   $('loadcaps').addEventListener('click', function () {
     var st = $('estat'), list = $('caplist');
-    say(st, 'Reading the captions…'); list.innerHTML = '';
+    say(st, 'Reading the captions…'); list.innerHTML = ''; capRows = []; capNow = null;
+    jsx('$.bulwark.seqInfo()', function (ri) { capSeq = ri.split('|')[1] || ''; });
     jsx('$.bulwark.listCaptions()', function (r) {
       var lines = r.split('\n');
       if (lines[0] !== 'OK') return say(st, r.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err');
@@ -541,9 +561,9 @@
         }
         inp.addEventListener('change', save);
         inp.addEventListener('keydown', function (ev) { if (ev.keyCode === 13) inp.blur(); });
-        row.appendChild(tm); row.appendChild(inp); list.appendChild(row);
+        row.appendChild(tm); row.appendChild(inp); list.appendChild(row); capRows.push({ c: c, row: row });
       });
-      say(st, lines.length + ' captions. Edit any of them below.', 'ok');
+      say(st, lines.length + ' captions. The one under the playhead is marked as you play or scrub.', 'ok');
     });
   });
 
