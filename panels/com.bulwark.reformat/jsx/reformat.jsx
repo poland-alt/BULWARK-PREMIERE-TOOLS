@@ -132,6 +132,7 @@ $.bulwark.vert = {
     }
     function getScale(clip) { var p = prop(motion(clip), "Scale"); return p ? Number(p.getValue()) : 100; }
     function setScale(clip, v) { var p = prop(motion(clip), "Scale"); if (p) p.setValue(v, true); }
+    function getPos(clip) { var p = prop(motion(clip), "Position"); try { var v = p ? p.getValue() : null; return v && v.length === 2 ? [Number(v[0]), Number(v[1])] : null; } catch (e) { return null; } }
     function setPos(clip, xy) { var p = prop(motion(clip), "Position"); if (p) p.setValue([xy[0], xy[1]], true); }
     function setCrop(clip, l, t, r, b) {   // Motion's built-in crop, in percent
         var m = motion(clip), names = ["Crop Left", "Crop Top", "Crop Right", "Crop Bottom"], vals = [l, t, r, b];
@@ -608,6 +609,22 @@ $.bulwark.vert = {
     };
 
     // Stretches of the timeline covered by a background plate, touching plates merged. plates: [{s, e, track}].
+    // A 16x9 layout frame: a graphic with windows cut in it ("Three Frame Media - 16:9.png") laid over small cameras
+    // and a piece of media. It marks a media section the same way a background plate does. Not the 9x16 frames.
+    function isFrame169(name) {
+        name = String(name);
+        return CFG.stillExt.test(name) && /frame/i.test(name) && !/^9x16|9\s*[x:.]\s*16|vert|pip/i.test(name);
+    }
+    // The highest track under a layout frame that holds a camera or wide nest during it (-1: none, so not a layout).
+    // clips: [{ s, e, track, nest: true/false }]
+    function camTopUnder(frame, clips) {
+        var top = -1;
+        for (var i = 0; i < clips.length; i++) {
+            var o = clips[i];
+            if (o.nest && o.track < frame.track && o.s < frame.e - EPS && o.e > frame.s + EPS && o.track > top) top = o.track;
+        }
+        return top;
+    }
     function mergeSegs(plates) {
         var segs = [];
         for (var i = 0; i < plates.length; i++) {
@@ -615,10 +632,10 @@ $.bulwark.vert = {
             for (var k = 0; k < segs.length; k++) {
                 if (plates[i].s <= segs[k].e + EPS && plates[i].e >= segs[k].s - EPS) {
                     segs[k].s = Math.min(segs[k].s, plates[i].s); segs[k].e = Math.max(segs[k].e, plates[i].e);
-                    segs[k].bgTrack = Math.min(segs[k].bgTrack, plates[i].track); merged = true; break;
+                    segs[k].bgTrack = Math.min(segs[k].bgTrack, plates[i].track); segs[k].frame = segs[k].frame || !!plates[i].frame; merged = true; break;
                 }
             }
-            if (!merged) segs.push({ s: plates[i].s, e: plates[i].e, bgTrack: plates[i].track, top: plates[i].track });
+            if (!merged) segs.push({ s: plates[i].s, e: plates[i].e, bgTrack: plates[i].track, top: plates[i].track, frame: !!plates[i].frame });
         }
         return segs;
     }
@@ -629,15 +646,19 @@ $.bulwark.vert = {
         try {
             var seq = app.project.activeSequence;
             if (!seq) return "ERR|No sequence is open.";
-            var plates = [], others = [], t, c, i, k;
+            var plates = [], others = [], frames = [], t, c, i, k;
             for (t = 0; t < seq.videoTracks.numTracks; t++) {
                 var cl = seq.videoTracks[t].clips;
                 for (c = 0; c < cl.numItems; c++) {
                     var nm = String(cl[c].name);
                     if (isGraphic(cl[c]) || CFG.removeNames.test(nm)) continue;
-                    var o = { s: cl[c].start.seconds, e: cl[c].end.seconds, track: t, name: nm };
-                    if (CFG.backgroundNames.test(nm)) plates.push(o); else others.push(o);
+                    var o = { s: cl[c].start.seconds, e: cl[c].end.seconds, track: t, name: nm, nest: !!seqFor(cl[c].projectItem) };
+                    if (CFG.backgroundNames.test(nm)) plates.push(o); else if (!o.nest && isFrame169(nm)) frames.push(o); else others.push(o);
                 }
+            }
+            for (i = 0; i < frames.length; i++) {
+                var ct = camTopUnder(frames[i], others);
+                if (ct >= 0) plates.push({ s: frames[i].s, e: frames[i].e, track: ct, frame: true });
             }
             var segs = mergeSegs(plates), out = [];
             segs.sort(function (a, b) { return a.s - b.s; });
@@ -905,7 +926,9 @@ $.bulwark.vert = {
                     else if (CFG.removeNames.test(name)) o.role = "remove";
                     else if (isIn(cards169, item) || (/\.(mp4|mov)$/i.test(name) && /4K|16[x.:]*9/i.test(name) && match916(name))) o.role = "endcard";
                     else if (CFG.backgroundNames.test(name)) o.role = "background";
+                    else if (!seqFor(item) && isFrame169(name)) o.role = "frame169";
                     else if (!seqFor(item) && CFG.stillExt.test(name)) o.role = "still";
+                    o.nest = !!seqFor(item);
                     all.push(o);
                 }
             }
@@ -913,13 +936,30 @@ $.bulwark.vert = {
             // 3. Media segments = stretches covered by a background plate. Everything above the plate is media.
             var plates = [];
             for (i = 0; i < all.length; i++) if (all[i].role === "background") plates.push(all[i]);
+            // ...or by a 16x9 layout frame over small cameras: the cameras' top track stands in for the plate's track
+            for (i = 0; i < all.length; i++) {
+                if (all[i].role !== "frame169") continue;
+                var camTop = camTopUnder(all[i], all);
+                if (camTop < 0) { all[i].role = "still"; continue; }
+                plates.push({ s: all[i].s, e: all[i].e, track: camTop, frame: true });
+            }
             var segs = mergeSegs(plates), picks = String(perSection || "").split(";"), anyStacked = false, used = {};
             segs.sort(function (a, b) { return a.s - b.s; });
             for (var k = 0; k < segs.length; k++) {
                 segs[k].layout = layout;
+                var picked = false;
                 for (var pk = 0; pk < picks.length; pk++) {
                     var pr = picks[pk].split("=");
-                    if (pr.length === 2 && /^(2up|mid3|pip|full)$/.test(pr[1]) && Math.abs(parseFloat(pr[0]) - segs[k].s) < 0.05) segs[k].layout = pr[1];
+                    if (pr.length === 2 && /^(2up|mid3|pip|full)$/.test(pr[1]) && Math.abs(parseFloat(pr[0]) - segs[k].s) < 0.05) { segs[k].layout = pr[1]; picked = true; }
+                }
+                if (segs[k].frame && !picked) {
+                    // a layout frame already says how many people share the screen: count the cameras that are on in it
+                    var mid0 = (segs[k].s + segs[k].e) / 2, onCams = 0;
+                    for (i = 0; i < all.length; i++) {
+                        var oc = all[i], ocs = oc.nest ? seqFor(oc.item) : null;
+                        if (ocs && oc.track <= segs[k].bgTrack && !oc.clip.disabled && oc.s <= mid0 && oc.e >= mid0 && populatedTracks(ocs) === 1) onCams++;
+                    }
+                    segs[k].layout = onCams >= 3 ? "pip" : (onCams === 2 ? "mid3" : "2up");
                 }
                 if (isStacked(segs[k].layout)) anyStacked = true;
                 used[segs[k].layout] = (used[segs[k].layout] || 0) + 1;
@@ -931,13 +971,14 @@ $.bulwark.vert = {
             }
 
             // 4. Apply the layout.
-            var nFull = 0, nMulticam = 0, nTop = 0, nMedia = 0, nRemoved = 0, nCards = 0, nGraphics = 0;
+            var nFull = 0, nMulticam = 0, nTop = 0, nMedia = 0, nRemoved = 0, nCards = 0, nGraphics = 0, nFrames169 = 0;
             var toRemove = [], cardsToSwap = [], wideClips = [], fullStills = [], wantBlur = !(blur === false || blur === "false");
             for (i = 0; i < all.length; i++) {
                 var o2 = all[i], sg = segAt(o2);
                 if (o2.role === "graphic") { nGraphics++; continue; }
                 if (o2.role === "remove") { toRemove.push(o2); continue; }
                 if (o2.role === "endcard") { cardsToSwap.push(o2); continue; }
+                if (o2.role === "frame169") { toRemove.push(o2); nFrames169++; continue; }     // the 9x16 frame replaces it (step 8)
                 if (o2.role === "background") {
                     var bl = sg ? sg.layout : layout;
                     if (bl === "full") setScale(o2.clip, getScale(o2.clip) * fill);
@@ -961,6 +1002,14 @@ $.bulwark.vert = {
                     // camera under the media: placed in step 5
                     o2.inSeg = sg;
                     o2.base = getScale(o2.clip);
+                    if (sg.frame) {
+                        // in the 16x9 frame this camera was shrunk into a small window: remember where (for the order),
+                        // then put it back to full size so the vertical layout can place it
+                        var p169 = getPos(o2.clip);
+                        o2.y169 = p169 ? p169[1] : 0.5;
+                        setScale(o2.clip, 100); setCrop(o2.clip, 0, 0, 0, 0); setPos(o2.clip, [0.5, 0.5]);
+                        o2.base = 100;
+                    }
                     if (o2.s < sg.s - 0.1 || o2.e > sg.e + 0.1) review.push(tc(o2.s) + "  " + o2.name + " (V" + (o2.track + 1) + ") runs past the media at " + tc(sg.s) + "-" + tc(sg.e) + "; trim it or the frame.");
                     nTop++;
                     continue;
@@ -980,7 +1029,7 @@ $.bulwark.vert = {
 
             // 5. In each media section, switch on the cameras the layout needs and put each in its window.
             function isWide(o) { var s = seqFor(o.item); return !!s && populatedTracks(s) > 1; }
-            function byLiveThenTrack(a, b) { return (a.wasOff - b.wasOff) || (a.track - b.track); }
+            function byLiveThenTrack(a, b) { return (a.wasOff - b.wasOff) || ((a.y169 === undefined ? 0 : a.y169) - (b.y169 === undefined ? 0 : b.y169)) || (a.track - b.track); }   // in a layout frame: top to bottom as the editor had them
             var k3 = CFG.rowH3 / srcH;
             for (i = 0; i < all.length; i++) if (all[i].inSeg) { all[i].wide = isWide(all[i]); all[i].wasOff = all[i].clip.disabled ? 1 : 0; }
             for (var g = 0; g < segs.length; g++) {
@@ -1133,7 +1182,8 @@ $.bulwark.vert = {
             for (var un in used) usedNames.push((segs.length > 1 ? used[un] + " " : "") + nameOf(un));
             if (segs.length) notes.push(segs.length + " media section" + (segs.length === 1 ? "" : "s") + " (" + usedNames.join(", ") + "): " + nMedia + " media clips fitted, " + nFrames + " frame" + (nFrames === 1 ? "" : "s") + " added.");
             if (nBlur) notes.push(nBlur + " full-screen image" + (nBlur === 1 ? "" : "s") + " put over a blurred copy.");
-            if (nRemoved) notes.push(nRemoved + " logo overlay clips removed.");
+            if (nRemoved - nFrames169 > 0) notes.push((nRemoved - nFrames169) + " logo overlay clips removed.");
+            if (nFrames169) notes.push(nFrames169 + " 16x9 layout frame" + (nFrames169 === 1 ? "" : "s") + " replaced with the 9x16 frame; the people in " + (nFrames169 === 1 ? "it" : "them") + " keep their top-to-bottom order.");
             if (nCards) notes.push(nCards + " end card" + (nCards === 1 ? "" : "s") + " swapped to 9x16.");
             if (nGraphics) notes.push(nGraphics + " text/graphic clips left as they were.");
             return "OK|" + notes.join("\n") + "|" + review.join("\n");
