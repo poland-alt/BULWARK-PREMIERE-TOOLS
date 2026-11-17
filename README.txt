@@ -15,6 +15,11 @@ WHAT'S NEW IN v2.2
      Faint drop shadow          adds a soft shadow under every caption.
    "Captions already placed" also has a button to add the shadow to
    captions that are already in a sequence.
+ - Captions tab, "Edit caption text": loads every caption in the sequence
+   as an ordinary text box, so you can fix a word with a normal cursor
+   (Premiere's own field re-renders the caption on every keystroke).
+   Click in a box to jump to that caption; Return or clicking away saves.
+   Adding or removing words keeps the gold highlight running in step.
  - Settings tab, AI assistant: choose who suggests clips and proofreads
    captions: Claude, ChatGPT or Gemini (each with its own API key), Apple
    Intelligence (on your Mac, free, needs macOS 26 with Apple Intelligence
