@@ -398,7 +398,7 @@
 
   // ---- 1. find clips ----
   var found = null;   // { info, clips }
-  function busy(on) { var b = ['find', 'cut', 'caption']; for (var i = 0; i < b.length; i++) $(b[i]).disabled = on; }
+  function busy(on) { var b = ['find', 'cut', 'caption', 'heads']; for (var i = 0; i < b.length; i++) $(b[i]).disabled = on; }
   function showClips() {
     var box = $('clips'); box.innerHTML = '';
     if (!found || !found.clips.length) { $('cut').style.display = 'none'; return; }
@@ -480,6 +480,36 @@
     c.font = '72px "' + name + '", monospace';
     return c.measureText(t).width !== a;
   }
+  // ---- IG headlines for the open clip ----
+  $('heads').addEventListener('click', function () {
+    var st = $('hstat'), list = $('headlist');
+    busy(true); list.innerHTML = '';
+    transcribe(function (t) { say(st, t); }, false, function (err, info) {
+      if (err) { busy(false); return say(st, err, 'err'); }
+      if (info.total > 900) { busy(false); return say(st, 'This sequence is ' + E.clock(info.total) + ' long. Headlines are for one clip: open a cut clip, not the full episode.', 'err'); }
+      var text = info.words.map(function (w) { return w.w; }).join(' ');
+      ask({ box: $('hmanual'), what: 'the clip\'s transcript', field: 'headlines', effort: 'medium', schema: E.headSchema, parts: E.headParts(info.words),
+        system: E.headSystem(), user: 'Clip: ' + info.name + ' (' + E.clock(info.total) + ')\n\nTranscript:\n' + text,
+        shape: '{"headlines": ["First Headline of Four to Eight Words", "Second Headline Option Here"]}',
+        status: function (t) { say(st, t); }, waiting: 'Claude is writing headlines…', manual: 'Transcribed ' + info.words.length + ' words. Follow the three steps below.' }, function (e2, res, more) {
+        busy(false);
+        if (e2 === 'cancel') return say(st, 'Cancelled.');
+        if (e2) return say(st, e2, 'err');
+        var heads = E.cleanHeads(res.headlines);
+        if (!heads.length) return say(st, 'No usable headlines came back (they must be 4 to 8 words). Try again.', 'err');
+        heads.forEach(function (h) {
+          var row = document.createElement('div'), sp = document.createElement('span'), b = document.createElement('button');
+          row.className = 'head'; sp.textContent = h; b.className = 'secondary'; b.textContent = 'Copy';
+          b.addEventListener('click', function () {
+            clip(true, h, function (e3) { b.textContent = e3 ? 'Failed' : 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
+          });
+          row.appendChild(sp); row.appendChild(b); list.appendChild(row);
+        });
+        say(st, heads.length + ' headlines for "' + info.name + '".' + (more ? ' ' + more : ''), 'ok');
+      });
+    });
+  });
+
   // ---- 2. captions ----
   function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }
   function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 54) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }

@@ -142,6 +142,41 @@
     return out;
   };
 
+  // ---- IG headlines ----
+  // The on-screen headline of a social clip: the few words that sit over the video. 4 to 8 words, never a caption.
+  E.headSystem = function () {
+    return 'You write the on-screen headline for a social video clip from The Bulwark, a political news and commentary outlet. ' +
+      'The headline sits over the video on Instagram, TikTok and YouTube Shorts, like "Trump\'s Lips Are Glued to Putin\'s Backside".\n\n' +
+      'You are given the transcript of one clip. It was made by speech recognition, so read through misheard names.\n\n' +
+      'Write 8 headline options. Each one:\n' +
+      '- is 4 to 8 words, no more and no fewer;\n' +
+      '- is true to what is actually said in the clip. Do not claim more than the speakers do, and do not put words in anyone\'s mouth;\n' +
+      '- makes someone who has not seen the episode want to watch, by naming the person or the stakes plainly;\n' +
+      '- is in Title Case, with no hashtags, emoji, quotation marks around the whole line, or full stop at the end.\n\n' +
+      'Make the options genuinely different from each other: some lead with the name, some with the sharpest line said, some with the argument, some with the news. ' +
+      'Put the ones you think are strongest first. A headline is not a post caption: never write a sentence longer than 8 words.';
+  };
+  E.headSchema = { type: 'object', additionalProperties: false, required: ['headlines'], properties: { headlines: { type: 'array', items: { type: 'string' } } } };
+  E.headParts = function (words) {       // for an assistant that reads a page at a time
+    var parts = [], cur = [], len = 0;
+    for (var i = 0; i < words.length; i++) {
+      cur.push(words[i].w); len += words[i].w.length + 1;
+      if (len > 6500) { parts.push('Transcript of part of the clip:\n' + cur.join(' ')); cur = []; len = 0; }
+    }
+    if (cur.length) parts.push('Transcript of ' + (parts.length ? 'part of ' : '') + 'the clip:\n' + cur.join(' '));
+    return parts;
+  };
+  // Keep the ones that really are 4 to 8 words, once each
+  E.cleanHeads = function (list) {
+    var out = [], seen = {};
+    for (var i = 0; i < (list || []).length; i++) {
+      var h = String(list[i] || '').replace(/\s+/g, ' ').replace(/^[\s"\u201c]+|[\s"\u201d.]+$/g, ''), n = h ? h.split(' ').length : 0, k = h.toLowerCase();
+      if (n < 4 || n > 8 || seen[k]) continue;
+      seen[k] = 1; out.push(h);
+    }
+    return out;
+  };
+
   // ---- captions ----
   E.fixSystem = function () {
     return 'You proofread a speech-recognition transcript of a clip from The Bulwark (US politics commentary) before it becomes on-screen captions. ' +

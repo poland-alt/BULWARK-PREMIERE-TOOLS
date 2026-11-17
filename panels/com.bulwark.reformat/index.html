@@ -65,6 +65,9 @@
   .slider { display: flex; align-items: center; gap: 8px; margin: -6px 0 12px 22px; color: #b5b5b5; font-size: 11.5px; }
   .slider input { flex: 1; }
   .slider b { flex: 0 0 26px; color: #fff; font-weight: 600; text-align: right; }
+  #headlist .head { display: flex; gap: 8px; align-items: center; padding: 6px 8px; margin-bottom: 4px; border: 1px solid #3a3a3a; border-radius: 6px; background: #252525; }
+  #headlist .head span { flex: 1; color: #fff; font-weight: 600; }
+  #headlist .head button { width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
   a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
 </style>
 </head>
@@ -121,6 +124,13 @@
   <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>
   <div id="cstat" class="status"></div>
   <div class="hint">Next: open a cut clip, make it vertical in Reframe, then caption it in Captions.</div>
+  <hr>
+  <h2>IG headlines for the open clip</h2>
+  <div class="sub">Open a cut clip (16x9 or vertical). The AI assistant reads what is said and suggests on-screen headlines of 4 to 8 words.</div>
+  <button id="heads">Suggest IG headlines</button>
+  <div id="hstat" class="status"></div>
+  <div id="hmanual"></div>
+  <div id="headlist"></div>
   </div>
 
   <div class="tab" id="tab-captions">
