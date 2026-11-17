@@ -515,7 +515,8 @@
 
   // ---- caption editor: every caption as an ordinary text box ----
   // While the list is showing, the caption under the playhead is marked and kept in view (also during playback).
-  var capRows = [], capSeq = '', capNow = null;
+  var capRows = [], capSeq = '', capNow = null, capTyped = 0;
+  $('caplist').addEventListener('input', function () { capTyped = Date.now(); });
   setInterval(function () {
     if (!capRows.length || $('tab-captions').className.indexOf('on') < 0 || document.hidden) return;
     jsx('$.bulwark.playhead()', function (r) {
@@ -527,8 +528,8 @@
       capNow = hit;
       if (!hit) return;
       hit.className = 'cap now';
-      var list = $('caplist'), typing = document.activeElement && list.contains(document.activeElement);
-      if (typing) return;                      // never move the list under someone who is editing
+      var list = $('caplist');
+      if (Date.now() - capTyped < 4000) return;      // hold still only while someone is actually typing (a clicked box alone does not count)
       // keep the playing caption in the middle of the list...
       var top = hit.offsetTop - list.offsetTop;
       list.scrollTop = Math.max(0, top - (list.clientHeight - hit.offsetHeight) / 2);
