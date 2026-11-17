@@ -5,8 +5,15 @@
   var MAC = /Mac/i.test(navigator.platform) && window.cep && cep.process && cep.process.createProcess;
   var WORK = csi.getSystemPath(SystemPath.USER_DATA) + '/Bulwark Tools';
   var EXT = csi.getSystemPath(SystemPath.EXTENSION);
-  var HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
-  var MODEL = 'claude-opus-5-5';
+  var AI = WORK + '/ai', HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
+  // Who answers the two AI questions (suggest clips, proofread words). Chosen on the Settings tab.
+  var PROVIDERS = {
+    anthropic: { name: 'Claude (Anthropic API key)', hint: 'sk-ant-…', models: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'], dflt: 'claude-opus-5-5' },
+    openai: { name: 'ChatGPT (OpenAI API key)', hint: 'sk-…', models: [], dflt: '' },
+    google: { name: 'Gemini (Google API key)', hint: 'AIza…', models: [], dflt: '' },
+    apple: { name: 'Apple Intelligence (on this Mac, no key)', local: true },
+    paste: { name: 'No key: copy and paste through any chat', local: true }
+  };
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
   var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off' };
   function $(id) { return document.getElementById(id); }
@@ -26,14 +33,14 @@
     try { ver = (/ExtensionBundleVersion="([\d.]+)"/.exec(cep.fs.readFile(EXT + '/CSXS/manifest.xml').data) || [])[1] || '0'; } catch (e) {}
     cep.fs.makedir(WORK);
     var mark = cep.fs.readFile(WORK + '/version.txt');
-    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(WHISPER).err && !cep.fs.stat(MOGRT).err) return cb(null);
-    var parts = [['/bin/transcribe.b64', HELPER], ['/bin/wtranscribe.b64', WHISPER], ['/templates/Bulwark Word Fill Vertical.mogrt.b64', MOGRT]];
+    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(WHISPER).err && !cep.fs.stat(AI).err && !cep.fs.stat(MOGRT).err) return cb(null);
+    var parts = [['/bin/transcribe.b64', HELPER], ['/bin/wtranscribe.b64', WHISPER], ['/bin/ai.b64', AI], ['/templates/Bulwark Word Fill Vertical.mogrt.b64', MOGRT]];
     for (var i = 0; i < parts.length; i++) {
       var src = cep.fs.readFile(EXT + parts[i][0]);
       if (src.err) return cb('Part of the panel is missing. Reinstall it from the zip.');
       if (cep.fs.writeFile(parts[i][1], src.data.replace(/\s+/g, ''), cep.encoding.Base64).err) return cb('Could not set up the transcriber in ' + WORK + '.');
     }
-    var p = cep.process.createProcess('/bin/chmod', '755', HELPER, WHISPER);
+    var p = cep.process.createProcess('/bin/chmod', '755', HELPER, WHISPER, AI);
     if (p.err) return cb('Could not set up the transcriber.');
     var done = false;
     function fin() { if (done) return; done = true; cep.fs.writeFile(WORK + '/version.txt', ver); cb(null); }
@@ -119,39 +126,151 @@
     });
   }
 
-  // ---- Claude ----
-  function claude(system, user, schema, effort, cb, plain) {
-    var key = store('bulwarkClaudeKey');
-    if (!key) return cb('Add a Claude API key on the Settings tab first.');
-    var body = { model: MODEL, max_tokens: 16000, system: system, messages: [{ role: 'user', content: user }],
-      output_config: { effort: effort, format: { type: 'json_schema', schema: schema } } };
-    if (!plain) body.fallbacks = 'default';      // if a safety filter declines, let the API retry on its fallback model
+  // ---- the AI assistant: Claude, ChatGPT or Gemini through their APIs ----
+  function keyOf(p) { return store('bulwarkKey_' + p) || (p === 'anthropic' ? store('bulwarkClaudeKey') : null) || ''; }
+  function providerNow() {
+    var p = store('bulwark_provider');
+    return PROVIDERS[p] ? p : (keyOf('anthropic') ? 'anthropic' : 'paste');
+  }
+  function modelOf(p) { return store('bulwark_model_' + p) || PROVIDERS[p].dflt || ''; }
+  function http(method, url, headers, body, cb) {       // cb(status, parsed JSON or null); status 0 = no connection
     var x = new XMLHttpRequest();
-    x.open('POST', 'https://api.anthropic.com/v1/messages', true);
-    x.setRequestHeader('content-type', 'application/json');
-    x.setRequestHeader('x-api-key', key);
-    x.setRequestHeader('anthropic-version', '2026-10-21');
-    x.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');   // the key is the editor's own, kept on their Mac
-    if (!plain) x.setRequestHeader('anthropic-beta', 'server-side-fallback-2026-07-01');
+    x.open(method, url, true);
+    for (var h in headers) x.setRequestHeader(h, headers[h]);
     x.timeout = 15 * 60000;
-    x.onerror = function () { cb('Could not reach Claude. Check the internet connection.'); };
-    x.ontimeout = function () { cb('Claude took too long to answer. Try again.'); };
-    x.onload = function () {
-      var res = null;
-      try { res = JSON.parse(x.responseText); } catch (e) {}
-      var msg = res && res.error && res.error.message || '';
-      if (x.status === 400 && !plain && /fallback|beta/i.test(msg)) return claude(system, user, schema, effort, cb, true);
-      if (x.status === 401) return cb('Claude did not accept the API key. Paste it again on the Settings tab.');
-      if (x.status === 429) return cb('Claude is rate limiting this key. Wait a minute and try again.');
-      if (x.status >= 500) return cb('Claude is having trouble (' + x.status + '). Try again in a minute.');
-      if (x.status !== 200 || !res) return cb('Claude returned an error (' + x.status + ')' + (msg ? ': ' + msg : '.'));
-      if (res.stop_reason === 'refusal') return cb('Claude declined to work on this transcript.');
-      if (res.stop_reason === 'max_tokens') return cb('Claude ran out of room answering. Try again.');
+    x.onerror = x.ontimeout = function () { cb(0, null); };
+    x.onload = function () { var j = null; try { j = JSON.parse(x.responseText); } catch (e) {} cb(x.status, j); };
+    x.send(body ? JSON.stringify(body) : null);
+  }
+  function authHeaders(p) {
+    var k = keyOf(p);
+    if (p === 'anthropic') return { 'content-type': 'application/json', 'x-api-key': k, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };   // the key is the editor's own, kept on their Mac
+    if (p === 'openai') return { 'content-type': 'application/json', 'authorization': 'Bearer ' + k };
+    return { 'content-type': 'application/json', 'x-goog-api-key': k };
+  }
+  // The model's answer as an object: from a code block if there is one, else the outermost braces
+  function readAnswer(text, field) {
+    text = String(text || '');
+    var fence = /```(?:json)?\s*([\s\S]*?)```/g, m, blocks = [];
+    while ((m = fence.exec(text))) blocks.push(m[1]);
+    blocks.push(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    for (var i = 0; i < blocks.length; i++) {
+      try { var j = JSON.parse(blocks[i]); if (j && j[field] instanceof Array) return j; } catch (x) {}
+    }
+    return null;
+  }
+  function shapeNote(shape) { return '\n\nAnswer with one JSON object in exactly this shape and nothing else before or after it:\n' + shape; }
+  function apiError(p, status, j) {
+    var who = PROVIDERS[p].name.split(' (')[0], msg = j && j.error && (j.error.message || j.error) || '';
+    if (status === 0) return 'Could not reach ' + who + '. Check the internet connection.';
+    if (status === 401 || status === 403) return who + ' did not accept the API key. Check it on the Settings tab.';
+    if (status === 404) return who + ' does not know the model "' + modelOf(p) + '". Pick another on the Settings tab.';
+    if (status === 429) return who + ' says this key is over its rate or spending limit. Wait a minute, or check the account\'s billing.';
+    if (status >= 500) return who + ' is having trouble (' + status + '). Try again in a minute.';
+    return who + ' returned an error (' + status + ')' + (msg ? ': ' + String(msg).slice(0, 300) : '.');
+  }
+  // o: { system, user, schema, shape, field, effort }. cb(err, object)
+  function callAI(p, o, cb, step) {
+    var model = modelOf(p), who = PROVIDERS[p].name.split(' (')[0];
+    if (!keyOf(p)) return cb('Add the ' + who + ' API key on the Settings tab first.');
+    if (!model) return cb('Pick a ' + who + ' model on the Settings tab first.');
+    step = step || 0;
+    function done(text) {
+      var res = readAnswer(text, o.field);
+      cb(res ? null : who + ' answered in a form the panel could not read. Try again, or pick a stronger model.', res);
+    }
+    if (p === 'anthropic') {
+      // step 0: everything; 1: no refusal fallback; 2: no effort setting; 3: no structured output (older models)
+      var body = { model: model, max_tokens: 16000, system: o.system, messages: [{ role: 'user', content: o.user + shapeNote(o.shape) }] }, h = authHeaders(p);
+      if (step < 3) body.output_config = { format: { type: 'json_schema', schema: o.schema } };
+      if (step < 2) body.output_config.effort = o.effort;
+      if (step < 1) { body.fallbacks = 'default'; h['anthropic-beta'] = 'server-side-fallback-2026-07-01'; }   // if a safety filter declines, the API retries on its fallback model
+      return http('POST', 'https://api.anthropic.com/v1/messages', h, body, function (status, j) {
+        if (status === 400 && step < 3) return callAI(p, o, cb, step + 1);
+        if (status !== 200 || !j) return cb(apiError(p, status, j));
+        if (j.stop_reason === 'refusal') return cb('Claude declined to work on this transcript.');
+        if (j.stop_reason === 'max_tokens') return cb('Claude ran out of room answering. Try again.');
+        var text = '';
+        for (var i = 0; i < (j.content || []).length; i++) if (j.content[i].type === 'text') text += j.content[i].text;
+        done(text);
+      });
+    }
+    if (p === 'openai') {
+      // step 0: strict JSON schema; 1: plain (models without structured output)
+      var ob = { model: model, messages: [{ role: 'system', content: o.system }, { role: 'user', content: o.user + shapeNote(o.shape) }] };
+      if (step < 1) ob.response_format = { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: o.schema } };
+      return http('POST', 'https://api.openai.com/v1/chat/completions', authHeaders(p), ob, function (status, j) {
+        if (status === 400 && step < 1) return callAI(p, o, cb, step + 1);
+        if (status !== 200 || !j) return cb(apiError(p, status, j));
+        var msg = j.choices && j.choices[0] && j.choices[0].message || {};
+        if (msg.refusal) return cb('ChatGPT declined to work on this transcript.');
+        if (j.choices && j.choices[0] && j.choices[0].finish_reason === 'length') return cb('ChatGPT ran out of room answering. Try again.');
+        done(msg.content);
+      });
+    }
+    // Gemini. step 0: JSON answer mode; 1: plain
+    var gb = { systemInstruction: { parts: [{ text: o.system }] }, contents: [{ role: 'user', parts: [{ text: o.user + shapeNote(o.shape) }] }] };
+    if (step < 1) gb.generationConfig = { responseMimeType: 'application/json' };
+    http('POST', 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', authHeaders(p), gb, function (status, j) {
+      if (status === 400 && step < 1 && !(j && j.error && /api key/i.test(j.error.message || ''))) return callAI(p, o, cb, step + 1);
+      if (status === 400) return cb('Gemini did not accept the API key. Check it on the Settings tab.');
+      if (status !== 200 || !j) return cb(apiError(p, status, j));
+      var c = j.candidates && j.candidates[0];
+      if (!c || !c.content || !c.content.parts) return cb('Gemini declined to work on this transcript' + (j.promptFeedback && j.promptFeedback.blockReason ? ' (' + j.promptFeedback.blockReason + ').' : '.'));
       var text = '';
-      for (var i = 0; i < (res.content || []).length; i++) if (res.content[i].type === 'text') text += res.content[i].text;
-      try { cb(null, JSON.parse(text)); } catch (e2) { cb('Claude answered in a form the panel could not read. Try again.'); }
-    };
-    x.send(JSON.stringify(body));
+      for (var i = 0; i < c.content.parts.length; i++) if (c.content.parts[i].text && !c.content.parts[i].thought) text += c.content.parts[i].text;
+      done(text);
+    });
+  }
+  // The models this key can use, newest names first. cb(err, [ids])
+  function listModels(p, cb) {
+    if (!keyOf(p)) return cb('Save the API key first.');
+    var url = p === 'anthropic' ? 'https://api.anthropic.com/v1/models?limit=100' : p === 'openai' ? 'https://api.openai.com/v1/models' : 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200';
+    http('GET', url, authHeaders(p), null, function (status, j) {
+      if (status !== 200 || !j) return cb(status === 400 && p === 'google' ? 'Gemini did not accept the API key.' : apiError(p, status, j));
+      var ids = [], i;
+      if (p === 'google') {
+        for (i = 0; i < (j.models || []).length; i++) {
+          var gm = j.models[i], id = String(gm.name || '').replace(/^models\//, '');
+          if (/^gemini/.test(id) && (gm.supportedGenerationMethods || []).indexOf('generateContent') >= 0 && !/image|tts|embedding|live|audio|vision|robotics|computer/i.test(id)) ids.push(id);
+        }
+      } else {
+        for (i = 0; i < (j.data || []).length; i++) {
+          var oid = String(j.data[i].id || '');
+          if (p === 'anthropic' || (/^(gpt-|o\d|chatgpt)/.test(oid) && !/audio|realtime|tts|transcribe|image|embedding|search|moderation|instruct|codex|whisper|dall/i.test(oid))) ids.push(oid);
+        }
+      }
+      ids.sort(); ids.reverse();
+      cb(ids.length ? null : 'No text models were listed for this key.', ids);
+    });
+  }
+
+  // ---- Apple Intelligence: the model built into macOS 26, on this Mac. It reads about a page at a time, so the
+  // transcript goes to it in overlapping parts and the answers are put together. ----
+  function appleRun(system, user, cb) {         // cb(err, text)
+    setUp(function (e0) {
+      if (e0) return cb(e0);
+      var inp = WORK + '/ai-question.json', out = WORK + '/ai-answer.json';
+      if (cep.fs.writeFile(inp, JSON.stringify({ system: system, user: user })).err) return cb('Could not write to ' + WORK + '.');
+      runHelper([AI, inp, out], out, function (r) {
+        cep.fs.deleteFile(inp); cep.fs.deleteFile(out);
+        if (!r) return cb('Apple Intelligence did not answer. It needs an Apple silicon Mac on macOS 26 with Apple Intelligence switched on.');
+        cb(r.error || null, r.text);
+      });
+    });
+  }
+  function appleParts(o, cb) {
+    var parts = o.parts, i = 0, all = [], failed = 0, lastErr = '';
+    (function next() {
+      if (i >= parts.length) return cb(all.length || failed < parts.length ? null : (lastErr || 'Apple Intelligence could not read the transcript.'), all, failed);
+      o.status('Apple Intelligence is reading part ' + (i + 1) + ' of ' + parts.length + '…');
+      appleRun(o.system, parts[i++] + shapeNote(o.shape), function (err, text) {
+        if (err && /switched off|cannot run|still downloading|needs macOS|needs an Apple/i.test(err)) return cb(err);
+        var res = err ? null : readAnswer(text, o.field);
+        if (res) all = all.concat(res[o.field]); else { failed++; lastErr = err || lastErr; }
+        next();
+      });
+    })();
   }
 
   // ---- no key: the same question by copy and paste through Claude chat ----
@@ -169,52 +288,106 @@
     var prompt = system + '\n\nAnswer with one JSON object in exactly this shape, inside a single code block, and nothing else before or after it:\n' + shape + '\n\n' + user;
     box.innerHTML = ''; box.className = 'manual';
     function el(tag, text, cls) { var e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; box.appendChild(e); return e; }
-    el('div', 'No API key saved, so this step goes through Claude chat:', 'mtitle');
-    var b1 = el('button', '1. Copy ' + what + ' for Claude');
-    el('div', '2. Paste it into a new chat at claude.ai and send. When Claude has answered, use the copy button under its answer.', 'mstep');
-    var b3 = el('button', '3. Paste Claude\'s answer'), msg = el('div', '', 'status');
+    el('div', 'This step goes through a chat assistant (claude.ai, ChatGPT or Gemini):', 'mtitle');
+    var b1 = el('button', '1. Copy ' + what + ' for the chat');
+    el('div', '2. Paste it into a new chat and send. When it has answered, use the copy button under the answer.', 'mstep');
+    var b3 = el('button', '3. Paste the answer'), msg = el('div', '', 'status');
     var row = el('div', '', 'mrow'), skip = skipLabel ? document.createElement('a') : null, cancel = document.createElement('a');
     if (skip) { skip.className = 'link'; skip.textContent = skipLabel; row.appendChild(skip); }
     cancel.className = 'link'; cancel.textContent = 'Cancel'; row.appendChild(cancel);
     function close(err, res) { box.innerHTML = ''; box.className = ''; cb(err, res); }
     b1.addEventListener('click', function () {
-      clip(true, prompt, function (e) { say(msg, e || 'Copied (' + Math.round(prompt.length / 1000) + 'k characters). Now paste it into Claude chat.', e ? 'err' : 'ok'); });
+      clip(true, prompt, function (e) { say(msg, e || 'Copied (' + Math.round(prompt.length / 1000) + 'k characters). Now paste it into the chat.', e ? 'err' : 'ok'); });
     });
     b3.addEventListener('click', function () {
       clip(false, '', function (e, text) {
         if (e) return say(msg, e, 'err');
         text = String(text || '');
         // what was copied in step 1 is still on the clipboard (it holds an example answer, so check before reading it as one)
-        if (text.indexOf(system.slice(0, 60)) >= 0) return say(msg, 'The clipboard still holds what you copied in step 1. Copy Claude\'s answer first (the copy button under it), then press this again.', 'err');
-        var res = null, fence = /```(?:json)?\s*([\s\S]*?)```/g, m, blocks = [];
-        while ((m = fence.exec(text))) blocks.push(m[1]);
-        blocks.push(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
-        for (var i = 0; i < blocks.length && !res; i++) {
-          try { var j = JSON.parse(blocks[i]); if (j && j[field] instanceof Array) res = j; } catch (x) {}
-        }
-        if (!res) return say(msg, 'That does not look like Claude\'s answer. Copy the whole answer (the copy button under it), then press this again.', 'err');
+        if (text.indexOf(system.slice(0, 60)) >= 0) return say(msg, 'The clipboard still holds what you copied in step 1. Copy the chat\'s answer first (the copy button under it), then press this again.', 'err');
+        var res = readAnswer(text, field);
+        if (!res) return say(msg, 'That does not look like the answer. Copy the whole answer (the copy button under it), then press this again.', 'err');
         close(null, res);
       });
     });
     if (skip) skip.addEventListener('click', function () { close('skip'); });
     cancel.addEventListener('click', function () { close('cancel'); });
   }
-  // One question to Claude: straight to the API with a key, by copy and paste without one
+  // One question to the assistant chosen in Settings. Without a usable key it falls back to copy and paste.
   function ask(o, cb) {
-    if (store('bulwarkClaudeKey')) { o.status(o.waiting); return claude(o.system, o.user, o.schema, o.effort, cb); }
+    var p = providerNow();
+    if (p === 'apple') return appleParts(o, function (err, items, failed) {
+      if (err) return cb(err);
+      var res = {}; res[o.field] = o.join ? o.join(items) : items;
+      cb(null, res, failed ? failed + ' of ' + o.parts.length + ' parts could not be read by Apple Intelligence.' : '');
+    });
+    if (p !== 'paste' && keyOf(p) && modelOf(p)) { o.status(o.waiting.replace(/Claude/g, PROVIDERS[p].name.split(' (')[0])); return callAI(p, o, cb); }
     o.status(o.manual);
     byPaste(o.box, o.what, o.system, o.user, o.shape, o.field, o.skip, cb);
   }
 
-  // ---- API key ----
-  function keyState() { say($('keystat'), store('bulwarkClaudeKey') ? 'A key is saved on this Mac.' : 'No key saved: clip suggestions and proofreading go through Claude chat by copy and paste.', store('bulwarkClaudeKey') ? 'ok' : ''); }
-  $('savekey').addEventListener('click', function () {
-    var v = $('key').value.replace(/\s+/g, '');
-    if (!v) return say($('keystat'), 'Paste the key into the box first.', 'err');
-    store('bulwarkClaudeKey', v); $('key').value = ''; keyState();
+  // ---- Settings: which assistant, its key, its model ----
+  function fillSelect(sel, items, value) {
+    sel.innerHTML = '';
+    for (var i = 0; i < items.length; i++) {
+      var op = document.createElement('option'); op.value = items[i][0]; op.textContent = items[i][1];
+      if (items[i][0] === value) op.selected = true;
+      sel.appendChild(op);
+    }
+  }
+  function modelList(p) {
+    var saved = [];
+    try { saved = JSON.parse(store('bulwark_models_' + p) || '[]'); } catch (e) {}
+    var ids = saved.length ? saved : (PROVIDERS[p].models || []).slice(0), cur = modelOf(p);
+    if (cur && ids.indexOf(cur) < 0) ids.unshift(cur);
+    return ids;
+  }
+  function showProvider() {
+    var p = providerNow(), P = PROVIDERS[p], items = [];
+    for (var id in PROVIDERS) items.push([id, PROVIDERS[id].name]);
+    fillSelect($('provider'), items, p);
+    $('keybox').style.display = $('modelbox').style.display = P.local ? 'none' : '';
+    if (P.local) {
+      say($('keystat'), p === 'apple' ? 'Runs on this Mac at no cost. Needs macOS 26 with Apple Intelligence switched on. It reads the transcript a page at a time, so its clip picks are rougher than the others.'
+        : 'Clip suggestions and proofreading go through a chat (claude.ai, ChatGPT or Gemini) by copy and paste.', '');
+      return;
+    }
+    $('key').placeholder = P.hint; $('key').value = '';
+    var ids = modelList(p), cur = modelOf(p);
+    fillSelect($('model'), ids.map(function (m) { return [m, m]; }), cur);
+    $('model').size = Math.max(2, Math.min(7, ids.length || 2));
+    $('modelother').value = '';
+    say($('keystat'), keyOf(p) ? 'A key is saved on this Mac.' : 'No key saved yet. Until there is one, these steps go through a chat by copy and paste.', keyOf(p) ? 'ok' : '');
+    say($('modelstat'), cur ? 'Using ' + cur + '.' : (keyOf(p) ? 'Press "Refresh list" and pick a model.' : 'Save the key, then pick a model.'), cur ? 'ok' : '');
+  }
+  function refreshModels() {
+    var p = providerNow();
+    say($('modelstat'), 'Loading the model list…');
+    listModels(p, function (err, ids) {
+      if (err) return say($('modelstat'), err, 'err');
+      store('bulwark_models_' + p, JSON.stringify(ids));
+      showProvider();
+      say($('modelstat'), ids.length + ' models listed.' + (modelOf(p) ? ' Using ' + modelOf(p) + '.' : ' Pick one.'), modelOf(p) ? 'ok' : '');
+    });
+  }
+  $('provider').addEventListener('change', function () { store('bulwark_provider', $('provider').value); showProvider(); });
+  $('model').addEventListener('change', function () { store('bulwark_model_' + providerNow(), $('model').value); showProvider(); });
+  $('modelother').addEventListener('change', function () {
+    var v = $('modelother').value.replace(/\s+/g, '');
+    if (v) { store('bulwark_model_' + providerNow(), v); showProvider(); }
   });
-  $('clearkey').addEventListener('click', function () { try { localStorage.removeItem('bulwarkClaudeKey'); } catch (e) {} $('key').value = ''; keyState(); });
-  keyState();
+  $('loadmodels').addEventListener('click', refreshModels);
+  $('savekey').addEventListener('click', function () {
+    var v = $('key').value.replace(/\s+/g, ''), p = providerNow();
+    if (!v) return say($('keystat'), 'Paste the key into the box first.', 'err');
+    store('bulwarkKey_' + p, v); showProvider(); refreshModels();
+  });
+  $('clearkey').addEventListener('click', function () {
+    var p = providerNow();
+    try { localStorage.removeItem('bulwarkKey_' + p); if (p === 'anthropic') localStorage.removeItem('bulwarkClaudeKey'); } catch (e) {}
+    showProvider();
+  });
+  showProvider();
 
   // ---- 1. find clips ----
   var found = null;   // { info, clips }
@@ -248,17 +421,18 @@
       var sents = E.sentences(info.words);
       var lead = info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ';
       var cmin = num('clipmin', 15, 600, 90), cmax = Math.max(cmin + 15, num('clipmax', 30, 900, 150));
-      ask({ box: $('fmanual'), what: 'the transcript', field: 'clips', effort: 'high', schema: E.clipSchema,
+      ask({ box: $('fmanual'), what: 'the transcript', field: 'clips', effort: 'high', schema: E.clipSchema, parts: E.clipParts(info.words, sents), join: E.joinClips,
         system: E.clipSystem(cmin, cmax), user: 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents),
         shape: '{"clips": [{"first_line": 12, "last_line": 31, "title": "three to six words", "headline": "four to eight words", "why": "one sentence"}]}',
-        status: function (t) { say(st, t); }, waiting: lead + 'Claude is analyzing the transcript (a minute or two)…', manual: lead + 'Follow the three steps below.' }, function (e2, res) {
+        status: function (t) { say(st, t); }, waiting: lead + 'Claude is analyzing the transcript (a minute or two)…', manual: lead + 'Follow the three steps below.' }, function (e2, res, more) {
         if (e2 === 'cancel') { busy(false); return say(st, 'Cancelled. The transcript is saved, so starting again is quick.'); }
         busy(false);
         if (e2) return say(st, e2, 'err');
         found = { info: info, clips: E.clipTimes(res.clips, info.words, sents, info.total) };
         showClips();
         st.className = 'status ok';
-        st.textContent = found.clips.length ? found.clips.length + ' clip' + (found.clips.length === 1 ? '' : 's') + ' suggested from "' + info.name + '". Untick any you do not want, rename them, then cut. ' : 'Claude did not find a clip worth cutting. ';
+        st.textContent = found.clips.length ? found.clips.length + ' clip' + (found.clips.length === 1 ? '' : 's') + ' suggested from "' + info.name + '". Untick any you do not want, rename them, then cut. ' : 'No clip worth cutting was found. ';
+        if (more) st.textContent += more + ' ';
         if (info.cached) {
           var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Sequence changed? Transcribe again';
           a.addEventListener('click', function () { findClips(true); }); st.appendChild(a);
@@ -300,7 +474,7 @@
     return c.measureText(t).width !== a;
   }
   // ---- 2. captions ----
-  function capStyle() { $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread by Claude' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
+  function capStyle() { $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
   function loadSettings() {
     for (var id in DEFAULTS) {
       var v = store('bulwark_' + id); if (v === null || v === undefined || v === '') v = DEFAULTS[id];
@@ -414,14 +588,14 @@
       else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
       if (!$('fix').checked) return place();
       var names = $('names').value.replace(/^\s+|\s+$/g, '');
-      ask({ box: $('kmanual'), what: 'the words', field: 'fixes', effort: 'medium', schema: E.fixSchema, skip: 'Skip proofreading',
+      ask({ box: $('kmanual'), what: 'the words', field: 'fixes', effort: 'medium', schema: E.fixSchema, skip: 'Skip proofreading', parts: E.fixParts(info.words),
         system: E.fixSystem(), user: 'Clip: ' + info.name + (names ? '\nNames that may come up: ' + names : '') + '\n\nWords:\n' + E.numbered(info.words),
         shape: '{"fixes": [{"n": 14, "word": "Putin"}]}',
-        status: function (t) { say(st, t); }, waiting: 'Claude is proofreading ' + info.words.length + ' words…', manual: 'Transcribed ' + info.words.length + ' words. Follow the three steps below to have Claude proofread them, or skip.' }, function (e2, res) {
+        status: function (t) { say(st, t); }, waiting: 'Claude is proofreading ' + info.words.length + ' words…', manual: 'Transcribed ' + info.words.length + ' words. Follow the three steps below to have them proofread, or skip.' }, function (e2, res, more) {
         if (e2 === 'cancel') { busy(false); return say(st, 'Cancelled. No captions were placed.'); }
         if (e2 === 'skip') { notes.push('Words were not proofread.'); return place(); }
         if (e2) notes.push('Words were not proofread: ' + e2);
-        else { var n = E.applyFixes(info.words, res.fixes); notes.push(n ? 'Claude corrected ' + n + ' word' + (n === 1 ? '' : 's') + '.' : 'Claude found nothing to correct.'); }
+        else { var n = E.applyFixes(info.words, res.fixes); notes.push(n ? 'Proofreading corrected ' + n + ' word' + (n === 1 ? '' : 's') + '.' : 'Proofreading found nothing to correct.'); if (more) notes.push(more); }
         place();
       });
     });

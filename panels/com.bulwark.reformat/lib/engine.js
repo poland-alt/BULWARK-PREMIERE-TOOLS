@@ -201,6 +201,41 @@
     return out;
   };
 
+  // ---- Apple Intelligence reads about a page at a time: the same questions, cut into overlapping parts ----
+  E.clipParts = function (words, sents) {
+    var parts = [], i = 0;
+    while (i < sents.length) {
+      var lines = [], len = 0, j = i;
+      while (j < sents.length && (len < 7000 || j === i)) {
+        var l = '[' + (j + 1) + '] ' + E.clock(words[sents[j].a].s) + ' ' + sents[j].text;
+        lines.push(l); len += l.length + 1; j++;
+      }
+      parts.push('This is one part of a longer episode (sentences ' + (i + 1) + ' to ' + j + '). Suggest at most two clips that lie fully inside this part, or none if nothing here is strong enough.\n\nTranscript:\n' + lines.join('\n'));
+      if (j >= sents.length) break;
+      i += Math.max(1, Math.floor((j - i) / 2));      // half a part of overlap, so a clip across a join is still seen whole
+    }
+    return parts;
+  };
+  E.joinClips = function (items) {       // the same moment turns up in two overlapping parts: keep the first of each
+    var out = [];
+    for (var i = 0; i < items.length; i++) {
+      var c = items[i], clash = false;
+      if (!c || !(c.first_line > 0) || !(c.last_line >= c.first_line)) continue;
+      for (var k = 0; k < out.length; k++) if (c.first_line <= out[k].last_line && out[k].first_line <= c.last_line) clash = true;
+      if (!clash) out.push(c);
+    }
+    return out;
+  };
+  E.fixParts = function (words) {
+    var parts = [];
+    for (var i = 0; i < words.length; i += 150) {
+      var t = [];
+      for (var k = i; k < Math.min(words.length, i + 150); k++) t.push((k + 1) + ':' + words[k].w);
+      parts.push('Words:\n' + t.join(' '));
+    }
+    return parts;
+  };
+
   // ---- cuts and shots ----
   // shotMap text from Premiere -> { cuts: [secs], segs: [{ s, kind }] }  (kind 1 solo, 2 2-up, 3 3-UP / PIP)
   E.shots = function (cutText, segText) {

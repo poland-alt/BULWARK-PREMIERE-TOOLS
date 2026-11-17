@@ -104,7 +104,7 @@
 
   <div class="tab" id="tab-clips">
   <h2>Suggest clips from a full episode</h2>
-  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, Claude analyzes the transcript and suggests every moment worth clipping, and the ones you tick are cut into their own sequences in the bin "<span id="binname"></span>".</div>
+  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, the AI assistant analyzes the transcript and suggests every moment worth clipping, and the ones you tick are cut into their own sequences in the bin "<span id="binname"></span>".</div>
   <button id="find">Analyze transcript and suggest clips</button>
   <div id="fstat" class="status"></div>
   <div id="fmanual"></div>
@@ -137,17 +137,28 @@
   </div>
 
   <div class="tab" id="tab-settings">
-  <h2>Claude API key</h2>
-  <div class="sub">Optional. With a key, clip suggestions and word proofreading happen inside the panel in one click. Without one, the panel walks you through copying the transcript into Claude chat and pasting the answer back. The key is saved on this Mac only; audio and video never leave the Mac.</div>
-  <div class="row"><input id="key" type="password" placeholder="sk-ant-…" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button><button id="clearkey" class="secondary" style="width:auto;margin:0">Remove</button></div>
+  <h2>AI assistant</h2>
+  <div class="sub">Suggests clips and proofreads captions. Only transcript text is sent to it; audio and video never leave the Mac. Keys are saved on this Mac only.</div>
+  <label for="provider">Use</label>
+  <select id="provider" size="5"></select>
+  <div id="keybox">
+    <label for="key">API key</label>
+    <div class="row"><input id="key" type="password" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button><button id="clearkey" class="secondary" style="width:auto;margin:0">Remove</button></div>
+  </div>
   <div id="keystat" class="status"></div>
+  <div id="modelbox">
+    <label for="model">Model</label>
+    <select id="model" size="4"></select>
+    <div class="row"><input id="modelother" type="text" placeholder="Or type a model ID"><button id="loadmodels" class="secondary" style="width:auto;margin:0;white-space:nowrap">Refresh list</button></div>
+    <div id="modelstat" class="status"></div>
+  </div>
   <hr>
   <h2>Caption style</h2>
   <div class="fields">
     <label>Font size<input id="size" type="number" min="10" max="200" step="1" value="56"></label>
     <label>Stroke<input id="stroke" type="number" min="0" max="100" step="0.5" value="7"></label>
   </div>
-  <label class="check"><input id="fix" type="checkbox" checked> Let Claude correct misheard words and names</label>
+  <label class="check"><input id="fix" type="checkbox" checked> Proofread misheard words and names with the AI assistant</label>
   <hr>
   <h2>Suggested clips</h2>
   <div class="fields">

@@ -6,6 +6,8 @@
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
+        "bin/ai.b64",
+        "bin/ai.swift",
         "bin/transcribe.b64",
         "bin/transcribe.swift",
         "bin/wtranscribe.b64",
