@@ -4,7 +4,7 @@ BULWARK PREMIERE TOOLS - v2.2 test build
 WHAT'S NEW IN v2.2
 ------------------
  - Captions tab, three new tick boxes:
-     Auto reposition captions   captions are placed by shot: 75% down on a
+     Auto reposition captions   captions are placed by shot: 80% down on a
                                 solo shot, 50% on a 2-up (the join between
                                 the two windows), 67% on a 3-UP. Untick it
                                 to use one height for the whole clip.
@@ -72,7 +72,7 @@ WHAT'S NEW IN v2.0
    bin "SOCIAL CLIPS 16x9". Then run Bulwark Vertical Reformat on each.
  - Caption a vertical clip. Open the 9x16 clip and press "Caption this
    sequence". Captions go on a new top track in the house style: Special
-   Gothic Condensed SemiBold, size 55, white, black stroke 7, with the
+   Gothic Condensed SemiBold, size 54, white, black stroke 7, with the
    word being spoken in gold (FFBA2E). No CaptionX step. The font must be
    installed. Wrong word? Fix it in the Caption field of that clip.
  - No API key needed. For clip suggestions (and caption proofreading)

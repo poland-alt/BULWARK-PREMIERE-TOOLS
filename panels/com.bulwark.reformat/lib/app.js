@@ -15,7 +15,7 @@
     paste: { name: 'No key: copy and paste through any chat', local: true }
   };
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
-  var DEFAULTS = { size: '55', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', shadowamt: '50', nofill: 'on' };
+  var DEFAULTS = { size: '54', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', shadowamt: '50', nofill: 'on' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
@@ -482,7 +482,7 @@
   }
   // ---- 2. captions ----
   function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }
-  function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 55) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
+  function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 54) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
   function loadSettings() {
     for (var id in DEFAULTS) {
       var v = store('bulwark_' + id); if (v === null || v === undefined || v === '') v = DEFAULTS[id];
@@ -592,11 +592,11 @@
           if (pm[0] !== 'OK' && ($('splitcuts').checked || $('autopos').checked)) notes.push('The cuts in this sequence could not be read, so captions were not split or repositioned by shot.');
           var caps = E.captions(info.words, info.frame, info.total), i = 0, track = -1, placed = 0;
           if ($('splitcuts').checked) caps = E.splitAtCuts(caps, shots.cuts, info.frame);
-          // auto reposition: solo shot 75% down, 2-up on the join between the windows (50%), 3-UP / PIP on the lower join (67%)
-          var auto = $('autopos').checked && shots.segs.length, HEIGHTS = { 1: 0.75, 2: 0.5, 3: 0.667 }, kinds = { 1: 0, 2: 0, 3: 0 };
+          // auto reposition: solo shot 80% down, 2-up on the join between the windows (50%), 3-UP / PIP on the lower join (67%)
+          var auto = $('autopos').checked && shots.segs.length, HEIGHTS = { 1: 0.8, 2: 0.5, 3: 0.667 }, kinds = { 1: 0, 2: 0, 3: 0 };
           function finish() {
             busy(false);
-            if (auto) notes.push('Placed by shot: ' + kinds[1] + ' on solo shots (75%), ' + kinds[2] + ' on 2-ups (50%), ' + kinds[3] + ' on 3-UPs (67%).');
+            if (auto) notes.push('Placed by shot: ' + kinds[1] + ' on solo shots (80%), ' + kinds[2] + ' on 2-ups (50%), ' + kinds[3] + ' on 3-UPs (67%).');
             say(st, placed + ' captions placed on V' + (track + 1) + ' of "' + info.name + '".' + (notes.length ? '\n' + notes.join('\n') : '') +
               '\nPlay it through once: fix any wrong word in the Caption field of that clip.', 'ok');
           }
@@ -611,7 +611,7 @@
             }
             var lines = [];
             for (var n = 0; n < 30 && i < caps.length; n++, i++) {
-              var kind = E.kindAt(shots.segs, caps[i].s + info.frame / 2), h = auto ? HEIGHTS[kind] || 0.75 : y / 100;
+              var kind = E.kindAt(shots.segs, caps[i].s + info.frame / 2), h = auto ? HEIGHTS[kind] || 0.8 : y / 100;
               kinds[kind] = (kinds[kind] || 0) + 1;
               lines.push([caps[i].s.toFixed(5), caps[i].e.toFixed(5), caps[i].text.replace(/[\t\n]/g, ' '), caps[i].timing, h].join('\t'));
             }
