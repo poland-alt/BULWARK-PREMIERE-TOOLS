@@ -282,6 +282,12 @@
     })();
   });
 
+  function hasFont(name) {      // a font that is installed changes the width of a test string
+    var c = document.createElement('canvas').getContext('2d'), t = 'MMMiiiWWWlll0123';
+    c.font = '72px monospace'; var a = c.measureText(t).width;
+    c.font = '72px "' + name + '", monospace';
+    return c.measureText(t).width !== a;
+  }
   // ---- 2. captions ----
   function capStyle() { $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread by Claude' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
   function loadSettings() {
@@ -361,6 +367,7 @@
           });
         })();
       }
+      if (!hasFont('SpecialGothicCondensed-SemiBold') && !hasFont('Special Gothic Condensed')) notes.push('The font Special Gothic Condensed SemiBold is not installed on this Mac, so the captions show in a stand-in font. Activate it in Adobe Fonts (Creative Cloud), then restart Premiere.');
       if (info.apple) notes.push('The Whisper speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');
       if (!info.tight) notes.push('This Mac is older than macOS 26, so word timing is a little looser: check the highlight after pauses.');
       else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');

@@ -5,6 +5,7 @@
       "notes": "Now one panel, Bulwark Premiere Tools, with tabs: Clips (suggest and cut clips from a full episode), Reframe, Captions (gold active-word captions) and Settings. No API key needed: clip suggestions go through Claude chat by copy and paste. First transcription downloads a 640 MB speech model.",
       "files": [
         "CSXS/manifest.xml",
+        "bin/THIRD-PARTY-LICENSES.txt",
         "bin/transcribe.b64",
         "bin/transcribe.swift",
         "bin/wtranscribe.b64",
