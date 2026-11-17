@@ -61,6 +61,9 @@
   #caplist .cap span { flex: 0 0 38px; color: #888; font-size: 11px; text-align: right; }
   #caplist .cap input { flex: 1; padding: 4px 6px; font-size: 12.5px; }
   #caplist .cap input.saved { border-color: #4f9d5d; } #caplist .cap input.bad { border-color: #ff7b7b; }
+  .slider { display: flex; align-items: center; gap: 8px; margin: -6px 0 12px 22px; color: #b5b5b5; font-size: 11.5px; }
+  .slider input { flex: 1; }
+  .slider b { flex: 0 0 26px; color: #fff; font-weight: 600; text-align: right; }
   a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
 </style>
 </head>
@@ -124,7 +127,8 @@
   <div class="sub">Open the 9x16 clip. Captions go on a new top track: Special Gothic Condensed SemiBold, white with a black stroke, the word being spoken in gold. <span id="capstyle"></span></div>
   <label class="check"><input id="autopos" type="checkbox" checked> Auto reposition captions (solo shot 75%, 2-up 50%, 3-UP 67%)</label>
   <label class="check"><input id="splitcuts" type="checkbox" checked> Split captions at picture cuts, so each shot's captions move on their own</label>
-  <label class="check"><input id="shadow" type="checkbox"> Faint drop shadow</label>
+  <label class="check"><input id="shadow" type="checkbox"> Drop shadow</label>
+  <div class="slider"><span>Shadow strength</span><input id="shadowamt" type="range" min="0" max="100" step="5" value="50"><b id="shadowval">50</b></div>
   <label class="check"><input id="nofill" type="checkbox" checked> Leave out filler words (um, uh) and stutters (I, I, I think)</label>
   <div class="fields"><label>Height on screen % (used when auto reposition is off)<input id="ypos" type="number" min="5" max="95" step="1" value="67"></label></div>
   <input id="names" type="text" placeholder="Names to get right (optional): Tim Miller, JVL…" style="margin-bottom:10px">
@@ -144,7 +148,7 @@
   <div class="row"><input id="oW" type="number" min="0" max="100" step="0.5" value="7"></div>
   <button id="oSel" class="secondary">Apply to selected clips</button>
   <button id="oAll" class="secondary">Apply to every caption in the sequence</button>
-  <button id="oShadow" class="secondary">Add a faint drop shadow to every caption</button>
+  <button id="oShadow" class="secondary">Apply the drop shadow (at the strength above) to every caption</button>
   <div id="oOut" class="status"></div>
   </div>
 

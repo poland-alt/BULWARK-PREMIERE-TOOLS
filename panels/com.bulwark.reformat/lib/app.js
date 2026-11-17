@@ -15,7 +15,7 @@
     paste: { name: 'No key: copy and paste through any chat', local: true }
   };
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
-  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', nofill: 'on' };
+  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', shadowamt: '50', nofill: 'on' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
@@ -481,7 +481,8 @@
     return c.measureText(t).width !== a;
   }
   // ---- 2. captions ----
-  function capStyle() { $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
+  function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }
+  function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
   function loadSettings() {
     for (var id in DEFAULTS) {
       var v = store('bulwark_' + id); if (v === null || v === undefined || v === '') v = DEFAULTS[id];
@@ -493,6 +494,7 @@
     $(id).addEventListener('change', function () { store('bulwark_' + id, $(id).type === 'checkbox' ? ($(id).checked ? 'on' : 'off') : $(id).value); capStyle(); });
   });
   loadSettings();
+  $('shadowamt').addEventListener('input', shadowLabel);
   $('resetall').addEventListener('click', function () {
     for (var id in DEFAULTS) try { localStorage.removeItem('bulwark_' + id); } catch (e) {}
     loadSettings(); say($('updstat'), 'Settings are back to the defaults.', 'ok');
@@ -564,11 +566,11 @@
   }
   $('oShadow').addEventListener('click', function () {
     var o = $('oOut'); $('oShadow').disabled = true; say(o, 'Working…');
-    jsx('$.bulwark.shadowCaptions(-1)', function (r) {
+    jsx('$.bulwark.shadowCaptions(-1,' + num('shadowamt', 0, 100, 50) + ')', function (r) {
       $('oShadow').disabled = false;
       var p = r.split('|');
       if (p[0] !== 'OK') return say(o, p[1] || 'Premiere did not answer.', 'err');
-      say(o, +p[1] ? 'Faint drop shadow is on ' + p[1] + ' caption' + (+p[1] === 1 ? '' : 's') + '.' : 'No captions found in this sequence.', +p[1] ? 'ok' : '');
+      say(o, +p[1] ? 'Drop shadow at strength ' + num('shadowamt', 0, 100, 50) + ' is on ' + p[1] + ' caption' + (+p[1] === 1 ? '' : 's') + '.' : 'No captions found in this sequence.', +p[1] ? 'ok' : '');
     });
   });
   $('oSel').addEventListener('click', function () { outline('selected'); });
@@ -602,7 +604,7 @@
             if (i >= caps.length) {
               if (!$('shadow').checked) return finish();
               say(st, 'Adding the drop shadow…');
-              return jsx('$.bulwark.shadowCaptions(' + track + ')', function (rs) {
+              return jsx('$.bulwark.shadowCaptions(' + track + ',' + num('shadowamt', 0, 100, 50) + ')', function (rs) {
                 if (rs.split('|')[0] !== 'OK') notes.push('The drop shadow could not be added: ' + (rs.split('|')[1] || 'Premiere did not answer') + '.');
                 finish();
               });

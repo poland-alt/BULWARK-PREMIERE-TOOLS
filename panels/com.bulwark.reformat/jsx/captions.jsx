@@ -307,8 +307,12 @@ $.bulwark.setOutline = function (width, scope) {
         } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
 
-    // ---- a faint drop shadow under every caption on a track (track -1: every caption in the sequence) ----
-    $.bulwark.shadowCaptions = function (track) {
+    // ---- a drop shadow under every caption on a track (track -1: every caption in the sequence) ----
+    // strength 0-100: from barely there to heavy. Captions that already have the shadow are set to the new strength.
+    $.bulwark.shadowCaptions = function (track, strength) {
+        strength = Math.max(0, Math.min(100, Number(strength)));
+        if (isNaN(strength)) strength = 50;
+        var opacity = 25 + 0.65 * strength, distance = 4 + 0.1 * strength, softness = 10 + 0.2 * strength;
         var done = 0, had = 0;
         try {
             var seq = app.project.activeSequence;
@@ -342,10 +346,10 @@ $.bulwark.setOutline = function (width, scope) {
                     for (var p = 0; p < comp.properties.numItems; p++) {
                         var pr = comp.properties[p], n = pr.displayName;
                         try {
-                            if (n === "Opacity") pr.setValue(40, true);
+                            if (n === "Opacity") pr.setValue(opacity, true);
                             else if (n === "Direction") pr.setValue(135, true);
-                            else if (n === "Distance") pr.setValue(6, true);
-                            else if (n === "Softness") pr.setValue(14, true);
+                            else if (n === "Distance") pr.setValue(distance, true);
+                            else if (n === "Softness") pr.setValue(softness, true);
                         } catch (e1) {}
                     }
                     done++;
