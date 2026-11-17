@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.1.0",
-      "notes": "Now one panel, Bulwark Premiere Tools, with tabs: Clips (suggest and cut clips from a full episode), Reframe, Captions (gold active-word captions) and Settings. No API key needed: clip suggestions go through Claude chat by copy and paste. First transcription downloads a 640 MB speech model.",
+      "version": "2.1.1",
+      "notes": "Transcribing is much faster (a 30 minute episode in about a minute) and shows live progress; the first-time setup no longer sits for minutes. Reframe: a multicam sequence named 2-up, 3-up, 2-box or 3-box is treated as the wide shot.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",

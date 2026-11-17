@@ -41,11 +41,17 @@
   }
 
   // Runs a helper that writes JSON to `json`; cb(result object or null)
-  function runHelper(args, json, cb) {
-    cep.fs.deleteFile(json);
+  function runHelper(args, json, cb, onProgress) {
+    cep.fs.deleteFile(json); cep.fs.deleteFile(json + '.progress');
     var proc = cep.process.createProcess.apply(cep.process, args), done = false;
+    var poll = onProgress ? setInterval(function () {
+      var r = cep.fs.readFile(json + '.progress');
+      if (!r.err && r.data) onProgress(String(r.data).split(' '));
+    }, 1500) : null;
     function fin() {
       if (done) return; done = true;
+      if (poll) clearInterval(poll);
+      cep.fs.deleteFile(json + '.progress');
       var res = null;
       try { res = JSON.parse(cep.fs.readFile(json).data); } catch (e) {}
       cb(res);
@@ -76,8 +82,14 @@
           var wav = WORK + '/audio.wav';
           jsx('$.bulwark.exportAudio(' + q(wav) + ')', function (r2) {
             if (r2 !== 'OK') return cb(r2.split('|').slice(1).join('|') || 'Premiere could not export the audio.');
-            var first = !!cep.fs.stat(MODELS + '/ready.txt').err;
-            status(first ? 'Getting the speech model (about 640 MB, this Mac\'s first time only; a few minutes)…' : 'Transcribing on this Mac' + (mins > 5 ? ' (about ' + Math.max(1, Math.round(mins / 7)) + ' min for a sequence this long)' : '') + '…');
+            var began = Date.now();
+            function stage(p) {      // what the transcriber says it is doing right now
+              var pct = Math.round((parseFloat(p[1]) || 0) * 100), t = E.clock((Date.now() - began) / 1000);
+              if (p[0] === 'download') status('Downloading the speech model: ' + pct + '% of 640 MB (this Mac\'s first time only)…  ' + t);
+              else if (p[0] === 'load') status('Loading the speech model (the first time on a Mac takes up to a minute)…  ' + t);
+              else if (p[0] === 'transcribe') status('Transcribing on this Mac: ' + pct + '%…  ' + t);
+            }
+            status('Starting the transcriber…');
             // WhisperKit for the words, Apple's dictation recogniser for tight word times, side by side
             var heard, tight, left = 2;
             function both() {
@@ -94,13 +106,12 @@
               }
               cep.fs.deleteFile(wav);
               if (!w) return cb('No speech was found in this sequence.');
-              cep.fs.writeFile(MODELS + '/ready.txt', 'ok');
               var m = t ? E.mergeTimes(w, t) : E.whisperOnly(w);
               info.words = m.words; info.timed = m.timed; info.tight = !!t;
               cep.fs.writeFile(cache, JSON.stringify({ total: info.total, words: m.words, timed: m.timed, tight: info.tight }));
               cb(null, info);
             }
-            runHelper([WHISPER, wav, WORK + '/words.json', MODELS], WORK + '/words.json', function (r3) { heard = r3; both(); });
+            runHelper([WHISPER, wav, WORK + '/words.json', MODELS], WORK + '/words.json', function (r3) { heard = r3; both(); }, stage);
             runHelper([HELPER, wav, WORK + '/tight.json', 'tight'], WORK + '/tight.json', function (r4) { tight = r4; both(); });
           });
         }, 60);

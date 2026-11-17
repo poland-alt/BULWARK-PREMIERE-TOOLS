@@ -325,6 +325,9 @@ $.bulwark.vert = {
         }
         return null;
     }
+    // A nest whose name says it is a group shot: "2-up", "3-UP", "2-BOX", "3 box", "2box"...
+    // A multicam clip normally counts as one camera (its angle cannot be read), but one named like this is the wide shot.
+    function wideByName(name) { return /(^|[^a-z0-9])[23][\s\-_]?(up|box)([^a-z0-9]|$)/i.test(String(name || "")); }
     // Is this timeline clip a multicam clip (it shows one angle of its nest, not all the tracks)? seq must be the open sequence.
     function multicamOn(seq, trackIdx, clip) {
         try {
@@ -547,7 +550,7 @@ $.bulwark.vert = {
                     if (!ns || seen[ns.sequenceID]) continue;
                     seen[ns.sequenceID] = true;
                     if (ns.frameSizeVertical > ns.frameSizeHorizontal) continue;
-                    if (populatedTracks(ns) > 1) { if (!wide && !multicamOn(seq, t, seq.videoTracks[t].clips[c])) wide = ns; } else singles.push(ns);
+                    if (populatedTracks(ns) > 1) { if (!wide && (wideByName(ns.name) || !multicamOn(seq, t, seq.videoTracks[t].clips[c]))) wide = ns; } else singles.push(ns);
                 }
             }
             if (!wide) return "ERR|No wide-shot nest in \"" + seq.name + "\".";
@@ -971,7 +974,7 @@ $.bulwark.vert = {
                 }
                 setScale(o2.clip, getScale(o2.clip) * fill);
                 var wseq = seqFor(o2.item);
-                if (wseq && populatedTracks(wseq) > 1 && multicamOn(seq, o2.track, o2.clip)) { nFull++; nMulticam++; }
+                if (wseq && populatedTracks(wseq) > 1 && !wideByName(wseq.name) && multicamOn(seq, o2.track, o2.clip)) { nFull++; nMulticam++; }
                 else if (wseq && populatedTracks(wseq) > 1) wideClips.push(o2); else nFull++;
             }
 
@@ -1124,7 +1127,7 @@ $.bulwark.vert = {
 
             notes.push("Created \"" + seq.name + "\" (" + CFG.width + "x" + CFG.height + ").");
             notes.push(nFull + " camera clips scaled to fill.");
-            if (nMulticam) review.push(nMulticam + " multicam clip" + (nMulticam === 1 ? " was" : "s were") + " scaled to fill like a single camera. The panel cannot read which angle a multicam clip shows: if one shows a 2-box or media, lay that one out by hand.");
+            if (nMulticam) review.push(nMulticam + " multicam clip" + (nMulticam === 1 ? " was" : "s were") + " scaled to fill like a single camera. The panel cannot read which angle a multicam clip shows: if one shows a 2-box or media, lay that one out by hand (or name the multicam sequence 2-up, 3-up, 2-box or 3-box and it is treated as the wide shot).");
             if (nWide) notes.push(nWide + " wide shots now use \"" + (madeNests.length ? madeNests.join(", ") : usedNests.join(", ")) + "\"" + (madeNests.length ? " (new: check each person's framing in it once)." : "."));
             var usedNames = [];
             for (var un in used) usedNames.push((segs.length > 1 ? used[un] + " " : "") + nameOf(un));

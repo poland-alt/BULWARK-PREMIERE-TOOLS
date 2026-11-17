@@ -14,8 +14,28 @@ guard a.count >= 4 else { print("usage: wtranscribe <audio> <out.json> <models d
 let out = a[2], model = a.count > 4 ? a[4] : "openai_whisper-large-v3-v20240930_turbo_632MB"
 do {
     let t0 = Date()
-    let pipe = try await WhisperKit(WhisperKitConfig(model: model, downloadBase: URL(fileURLWithPath: a[3]), verbose: false, logLevel: .error, prewarm: false, load: true, download: true))
+    // progress for the panel: one line in <out>.progress ("download 0.42", "load", "transcribe 0.31")
+    func note(_ t: String) { try? t.write(toFile: out + ".progress", atomically: true, encoding: .utf8) }
+    // the model is downloaded once; after that its folder is used as it is, with no network
+    let marker = a[3] + "/" + model + ".path"
+    var folder = (try? String(contentsOfFile: marker, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if folder.isEmpty || !FileManager.default.fileExists(atPath: folder + "/AudioEncoder.mlmodelc") {
+        note("download 0")
+        try? FileManager.default.createDirectory(atPath: a[3], withIntermediateDirectories: true)
+        let url = try await WhisperKit.download(variant: model, downloadBase: URL(fileURLWithPath: a[3]), progressCallback: { p in note("download \(p.fractionCompleted)") })
+        folder = url.path
+        try? folder.write(toFile: marker, atomically: true, encoding: .utf8)
+    }
+    // The Neural Engine needs several minutes to prepare this model the first time on each Mac (and again after macOS
+    // updates); the GPU needs seconds. BW_COMPUTE=ane switches back for comparison.
+    let ane = ProcessInfo.processInfo.environment["BW_COMPUTE"] == "ane"
+    let compute = ModelComputeOptions(melCompute: .cpuAndGPU, audioEncoderCompute: ane ? .cpuAndNeuralEngine : .cpuAndGPU, textDecoderCompute: ane ? .cpuAndNeuralEngine : .cpuAndGPU, prefillCompute: .cpuOnly)
+    note("load")
+    let pipe = try await WhisperKit(WhisperKitConfig(model: model, downloadBase: URL(fileURLWithPath: a[3]), modelFolder: folder, computeOptions: compute, verbose: false, logLevel: .error, prewarm: false, load: true, download: false))
     let t1 = Date()
+    note("transcribe 0")
+    let ticker = Task { while !Task.isCancelled { note("transcribe \(pipe.progress.fractionCompleted)"); try? await Task.sleep(nanoseconds: 1_000_000_000) } }
+    defer { ticker.cancel() }
     let opts = DecodingOptions(language: "en", skipSpecialTokens: true, wordTimestamps: true, chunkingStrategy: .vad)
     let results: [TranscriptionResult] = try await pipe.transcribe(audioPath: a[1], decodeOptions: opts)
     if ProcessInfo.processInfo.environment["BW_DEBUG"] != nil {
