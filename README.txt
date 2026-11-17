@@ -12,9 +12,12 @@ WHAT'S NEW IN v2.2
                                 becomes two clips meeting at the cut, so
                                 each shot's captions can be selected and
                                 moved on their own.
-     Faint drop shadow          adds a soft shadow under every caption.
-   "Captions already placed" also has a button to add the shadow to
-   captions that are already in a sequence.
+     Drop shadow                adds a shadow under every caption, with a
+                                strength slider from faint (0) to heavy
+                                (100).
+   "Captions already placed" also has a button that applies the shadow,
+   at the slider's strength, to captions already in a sequence (use it
+   again after moving the slider to change them).
  - Transcribing now uses Parakeet: a 30 minute episode takes a few seconds.
    Each Mac downloads the new speech model (about 450 MB) once.
  - Captions tab, "Leave out filler words and stutters" (on by default):

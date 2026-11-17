@@ -312,7 +312,7 @@ $.bulwark.setOutline = function (width, scope) {
     $.bulwark.shadowCaptions = function (track, strength) {
         strength = Math.max(0, Math.min(100, Number(strength)));
         if (isNaN(strength)) strength = 50;
-        var opacity = 25 + 0.65 * strength, distance = 4 + 0.1 * strength, softness = 10 + 0.2 * strength;
+        var opacity = 25 + 0.75 * strength, distance = 4 + 0.2 * strength, softness = 10 + 0.35 * strength;
         var done = 0, had = 0;
         try {
             var seq = app.project.activeSequence;
