@@ -42,7 +42,11 @@ do {
             if onTop || stock.contains(plain(sg.text)) { continue }
         }
         for w in sg.words {
-            words.append(["s": (Double(w.start) * 1000).rounded() / 1000, "e": (Double(w.end) * 1000).rounded() / 1000, "w": w.word.trimmingCharacters(in: .whitespacesAndNewlines)])
+            let t = w.word.trimmingCharacters(in: .whitespacesAndNewlines), e = (Double(w.end) * 1000).rounded() / 1000
+            if (t.hasPrefix("-") || t.hasPrefix("%")), w.start >= sg.s, var last = words.popLast() {      // "26" + "-year" is one word
+                last["w"] = (last["w"] as! String) + t; last["e"] = e; words.append(last); continue
+            }
+            words.append(["s": (Double(w.start) * 1000).rounded() / 1000, "e": e, "w": t])
         }
     }
     words.sort { ($0["s"] as! Double) < ($1["s"] as! Double) }

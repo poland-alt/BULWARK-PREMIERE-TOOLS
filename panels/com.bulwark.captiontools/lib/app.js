@@ -71,7 +71,7 @@
           jsx('$.bulwark.exportAudio(' + q(wav) + ')', function (r2) {
             if (r2 !== 'OK') return cb(r2.split('|').slice(1).join('|') || 'Premiere could not export the audio.');
             var first = !!cep.fs.stat(MODELS + '/ready.txt').err;
-            status(first ? 'Getting the speech model (about 640 MB, this Mac\'s first time only; a few minutes)…' : 'Transcribing on this Mac…');
+            status(first ? 'Getting the speech model (about 640 MB, this Mac\'s first time only; a few minutes)…' : 'Transcribing on this Mac' + (mins > 5 ? ' (about ' + Math.max(1, Math.round(mins / 7)) + ' min for a sequence this long)' : '') + '…');
             // WhisperKit for the words, Apple's dictation recogniser for tight word times, side by side
             var heard, tight, left = 2;
             function both() {
