@@ -72,7 +72,7 @@ WHAT'S NEW IN v2.0
    bin "SOCIAL CLIPS 16x9". Then run Bulwark Vertical Reformat on each.
  - Caption a vertical clip. Open the 9x16 clip and press "Caption this
    sequence". Captions go on a new top track in the house style: Special
-   Gothic Condensed SemiBold, size 56, white, black stroke 7, with the
+   Gothic Condensed SemiBold, size 55, white, black stroke 7, with the
    word being spoken in gold (FFBA2E). No CaptionX step. The font must be
    installed. Wrong word? Fix it in the Caption field of that clip.
  - No API key needed. For clip suggestions (and caption proofreading)

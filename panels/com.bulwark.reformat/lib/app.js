@@ -15,7 +15,7 @@
     paste: { name: 'No key: copy and paste through any chat', local: true }
   };
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
-  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', shadowamt: '50', nofill: 'on' };
+  var DEFAULTS = { size: '55', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', shadowamt: '50', nofill: 'on' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
@@ -482,7 +482,7 @@
   }
   // ---- 2. captions ----
   function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }
-  function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
+  function capStyle() { shadowLabel(); $('capstyle').textContent = 'Size ' + num('size', 10, 200, 55) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
   function loadSettings() {
     for (var id in DEFAULTS) {
       var v = store('bulwark_' + id); if (v === null || v === undefined || v === '') v = DEFAULTS[id];
