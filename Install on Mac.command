@@ -6,6 +6,7 @@ mkdir -p "$DEST"
 for p in com.bulwark.reformat com.bulwark.captiontools; do
   rm -rf "$DEST/$p"
   cp -R "panels/$p" "$DEST/$p" || { echo "Could not copy $p"; exit 1; }
+  xattr -dr com.apple.quarantine "$DEST/$p" 2>/dev/null
 done
 # The panels are unsigned, so Premiere needs its developer flag to load them.
 for v in 10 11 12 13; do defaults write com.adobe.CSXS.$v PlayerDebugMode 1; done

@@ -1,5 +1,31 @@
-BULWARK PREMIERE TOOLS - v1.7 test build
+BULWARK PREMIERE TOOLS - v2.0 test build
 ========================================
+
+WHAT'S NEW IN v2.0 (the Caption Tools panel, now "Clips & Captions")
+---------------------------------------------------------------------
+ - Find clips in a full episode. Open the finished 16x9 episode sequence
+   and press "Find clips in this sequence". The panel transcribes the
+   episode on your Mac, asks Claude for the best 1:30 to 2:30 moments, and
+   lists them with a title, an on-screen headline and the reason. "Go to"
+   moves the playhead to a pick. Untick or rename, then "Cut ticked clips":
+   each becomes its own trimmed 16x9 sequence named "SOC - <title>" in the
+   bin "SOCIAL CLIPS 16x9". Then run Bulwark Vertical Reformat on each.
+ - Caption a vertical clip. Open the 9x16 clip and press "Caption this
+   sequence". Captions go on a new top track in the house style: Special
+   Gothic Condensed SemiBold, size 56, white, black stroke 16, with the
+   word being spoken in gold (FFBA2E). No CaptionX step. The font must be
+   installed. Wrong word? Fix it in the Caption field of that clip.
+ - Claude API key. Finding clips and proofreading words need an Anthropic
+   API key: paste it once at the bottom of the panel. It is saved on your
+   Mac only. Transcript text goes to Anthropic; audio and video do not.
+   Without a key, captions still work (words are just not proofread).
+ - Needs a Mac with Apple silicon and macOS 26 or later (the transcriber
+   is Apple's on-device speech recognition). The first run may download
+   Apple's speech model.
+ - Limits: the transcriber mishears some names; proofreading catches most.
+   Word timing is within about a tenth of a second on clean speech and
+   looser under music or crosstalk. Clip picks are suggestions: check the
+   in and out points before posting.
 
 WHAT'S NEW IN v1.7
 ------------------

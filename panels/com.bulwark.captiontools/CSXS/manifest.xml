@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.bulwark.captiontools" ExtensionBundleVersion="1.1.0"
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.bulwark.captiontools" ExtensionBundleVersion="2.0.0"
   ExtensionBundleName="Bulwark Caption Tools" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="com.bulwark.captiontools.panel" Version="1.1.0" />
+    <Extension Id="com.bulwark.captiontools.panel" Version="2.0.0" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
@@ -24,7 +24,7 @@
           <Type>Panel</Type>
           <Menu>Bulwark Caption Tools</Menu>
           <Geometry>
-            <Size><Height>300</Height><Width>340</Width></Size>
+            <Size><Height>720</Height><Width>360</Width></Size>
             <MinSize><Height>220</Height><Width>260</Width></MinSize>
           </Geometry>
         </UI>
