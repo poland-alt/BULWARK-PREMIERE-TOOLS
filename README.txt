@@ -4,8 +4,9 @@ BULWARK PREMIERE TOOLS - v2.0 test build
 WHAT'S NEW IN v2.0 (the Caption Tools panel, now "Clips & Captions")
 ---------------------------------------------------------------------
  - Find clips in a full episode. Open the finished 16x9 episode sequence
-   and press "Find clips in this sequence". The panel transcribes the
-   episode on your Mac, asks Claude for the best 1:30 to 2:30 moments, and
+   and press "Analyze transcript and suggest clips". The panel
+   transcribes the episode on your Mac, and Claude suggests every 1:30 to
+   2:30 moment worth clipping (as many or as few as the episode has), and
    lists them with a title, an on-screen headline and the reason. "Go to"
    moves the playhead to a pick. Untick or rename, then "Cut ticked clips":
    each becomes its own trimmed 16x9 sequence named "SOC - <title>" in the

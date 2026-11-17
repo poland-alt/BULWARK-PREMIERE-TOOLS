@@ -45,9 +45,8 @@
   <h1>Bulwark Clips &amp; Captions <span id="ver" style="color:#777;font-weight:400;font-size:11px;margin-left:6px;"></span></h1>
 
   <h2>1. Find clips in a full episode</h2>
-  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, asks Claude for the best 1:30 to 2:30 moments, and cuts the ones you tick into their own sequences in the bin "SOCIAL CLIPS 16x9".</div>
-  <div class="fields"><label>How many<input id="count" type="number" min="1" max="15" step="1" value="6"></label></div>
-  <button id="find">Find clips in this sequence</button>
+  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, has Claude analyze the transcript and suggest every 1:30 to 2:30 moment worth clipping, and cuts the ones you tick into their own sequences in the bin "SOCIAL CLIPS 16x9".</div>
+  <button id="find">Analyze transcript and suggest clips</button>
   <div id="fstat" class="status"></div>
   <div id="clips"></div>
   <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>

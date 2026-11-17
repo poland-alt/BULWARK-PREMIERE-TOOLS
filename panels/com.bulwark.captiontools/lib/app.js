@@ -129,7 +129,7 @@
       if (x.status >= 500) return cb('Claude is having trouble (' + x.status + '). Try again in a minute.');
       if (x.status !== 200 || !res) return cb('Claude returned an error (' + x.status + ')' + (msg ? ': ' + msg : '.'));
       if (res.stop_reason === 'refusal') return cb('Claude declined to work on this transcript.');
-      if (res.stop_reason === 'max_tokens') return cb('Claude ran out of room answering. Try again, or ask for fewer clips.');
+      if (res.stop_reason === 'max_tokens') return cb('Claude ran out of room answering. Try again.');
       var text = '';
       for (var i = 0; i < (res.content || []).length; i++) if (res.content[i].type === 'text') text += res.content[i].text;
       try { cb(null, JSON.parse(text)); } catch (e2) { cb('Claude answered in a form the panel could not read. Try again.'); }
@@ -170,21 +170,21 @@
     $('cut').style.display = '';
   }
   function findClips(fresh) {
-    var st = $('fstat'), count = Math.max(1, Math.min(15, parseInt($('count').value, 10) || 6));
+    var st = $('fstat');
     if (!store('bulwarkClaudeKey')) return say(st, 'Add a Claude API key at the bottom of this panel first.', 'err');
     busy(true); say($('cstat'), ''); found = null; showClips();
     transcribe(function (t) { say(st, t); }, fresh, function (err, info) {
       if (err) { busy(false); return say(st, err, 'err'); }
       if (info.total < 180) { busy(false); return say(st, 'This sequence is only ' + E.clock(info.total) + ' long. Open the full episode to find clips in it.', 'err'); }
       var sents = E.sentences(info.words);
-      say(st, (info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ') + 'Claude is reading the episode (a minute or two)…');
-      claude(E.clipSystem(count), 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents), E.clipSchema, 'high', function (e2, res) {
+      say(st, (info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ') + 'Claude is analyzing the transcript (a minute or two)…');
+      claude(E.clipSystem(), 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents), E.clipSchema, 'high', function (e2, res) {
         busy(false);
         if (e2) return say(st, e2, 'err');
         found = { info: info, clips: E.clipTimes(res.clips, info.words, sents, info.total) };
         showClips();
         st.className = 'status ok';
-        st.textContent = found.clips.length ? found.clips.length + ' clips found in "' + info.name + '". Untick any you do not want, rename them, then cut. ' : 'Claude did not find a clip worth cutting. ';
+        st.textContent = found.clips.length ? found.clips.length + ' clip' + (found.clips.length === 1 ? '' : 's') + ' suggested from "' + info.name + '". Untick any you do not want, rename them, then cut. ' : 'Claude did not find a clip worth cutting. ';
         if (info.cached) {
           var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Sequence changed? Transcribe again';
           a.addEventListener('click', function () { findClips(true); }); st.appendChild(a);
@@ -220,7 +220,7 @@
   });
 
   // ---- 2. captions ----
-  ['size', 'stroke', 'ypos', 'count', 'names'].forEach(function (id) {
+  ['size', 'stroke', 'ypos', 'names'].forEach(function (id) {
     var v = store('bulwark_' + id); if (v) $(id).value = v;
     $(id).addEventListener('change', function () { store('bulwark_' + id, $(id).value); });
   });
