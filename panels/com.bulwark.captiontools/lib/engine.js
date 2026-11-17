@@ -174,7 +174,9 @@
     function flush() { if (cur.length) groups.push(cur); cur = []; len = 0; }
     for (var i = 0; i < words.length; i++) {
       var w = words[i], t = String(w.w);
-      if (cur.length && (cur.length >= 4 || len + 1 + t.length > 26 || w.s - cur[cur.length - 1].e > 0.7)) flush();
+      var closes = /[,.?!]["'\u201d\u2019)\]]*$/.test(t);     // a 5th word is allowed when it finishes the phrase, so it is not left alone
+      var full = cur.length >= 5 || (cur.length === 4 && !(closes && len + 1 + t.length <= 28)) || (cur.length < 4 && len + 1 + t.length > 26);
+      if (cur.length && (full || w.s - cur[cur.length - 1].e > 0.7)) flush();
       cur.push(w); len += (len ? 1 : 0) + t.length;
       if (/[.?!]["'”’)\]]*$/.test(t)) flush();
     }
