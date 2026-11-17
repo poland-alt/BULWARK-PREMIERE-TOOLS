@@ -173,12 +173,15 @@
       clip(false, '', function (e, text) {
         if (e) return say(msg, e, 'err');
         text = String(text || '');
-        var a = text.indexOf('{'), b = text.lastIndexOf('}'), res = null;
-        if (a >= 0 && b > a) try { res = JSON.parse(text.slice(a, b + 1)); } catch (x) {}
-        if (!res || !(res[field] instanceof Array)) {
-          return say(msg, text.indexOf(system.slice(0, 40)) >= 0 ? 'The clipboard still holds what you copied in step 1. Copy Claude\'s answer first, then press this again.'
-            : 'That does not look like Claude\'s answer. Copy the whole answer (the copy button under it), then press this again.', 'err');
+        // what was copied in step 1 is still on the clipboard (it holds an example answer, so check before reading it as one)
+        if (text.indexOf(system.slice(0, 60)) >= 0) return say(msg, 'The clipboard still holds what you copied in step 1. Copy Claude\'s answer first (the copy button under it), then press this again.', 'err');
+        var res = null, fence = /```(?:json)?\s*([\s\S]*?)```/g, m, blocks = [];
+        while ((m = fence.exec(text))) blocks.push(m[1]);
+        blocks.push(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+        for (var i = 0; i < blocks.length && !res; i++) {
+          try { var j = JSON.parse(blocks[i]); if (j && j[field] instanceof Array) res = j; } catch (x) {}
         }
+        if (!res) return say(msg, 'That does not look like Claude\'s answer. Copy the whole answer (the copy button under it), then press this again.', 'err');
         close(null, res);
       });
     });
