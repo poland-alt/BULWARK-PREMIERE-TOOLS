@@ -168,7 +168,7 @@ $.bulwark.setOutline = function (width, scope) {
     }
     function fromJSON(s) { return eval("(" + s + ")"); }
 
-    // data: one caption per line, "start<TAB>end<TAB>TEXT<TAB>word timings". track: -1 on the first batch (a new top track
+    // data: one caption per line, "start<TAB>end<TAB>TEXT<TAB>word timings<TAB>height share (optional; else yShare)". track: -1 on the first batch (a new top track
     // is made if the top one is in use), afterwards the track the first batch reported.
     $.bulwark.placeCaptions = function (mogrtPath, track, data, size, outline, yShare) {
         var placed = 0;
@@ -232,7 +232,7 @@ $.bulwark.setOutline = function (width, scope) {
                 if (!setText(props, "Caption", f[2], size)) return "ERR|The template has no Caption text control.";
                 if (!setText(props, "Word Timing", f[3])) return "ERR|The template has no Word Timing control, so the highlight cannot follow the words.";
                 plain(prm(props, "Outline Width"), outline);
-                plain(prm(props, "Position"), [0.5, yShare]);
+                plain(prm(props, "Position"), [0.5, f.length > 4 && Number(f[4]) > 0 ? Number(f[4]) : yShare]);
                 plain(prm(props, "Blur In"), false);
                 colour(prm(props, "Text Color"), 255, 255, 255);
                 colour(prm(props, "Highlight Color"), 255, 186, 46);
@@ -242,5 +242,116 @@ $.bulwark.setOutline = function (width, scope) {
             }
             return "OK|" + track + "|" + placed;
         } catch (err) { return "ERR|" + err + (err.line ? " (line " + err.line + ")" : "") + "|" + track + "|" + placed; }
+    };
+
+    // ---- where the picture cuts, and what kind of shot each stretch is ----
+    // Looks at every picture clip in the open sequence (not captions, titles or adjustment layers).
+    // Returns "OK|cut,cut,...|start:kind;start:kind;..." with kind 1 = one person full frame, 2 = 2-up, 3 = 3-UP or PIP.
+    // A stretch is a 2-up / 3-UP when a frame with that in its name is over it, or it is a vertical nest holding one.
+    function layoutIn(name) {
+        if (/3\s*-?\s*up|pip/i.test(name)) return 3;
+        if (/2\s*-?\s*up/i.test(name)) return 2;
+        return 0;
+    }
+    var nestLayouts = {};
+    function nestLayout(item) {
+        if (!item) return 0;
+        var id = item.nodeId;
+        if (nestLayouts[id] !== undefined) return nestLayouts[id];
+        var found = 0;
+        for (var i = 0; i < app.project.sequences.numSequences && !found; i++) {
+            var ns = app.project.sequences[i];
+            if (!ns.projectItem || ns.projectItem.nodeId !== id) continue;
+            for (var t = 0; t < ns.videoTracks.numTracks; t++) {
+                for (var c = 0; c < ns.videoTracks[t].clips.numItems; c++) {
+                    var k = ns.videoTracks[t].clips[c];
+                    if (!k.disabled) found = Math.max(found, layoutIn(k.name));
+                }
+            }
+            break;
+        }
+        nestLayouts[id] = found;
+        return found;
+    }
+    $.bulwark.shotMap = function () {
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            nestLayouts = {};
+            var clips = [], marks = {}, t, c, end = Number(seq.end) / TICKS;
+            for (t = 0; t < seq.videoTracks.numTracks; t++) {
+                var tr = seq.videoTracks[t];
+                for (c = 0; c < tr.clips.numItems; c++) {
+                    var k = tr.clips[c];
+                    if (k.disabled || !k.projectItem || /adjustment layer/i.test(k.name)) continue;
+                    var mgt = null;
+                    try { mgt = k.getMGTComponent(); } catch (e0) {}
+                    if (mgt) continue;                                  // captions and other templates are not shots
+                    var lay = layoutIn(k.name) || nestLayout(k.projectItem);
+                    clips.push({ s: k.start.seconds, e: k.end.seconds, lay: lay });
+                    marks[k.start.seconds.toFixed(4)] = 1; marks[k.end.seconds.toFixed(4)] = 1;
+                }
+            }
+            var cuts = [];
+            for (var m in marks) if (marks.hasOwnProperty(m)) cuts.push(Number(m));
+            cuts.sort(function (a, b) { return a - b; });
+            var segs = [], inner = [];
+            for (var i = 0; i < cuts.length; i++) {
+                var a = cuts[i], b = i + 1 < cuts.length ? cuts[i + 1] : end, mid = (a + b) / 2, kind = 1;
+                if (b - a < 0.0005) continue;
+                for (var j = 0; j < clips.length; j++) if (clips[j].s <= mid && clips[j].e > mid && clips[j].lay > kind) kind = clips[j].lay;
+                segs.push(a.toFixed(4) + ":" + kind);
+                if (a > 0.0005 && a < end - 0.0005) inner.push(a.toFixed(4));
+            }
+            return "OK|" + inner.join(",") + "|" + segs.join(";");
+        } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
+    };
+
+    // ---- a faint drop shadow under every caption on a track (track -1: every caption in the sequence) ----
+    $.bulwark.shadowCaptions = function (track) {
+        var done = 0, had = 0;
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            app.enableQE();
+            var fx = qe.project.getVideoEffectByName("Drop Shadow");
+            if (!fx) return "ERR|Premiere has no Drop Shadow effect to use.";
+            var qseq = qe.project.getActiveSequence();
+            function shadowOf(clip) {
+                for (var a = 0; a < clip.components.numItems; a++) if (clip.components[a].displayName === "Drop Shadow") return clip.components[a];
+                return null;
+            }
+            for (var t = 0; t < seq.videoTracks.numTracks; t++) {
+                if (track >= 0 && t !== track) continue;
+                var tr = seq.videoTracks[t], qt = qseq.getVideoTrackAt(t), qi = 0;
+                for (var c = 0; c < tr.clips.numItems; c++) {
+                    var clip = tr.clips[c], mgt = null;
+                    try { mgt = clip.getMGTComponent(); } catch (e0) {}
+                    if (!mgt) continue;
+                    var comp = shadowOf(clip);
+                    if (comp) had++;
+                    else {
+                        // the same clip in the other object model: QE items run in time order, gaps included
+                        for (; qi < qt.numItems; qi++) {
+                            var it = qt.getItemAt(qi);
+                            if (it.type === "Clip" && Math.abs(it.start.secs - clip.start.seconds) < 0.001) { it.addVideoEffect(fx); qi++; break; }
+                        }
+                        comp = shadowOf(clip);
+                        if (!comp) continue;
+                    }
+                    for (var p = 0; p < comp.properties.numItems; p++) {
+                        var pr = comp.properties[p], n = pr.displayName;
+                        try {
+                            if (n === "Opacity") pr.setValue(40, true);
+                            else if (n === "Direction") pr.setValue(135, true);
+                            else if (n === "Distance") pr.setValue(6, true);
+                            else if (n === "Softness") pr.setValue(14, true);
+                        } catch (e1) {}
+                    }
+                    done++;
+                }
+            }
+            return "OK|" + done + "|" + had;
+        } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : "") + "|" + done; }
     };
 })();

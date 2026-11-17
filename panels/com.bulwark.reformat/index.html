@@ -117,18 +117,22 @@
   <div class="tab" id="tab-captions">
   <h2>Caption a vertical clip</h2>
   <div class="sub">Open the 9x16 clip. Captions go on a new top track: Special Gothic Condensed SemiBold, white with a black stroke, the word being spoken in gold. <span id="capstyle"></span></div>
-  <div class="fields"><label>Height on screen %<input id="ypos" type="number" min="5" max="95" step="1" value="67"></label></div>
+  <label class="check"><input id="autopos" type="checkbox" checked> Auto reposition captions (solo shot 75%, 2-up 50%, 3-UP 67%)</label>
+  <label class="check"><input id="splitcuts" type="checkbox" checked> Split captions at picture cuts, so each shot's captions move on their own</label>
+  <label class="check"><input id="shadow" type="checkbox"> Faint drop shadow</label>
+  <div class="fields"><label>Height on screen % (used when auto reposition is off)<input id="ypos" type="number" min="5" max="95" step="1" value="67"></label></div>
   <input id="names" type="text" placeholder="Names to get right (optional): Tim Miller, JVL…" style="margin-bottom:10px">
   <button id="caption">Caption this sequence</button>
   <div id="kstat" class="status"></div>
   <div id="kmanual"></div>
   <hr>
-  <h2>Caption outline</h2>
-  <div class="sub">Change the stroke on captions already in the sequence.</div>
+  <h2>Captions already placed</h2>
+  <div class="sub">Change the stroke on captions already in the sequence, or add the drop shadow.</div>
   <label for="oW">Outline Width</label>
   <div class="row"><input id="oW" type="number" min="0" max="100" step="0.5" value="7"></div>
   <button id="oSel" class="secondary">Apply to selected clips</button>
   <button id="oAll" class="secondary">Apply to every caption in the sequence</button>
+  <button id="oShadow" class="secondary">Add a faint drop shadow to every caption</button>
   <div id="oOut" class="status"></div>
   </div>
 

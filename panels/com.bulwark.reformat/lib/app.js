@@ -8,7 +8,7 @@
   var HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
   var MODEL = 'claude-opus-5-5';
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
-  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on' };
+  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
@@ -347,6 +347,15 @@
       say(o, msg, updated ? 'ok' : '');
     });
   }
+  $('oShadow').addEventListener('click', function () {
+    var o = $('oOut'); $('oShadow').disabled = true; say(o, 'Working…');
+    jsx('$.bulwark.shadowCaptions(-1)', function (r) {
+      $('oShadow').disabled = false;
+      var p = r.split('|');
+      if (p[0] !== 'OK') return say(o, p[1] || 'Premiere did not answer.', 'err');
+      say(o, +p[1] ? 'Faint drop shadow is on ' + p[1] + ' caption' + (+p[1] === 1 ? '' : 's') + '.' : 'No captions found in this sequence.', +p[1] ? 'ok' : '');
+    });
+  });
   $('oSel').addEventListener('click', function () { outline('selected'); });
   $('oAll').addEventListener('click', function () { outline('all'); });
 
@@ -360,23 +369,44 @@
       if (info.total > 900) { busy(false); return say(st, 'This sequence is ' + E.clock(info.total) + ' long. Captions are meant for clips; open the vertical clip.', 'err'); }
       var notes = [];
       function place() {
-        var caps = E.captions(info.words, info.frame, info.total), i = 0, track = -1, placed = 0;
-        (function batch() {
-          if (i >= caps.length) {
+        say(st, 'Reading the cuts in this sequence…');
+        jsx('$.bulwark.shotMap()', function (rm) {
+          var pm = rm.split('|'), shots = pm[0] === 'OK' ? E.shots(pm[1], pm[2]) : { cuts: [], segs: [] };
+          if (pm[0] !== 'OK' && ($('splitcuts').checked || $('autopos').checked)) notes.push('The cuts in this sequence could not be read, so captions were not split or repositioned by shot.');
+          var caps = E.captions(info.words, info.frame, info.total), i = 0, track = -1, placed = 0;
+          if ($('splitcuts').checked) caps = E.splitAtCuts(caps, shots.cuts, info.frame);
+          // auto reposition: solo shot 75% down, 2-up on the join between the windows (50%), 3-UP / PIP on the lower join (67%)
+          var auto = $('autopos').checked && shots.segs.length, HEIGHTS = { 1: 0.75, 2: 0.5, 3: 0.667 }, kinds = { 1: 0, 2: 0, 3: 0 };
+          function finish() {
             busy(false);
-            return say(st, placed + ' captions placed on V' + (track + 1) + ' of "' + info.name + '".' + (notes.length ? '\n' + notes.join('\n') : '') +
+            if (auto) notes.push('Placed by shot: ' + kinds[1] + ' on solo shots (75%), ' + kinds[2] + ' on 2-ups (50%), ' + kinds[3] + ' on 3-UPs (67%).');
+            say(st, placed + ' captions placed on V' + (track + 1) + ' of "' + info.name + '".' + (notes.length ? '\n' + notes.join('\n') : '') +
               '\nPlay it through once: fix any wrong word in the Caption field of that clip.', 'ok');
           }
-          var lines = [];
-          for (var n = 0; n < 30 && i < caps.length; n++, i++) lines.push([caps[i].s.toFixed(5), caps[i].e.toFixed(5), caps[i].text.replace(/[\t\n]/g, ' '), caps[i].timing].join('\t'));
-          say(st, 'Placing captions: ' + Math.min(i, caps.length) + ' of ' + caps.length + '…');
-          jsx('$.bulwark.placeCaptions(' + [q(MOGRT), track, q(lines.join('\n')), size, stroke, y / 100].join(',') + ')', function (r) {
-            var p = r.split('|');
-            if (p[0] !== 'OK') { busy(false); return say(st, (p[1] || 'Premiere did not answer.') + (placed ? '\n' + placed + ' captions were placed before that.' : ''), 'err'); }
-            track = +p[1]; placed += +p[2];
-            setTimeout(batch, 30);
-          });
-        })();
+          (function batch() {
+            if (i >= caps.length) {
+              if (!$('shadow').checked) return finish();
+              say(st, 'Adding the drop shadow…');
+              return jsx('$.bulwark.shadowCaptions(' + track + ')', function (rs) {
+                if (rs.split('|')[0] !== 'OK') notes.push('The drop shadow could not be added: ' + (rs.split('|')[1] || 'Premiere did not answer') + '.');
+                finish();
+              });
+            }
+            var lines = [];
+            for (var n = 0; n < 30 && i < caps.length; n++, i++) {
+              var kind = E.kindAt(shots.segs, caps[i].s + info.frame / 2), h = auto ? HEIGHTS[kind] || 0.75 : y / 100;
+              kinds[kind] = (kinds[kind] || 0) + 1;
+              lines.push([caps[i].s.toFixed(5), caps[i].e.toFixed(5), caps[i].text.replace(/[\t\n]/g, ' '), caps[i].timing, h].join('\t'));
+            }
+            say(st, 'Placing captions: ' + Math.min(i, caps.length) + ' of ' + caps.length + '…');
+            jsx('$.bulwark.placeCaptions(' + [q(MOGRT), track, q(lines.join('\n')), size, stroke, y / 100].join(',') + ')', function (r) {
+              var p = r.split('|');
+              if (p[0] !== 'OK') { busy(false); return say(st, (p[1] || 'Premiere did not answer.') + (placed ? '\n' + placed + ' captions were placed before that.' : ''), 'err'); }
+              track = +p[1]; placed += +p[2];
+              setTimeout(batch, 30);
+            });
+          })();
+        });
       }
       if (!hasFont('SpecialGothicCondensed-SemiBold') && !hasFont('Special Gothic Condensed')) notes.push('The font Special Gothic Condensed SemiBold is not installed on this Mac, so the captions show in a stand-in font. Activate it in Adobe Fonts (Creative Cloud), then restart Premiere.');
       if (info.apple) notes.push('The Whisper speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');

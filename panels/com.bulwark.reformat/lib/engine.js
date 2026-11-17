@@ -201,5 +201,39 @@
     return out;
   };
 
+  // ---- cuts and shots ----
+  // shotMap text from Premiere -> { cuts: [secs], segs: [{ s, kind }] }  (kind 1 solo, 2 2-up, 3 3-UP / PIP)
+  E.shots = function (cutText, segText) {
+    var cuts = [], segs = [], i;
+    var a = String(cutText || '').split(','), b = String(segText || '').split(';');
+    for (i = 0; i < a.length; i++) if (a[i] !== '') cuts.push(parseFloat(a[i]));
+    for (i = 0; i < b.length; i++) { var p = b[i].split(':'); if (p.length === 2) segs.push({ s: parseFloat(p[0]), kind: parseInt(p[1], 10) }); }
+    return { cuts: cuts, segs: segs };
+  };
+  E.kindAt = function (segs, t) {
+    var kind = 1;
+    for (var i = 0; i < segs.length && segs[i].s <= t + 1e-4; i++) kind = segs[i].kind;
+    return kind;
+  };
+  // A caption that runs across a picture cut becomes two clips that meet at the cut, so each shot's captions can be
+  // moved on their own. The second piece carries the same words; the ones already said count from its start.
+  E.splitAtCuts = function (caps, cuts, frame) {
+    var out = [];
+    for (var i = 0; i < caps.length; i++) {
+      var c = caps[i];
+      for (var k = 0; k < cuts.length; k++) {
+        var cut = cuts[k];
+        if (cut <= c.s + 2 * frame - 1e-4) continue;       // a sliver of a frame or two is not worth its own clip
+        if (cut >= c.e - 2 * frame + 1e-4) break;
+        var t = c.timing.split(','), shifted = [];
+        for (var q = 0; q < t.length; q++) shifted.push(Math.max(0, parseFloat(t[q]) - (cut - c.s)).toFixed(3));
+        out.push({ s: c.s, e: cut, text: c.text, timing: c.timing });
+        c = { s: cut, e: c.e, text: c.text, timing: shifted.join(','), cont: true };
+      }
+      out.push(c);
+    }
+    return out;
+  };
+
   root.BulwarkEngine = E;
 })(typeof window !== 'undefined' ? window : this);
