@@ -1,5 +1,12 @@
-BULWARK PREMIERE TOOLS - v2.2.1 test build
+BULWARK PREMIERE TOOLS - v2.2.2 test build
 ==========================================
+
+WHAT'S NEW IN v2.2.2
+--------------------
+ - Clips tab, "Suggest IG headlines": open a cut clip (16x9 or vertical)
+   and the AI assistant suggests eight on-screen headlines of 4 to 8
+   words, each with a Copy button. Works with whichever assistant is
+   chosen in Settings, including the no-key copy-and-paste mode.
 
 WHAT'S NEW IN v2.2.1
 --------------------
