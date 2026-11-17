@@ -1,8 +1,8 @@
-BULWARK PREMIERE TOOLS - v2.2 test build
-========================================
+BULWARK PREMIERE TOOLS - v2.2.1 test build
+==========================================
 
-WHAT'S NEW IN v2.2
-------------------
+WHAT'S NEW IN v2.2.1
+--------------------
  - Reframe: a section laid out with a 16x9 layout frame (for example
    "Three Frame Media - 16:9.png": people in small windows down one side,
    media beside them) is now a media section, the same as one with a
@@ -10,6 +10,9 @@ WHAT'S NEW IN v2.2
    media in the middle, two below), two become the 3-UP, one the 2-up,
    unless you pick a layout for that section. People keep the top-to-
    bottom order they had in the 16x9 frame.
+
+WHAT'S NEW IN v2.2
+------------------
  - Captions tab, three new tick boxes:
      Auto reposition captions   captions are placed by shot: 80% down on a
                                 solo shot, 50% on a 2-up (the join between
