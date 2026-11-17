@@ -14,8 +14,8 @@
       ]
     },
     "com.bulwark.captiontools": {
-      "version": "2.0.0",
-      "notes": "New: find clips in a full episode and cut them into their own 16x9 sequences, and caption vertical clips in the house style (gold active word). Needs macOS 26 and, for clip picking, a Claude API key pasted at the bottom of the panel.",
+      "version": "2.0.1",
+      "notes": "New: find clips in a full episode and cut them into their own 16x9 sequences, and caption vertical clips in the house style (gold active word). Transcribes on your Mac (first use downloads a 640 MB speech model). Clip picking needs a Claude API key pasted at the bottom of the panel.",
       "files": [
         "CSXS/manifest.xml",
         "bin/transcribe.b64",
