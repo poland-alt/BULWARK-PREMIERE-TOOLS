@@ -15,6 +15,11 @@ WHAT'S NEW IN v2.2
      Faint drop shadow          adds a soft shadow under every caption.
    "Captions already placed" also has a button to add the shadow to
    captions that are already in a sequence.
+ - Transcribing now uses Parakeet: a 30 minute episode takes a few seconds.
+   Each Mac downloads the new speech model (about 450 MB) once.
+ - Captions tab, "Leave out filler words and stutters" (on by default):
+   um / uh are dropped, and a small word said several times in a row
+   ("I, I, I think") is kept once. "No, no, no" and "very, very" stay.
  - Captions tab, "Edit caption text": loads every caption in the sequence
    as an ordinary text box, so you can fix a word with a normal cursor
    (Premiere's own field re-renders the caption on every keystroke).
@@ -76,8 +81,8 @@ WHAT'S NEW IN v2.0
    Either way only transcript text goes to Claude; audio and video stay
    on your Mac.
  - Transcribing happens on your Mac (Apple silicon, macOS 14 or later)
-   with WhisperKit. The first time, the panel downloads the speech model
-   (about 640 MB); after that it needs no internet.
+   with Parakeet. The first time, the panel downloads the speech model
+   (about 450 MB); after that it needs no internet.
    On macOS 26 the panel also uses Apple's recogniser to time each word
    more tightly; on older macOS the highlight is a little looser after
    pauses.

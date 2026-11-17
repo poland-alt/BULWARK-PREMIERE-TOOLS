@@ -11,7 +11,7 @@
   function get(url, cb) {
     var x = new XMLHttpRequest();
     x.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now(), true);   // skip GitHub's 5-minute cache
-    x.timeout = 20000;
+    x.timeout = 120000;
     x.onload = function () { cb(x.status === 200 ? null : 'HTTP ' + x.status, x.responseText); };
     x.onerror = x.ontimeout = function () { cb('no connection'); };
     x.send();

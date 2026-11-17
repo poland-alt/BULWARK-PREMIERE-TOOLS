@@ -10,9 +10,9 @@
   };
 
   // ---- word timing ----
-  // WhisperKit hears the words best, but (like most recognisers) counts the pause before a word as part of it, so a
-  // word after a pause "starts" early. Apple's dictation recogniser mishears more but times each word tightly.
-  // So: words from WhisperKit, times from the tight list wherever both heard the same word at about the same moment.
+  // Parakeet hears the words, but times them in coarse 80 ms steps (and any recogniser can count a pause as part of the
+  // next word). Apple's dictation recogniser mishears more but times each word tightly.
+  // So: words from Parakeet, times from the tight list wherever both heard the same word at about the same moment.
   function key(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function alike(x, y) {            // "starlink"/"starling", "they've"/"they"
     if (x === y) return true;
@@ -34,6 +34,7 @@
     return out;
   }
   // Returns { words, timed: share of words that got a tight time }
+  var EARLY = 0.07;      // Parakeet's own word times run about this much early
   E.mergeTimes = function (heard, tight0) {
     var tight = [], i, q;
     for (i = 0; i < tight0.length; i++) {            // "Ukraine" + "'s" arrive as two pieces: join them
@@ -65,18 +66,16 @@
     }
     for (q = 0; q < out.length; q++) {
       if (at[q] >= 0) { out[q].s = tight[at[q]].s + lead; out[q].e = tight[at[q]].e + lead; hit++; }
-      else { out[q].s += 0.11; out[q].e += 0.11; }  // WhisperKit's own times run about a tenth of a second early
+      else { out[q].s += EARLY; out[q].e += EARLY; }
       capLong(out[q]);
     }
     return { words: inOrder(out), timed: out.length ? hit / out.length : 0 };
   };
-  // WhisperKit on its own (a Mac without the tight recogniser): shift, and pull long words to their end.
-  E.whisperOnly = function (heard) {
+  // Parakeet on its own (a Mac without the tight recogniser): shift, and pull over-long words to their end.
+  E.wordsAlone = function (heard) {
     var out = [];
     for (var i = 0; i < heard.length; i++) {
-      var w = { s: heard[i].s + 0.11, e: heard[i].e + 0.11, w: heard[i].w };
-      var next = i + 1 < heard.length ? heard[i + 1].s + 0.11 : w.e;
-      if (next - w.e < 0.05) w.e = Math.max(w.e, next);
+      var w = { s: heard[i].s + EARLY, e: heard[i].e + EARLY, w: heard[i].w };
       capLong(w); out.push(w);
     }
     return { words: inOrder(out), timed: 0 };
@@ -234,6 +233,33 @@
       parts.push('Words:\n' + t.join(' '));
     }
     return parts;
+  };
+
+  // ---- filler words and stutters ----
+  // Captions read better without "um" and without the false starts of a stutter ("I, I, I think" -> "I think").
+  // Only sounds that carry no meaning are dropped, and only small joining words are treated as stutters when they
+  // repeat, so "no, no, no" and "very, very" stay.
+  var FILLER = { um: 1, umm: 1, uh: 1, uhh: 1, uhm: 1, er: 1, erm: 1, ah: 1, ahh: 1, eh: 1, hm: 1, hmm: 1, mm: 1, mmm: 1, mhm: 1 };
+  var STUTTER = {};
+  ('i im ive id ill you youre he hes she shes we were weve they theyre theyve it its this that thats these those the a an and but so or if when what whats ' +
+   'who where why how to of in on at for with from is was are do does did have has had can could would should will my your his her our their me him them there theres because as by not just then').split(' ').forEach(function (w) { STUTTER[w] = 1; });
+  E.cleanWords = function (words) {
+    var out = [], dropped = 0;
+    function k(w) { return String(w.w).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i], key = k(w);
+      if (FILLER[key]) { dropped++; continue; }
+      var prev = out.length ? out[out.length - 1] : null;
+      // the same small word again straight away, with no full stop between: keep the last one said
+      if (prev && key && k(prev) === key && STUTTER[key] && !/[.?!]["'\u201d\u2019)\]]*$/.test(prev.w) && w.s - prev.e < 1.2) { out[out.length - 1] = w; dropped++; continue; }
+      // the same two words again ("I think, I think"): keep the second pair
+      if (out.length >= 3 && i + 0 < words.length) {
+        var a = out[out.length - 3], b = out[out.length - 2], c = out[out.length - 1];
+        if (k(a) === k(c) && k(b) === key && STUTTER[k(a)] && key && !/[.?!]["'\u201d\u2019)\]]*$/.test(b.w) && w.s - c.e < 1.2) { out.splice(out.length - 3, 2); dropped += 2; }
+      }
+      out.push(w);
+    }
+    return { words: out, dropped: dropped };
   };
 
   // ---- editing a caption's words ----

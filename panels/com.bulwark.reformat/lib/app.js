@@ -5,7 +5,7 @@
   var MAC = /Mac/i.test(navigator.platform) && window.cep && cep.process && cep.process.createProcess;
   var WORK = csi.getSystemPath(SystemPath.USER_DATA) + '/Bulwark Tools';
   var EXT = csi.getSystemPath(SystemPath.EXTENSION);
-  var AI = WORK + '/ai', HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
+  var AI = WORK + '/ai', HELPER = WORK + '/transcribe', PARAKEET = WORK + '/ptranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
   // Who answers the two AI questions (suggest clips, proofread words). Chosen on the Settings tab.
   var PROVIDERS = {
     anthropic: { name: 'Claude (Anthropic API key)', hint: 'sk-ant-…', models: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'], dflt: 'claude-opus-5-5' },
@@ -15,7 +15,7 @@
     paste: { name: 'No key: copy and paste through any chat', local: true }
   };
   // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
-  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off' };
+  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on', autopos: 'on', splitcuts: 'on', shadow: 'off', nofill: 'on' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
@@ -33,14 +33,21 @@
     try { ver = (/ExtensionBundleVersion="([\d.]+)"/.exec(cep.fs.readFile(EXT + '/CSXS/manifest.xml').data) || [])[1] || '0'; } catch (e) {}
     cep.fs.makedir(WORK);
     var mark = cep.fs.readFile(WORK + '/version.txt');
-    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(WHISPER).err && !cep.fs.stat(AI).err && !cep.fs.stat(MOGRT).err) return cb(null);
-    var parts = [['/bin/transcribe.b64', HELPER], ['/bin/wtranscribe.b64', WHISPER], ['/bin/ai.b64', AI], ['/templates/Bulwark Word Fill Vertical.mogrt.b64', MOGRT]];
+    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(PARAKEET).err && !cep.fs.stat(AI).err && !cep.fs.stat(MOGRT).err) return cb(null);
+    // name in the panel -> where it goes. A big helper travels in numbered pieces (name.1, name.2, ...) so no single
+    // download is large; the pieces are joined here.
+    var parts = [['/bin/transcribe.b64', HELPER], ['/bin/ptranscribe.b64', PARAKEET], ['/bin/ai.b64', AI], ['/templates/Bulwark Word Fill Vertical.mogrt.b64', MOGRT]];
     for (var i = 0; i < parts.length; i++) {
-      var src = cep.fs.readFile(EXT + parts[i][0]);
-      if (src.err) return cb('Part of the panel is missing. Reinstall it from the zip.');
-      if (cep.fs.writeFile(parts[i][1], src.data.replace(/\s+/g, ''), cep.encoding.Base64).err) return cb('Could not set up the transcriber in ' + WORK + '.');
+      var src = cep.fs.readFile(EXT + parts[i][0]), data = src.err ? '' : src.data;
+      for (var n = 1; src.err && n < 40; n++) {
+        var piece = cep.fs.readFile(EXT + parts[i][0] + '.' + n);
+        if (piece.err) break;
+        data += piece.data;
+      }
+      if (!data) return cb('Part of the panel is missing. Reinstall it from the zip.');
+      if (cep.fs.writeFile(parts[i][1], data.replace(/\s+/g, ''), cep.encoding.Base64).err) return cb('Could not set up the transcriber in ' + WORK + '.');
     }
-    var p = cep.process.createProcess('/bin/chmod', '755', HELPER, WHISPER, AI);
+    var p = cep.process.createProcess('/bin/chmod', '755', HELPER, PARAKEET, AI);
     if (p.err) return cb('Could not set up the transcriber.');
     var done = false;
     function fin() { if (done) return; done = true; cep.fs.writeFile(WORK + '/version.txt', ver); cb(null); }
@@ -92,18 +99,18 @@
             var began = Date.now();
             function stage(p) {      // what the transcriber says it is doing right now
               var pct = Math.round((parseFloat(p[1]) || 0) * 100), t = E.clock((Date.now() - began) / 1000);
-              if (p[0] === 'download') status('Downloading the speech model: ' + pct + '% of 640 MB (this Mac\'s first time only)…  ' + t);
+              if (p[0] === 'download') status('Downloading the speech model: ' + pct + '% of 450 MB (this Mac\'s first time only)…  ' + t);
               else if (p[0] === 'load') status('Loading the speech model (the first time on a Mac takes up to a minute)…  ' + t);
-              else if (p[0] === 'transcribe') status('Transcribing on this Mac: ' + pct + '%…  ' + t);
+              else if (p[0] === 'transcribe') status('Transcribing on this Mac…  ' + t);
             }
             status('Starting the transcriber…');
-            // WhisperKit for the words, Apple's dictation recogniser for tight word times, side by side
+            // Parakeet for the words, Apple's dictation recogniser for tight word times, side by side
             var heard, tight, left = 2;
             function both() {
               if (--left) return;
               var w = heard && heard.words && heard.words.length ? heard.words : null, t = tight && tight.words && tight.words.length ? tight.words : null;
               if (!w && !(heard && heard.words)) {
-                // WhisperKit could not run (no internet for the model, older Mac): Apple's recognisers alone, if this Mac has them
+                // Parakeet could not run (no internet for the model, older Mac): Apple's recognisers alone, if this Mac has them
                 return runHelper([HELPER, wav, WORK + '/words.json'], WORK + '/words.json', function (r5) {
                   cep.fs.deleteFile(wav);
                   if (!r5 || !r5.words || !r5.words.length) return cb('The transcriber did not finish' + (heard && heard.error ? ': ' + heard.error : '') + '. It needs an Apple silicon Mac on macOS 14 or later, and the internet the first time (to get the speech model).');
@@ -113,12 +120,12 @@
               }
               cep.fs.deleteFile(wav);
               if (!w) return cb('No speech was found in this sequence.');
-              var m = t ? E.mergeTimes(w, t) : E.whisperOnly(w);
+              var m = t ? E.mergeTimes(w, t) : E.wordsAlone(w);
               info.words = m.words; info.timed = m.timed; info.tight = !!t;
               cep.fs.writeFile(cache, JSON.stringify({ total: info.total, words: m.words, timed: m.timed, tight: info.tight }));
               cb(null, info);
             }
-            runHelper([WHISPER, wav, WORK + '/words.json', MODELS], WORK + '/words.json', function (r3) { heard = r3; both(); }, stage);
+            runHelper([PARAKEET, wav, WORK + '/words.json', MODELS + '/parakeet', 'v2'], WORK + '/words.json', function (r3) { heard = r3; both(); }, stage);
             runHelper([HELPER, wav, WORK + '/tight.json', 'tight'], WORK + '/tight.json', function (r4) { tight = r4; both(); });
           });
         }, 60);
@@ -617,9 +624,14 @@
         });
       }
       if (!hasFont('SpecialGothicCondensed-SemiBold') && !hasFont('Special Gothic Condensed')) notes.push('The font Special Gothic Condensed SemiBold is not installed on this Mac, so the captions show in a stand-in font. Activate it in Adobe Fonts (Creative Cloud), then restart Premiere.');
-      if (info.apple) notes.push('The Whisper speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');
+      if (info.apple) notes.push('The Parakeet speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');
       if (!info.tight) notes.push('This Mac is older than macOS 26, so word timing is a little looser: check the highlight after pauses.');
       else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
+      if ($('nofill').checked) {
+        var cl = E.cleanWords(info.words);
+        info.words = cl.words;
+        if (cl.dropped) notes.push(cl.dropped + ' filler word' + (cl.dropped === 1 ? '' : 's') + ' and stutter' + (cl.dropped === 1 ? '' : 's') + ' left out of the captions.');
+      }
       if (!$('fix').checked) return place();
       var names = $('names').value.replace(/^\s+|\s+$/g, '');
       ask({ box: $('kmanual'), what: 'the words', field: 'fixes', effort: 'medium', schema: E.fixSchema, skip: 'Skip proofreading', parts: E.fixParts(info.words),
