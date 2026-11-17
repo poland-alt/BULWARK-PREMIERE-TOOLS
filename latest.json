@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "1.7.0",
-      "notes": "Nests with media inside (react frames) now become a 3-UP: person, media, person. Multicam clips are scaled to fill as a single camera instead of being stacked.",
+      "version": "2.1.0",
+      "notes": "Now one panel, Bulwark Premiere Tools, with tabs: Clips (suggest and cut clips from a full episode), Reframe, Captions (gold active-word captions) and Settings. Needs a Claude API key (Settings tab) for clip suggestions; first transcription downloads a 640 MB speech model.",
       "files": [
         "CSXS/manifest.xml",
         "bin/transcribe.b64",
