@@ -1,5 +1,16 @@
-BULWARK PREMIERE TOOLS - v2.1 test build
-========================================
+BULWARK PREMIERE TOOLS - v2.1.1 test build
+==========================================
+
+WHAT'S NEW IN v2.1.1
+--------------------
+ - Transcribing is much faster and shows what it is doing: download
+   percent (first time only), loading the model, then transcription
+   percent with a running clock. A 30 minute episode takes about a minute
+   on a recent Mac. The first-time setup no longer sits for minutes.
+ - Reframe: a multicam sequence whose name contains 2-up, 3-up, 2-box or
+   3-box is treated as the wide shot and stacked, not scaled to fill as a
+   single camera. (The panel cannot read which angle a multicam clip is
+   showing, so the name is how you tell it.)
 
 WHAT'S NEW IN v2.1
 ------------------
@@ -40,7 +51,7 @@ WHAT'S NEW IN v2.0
    on your Mac.
  - Transcribing happens on your Mac (Apple silicon, macOS 14 or later)
    with WhisperKit. The first time, the panel downloads the speech model
-   (about 640 MB, a few minutes); after that it needs no internet.
+   (about 640 MB); after that it needs no internet.
    On macOS 26 the panel also uses Apple's recogniser to time each word
    more tightly; on older macOS the highlight is a little looser after
    pauses.
