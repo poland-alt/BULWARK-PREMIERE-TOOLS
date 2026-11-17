@@ -143,8 +143,57 @@
     x.send(JSON.stringify(body));
   }
 
+  // ---- no key: the same question by copy and paste through Claude chat ----
+  // box: where the two buttons go. shape: an example of the JSON wanted. cb(err, result); err 'skip' / 'cancel' when the editor backs out.
+  function clip(toClipboard, text, cb) {       // the Mac clipboard, through files so nothing is cut short or mangled
+    var f = WORK + '/clipboard.txt';
+    if (toClipboard && cep.fs.writeFile(f, text).err) return cb('Could not write to ' + WORK + '.');
+    if (!toClipboard) cep.fs.deleteFile(f);
+    var p = cep.process.createProcess('/bin/sh', '-c', (toClipboard ? '/usr/bin/pbcopy < ' : 'LANG=en_US.UTF-8 /usr/bin/pbpaste > ') + "'" + f.replace(/'/g, "'\\''") + "'"), done = false;
+    if (p.err) return cb('Could not reach the clipboard.');
+    function fin() { if (done) return; done = true; var r = toClipboard ? { data: '' } : cep.fs.readFile(f); cep.fs.deleteFile(f); cb(r.err ? 'Could not read the clipboard.' : null, r.data); }
+    cep.process.onquit(p.data, function () { setTimeout(fin, 150); }); setTimeout(fin, 5000);
+  }
+  function byPaste(box, what, system, user, shape, field, skipLabel, cb) {
+    var prompt = system + '\n\nAnswer with one JSON object in exactly this shape, inside a single code block, and nothing else before or after it:\n' + shape + '\n\n' + user;
+    box.innerHTML = ''; box.className = 'manual';
+    function el(tag, text, cls) { var e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; box.appendChild(e); return e; }
+    el('div', 'No API key saved, so this step goes through Claude chat:', 'mtitle');
+    var b1 = el('button', '1. Copy ' + what + ' for Claude');
+    el('div', '2. Paste it into a new chat at claude.ai and send. When Claude has answered, use the copy button under its answer.', 'mstep');
+    var b3 = el('button', '3. Paste Claude\'s answer'), msg = el('div', '', 'status');
+    var row = el('div', '', 'mrow'), skip = skipLabel ? document.createElement('a') : null, cancel = document.createElement('a');
+    if (skip) { skip.className = 'link'; skip.textContent = skipLabel; row.appendChild(skip); }
+    cancel.className = 'link'; cancel.textContent = 'Cancel'; row.appendChild(cancel);
+    function close(err, res) { box.innerHTML = ''; box.className = ''; cb(err, res); }
+    b1.addEventListener('click', function () {
+      clip(true, prompt, function (e) { say(msg, e || 'Copied (' + Math.round(prompt.length / 1000) + 'k characters). Now paste it into Claude chat.', e ? 'err' : 'ok'); });
+    });
+    b3.addEventListener('click', function () {
+      clip(false, '', function (e, text) {
+        if (e) return say(msg, e, 'err');
+        text = String(text || '');
+        var a = text.indexOf('{'), b = text.lastIndexOf('}'), res = null;
+        if (a >= 0 && b > a) try { res = JSON.parse(text.slice(a, b + 1)); } catch (x) {}
+        if (!res || !(res[field] instanceof Array)) {
+          return say(msg, text.indexOf(system.slice(0, 40)) >= 0 ? 'The clipboard still holds what you copied in step 1. Copy Claude\'s answer first, then press this again.'
+            : 'That does not look like Claude\'s answer. Copy the whole answer (the copy button under it), then press this again.', 'err');
+        }
+        close(null, res);
+      });
+    });
+    if (skip) skip.addEventListener('click', function () { close('skip'); });
+    cancel.addEventListener('click', function () { close('cancel'); });
+  }
+  // One question to Claude: straight to the API with a key, by copy and paste without one
+  function ask(o, cb) {
+    if (store('bulwarkClaudeKey')) { o.status(o.waiting); return claude(o.system, o.user, o.schema, o.effort, cb); }
+    o.status(o.manual);
+    byPaste(o.box, o.what, o.system, o.user, o.shape, o.field, o.skip, cb);
+  }
+
   // ---- API key ----
-  function keyState() { say($('keystat'), store('bulwarkClaudeKey') ? 'A key is saved on this Mac.' : 'No key saved yet.', store('bulwarkClaudeKey') ? 'ok' : ''); }
+  function keyState() { say($('keystat'), store('bulwarkClaudeKey') ? 'A key is saved on this Mac.' : 'No key saved: clip suggestions and proofreading go through Claude chat by copy and paste.', store('bulwarkClaudeKey') ? 'ok' : ''); }
   $('savekey').addEventListener('click', function () {
     var v = $('key').value.replace(/\s+/g, '');
     if (!v) return say($('keystat'), 'Paste the key into the box first.', 'err');
@@ -178,14 +227,18 @@
   }
   function findClips(fresh) {
     var st = $('fstat');
-    if (!store('bulwarkClaudeKey')) { say(st, 'Add a Claude API key on the Settings tab first.', 'err'); return; }
     busy(true); say($('cstat'), ''); found = null; showClips();
     transcribe(function (t) { say(st, t); }, fresh, function (err, info) {
       if (err) { busy(false); return say(st, err, 'err'); }
       if (info.total < 180) { busy(false); return say(st, 'This sequence is only ' + E.clock(info.total) + ' long. Open the full episode to find clips in it.', 'err'); }
       var sents = E.sentences(info.words);
-      say(st, (info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ') + 'Claude is analyzing the transcript (a minute or two)…');
-      claude(E.clipSystem(num('clipmin', 15, 600, 90), Math.max(num('clipmin', 15, 600, 90) + 15, num('clipmax', 30, 900, 150))), 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents), E.clipSchema, 'high', function (e2, res) {
+      var lead = info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ';
+      var cmin = num('clipmin', 15, 600, 90), cmax = Math.max(cmin + 15, num('clipmax', 30, 900, 150));
+      ask({ box: $('fmanual'), what: 'the transcript', field: 'clips', effort: 'high', schema: E.clipSchema,
+        system: E.clipSystem(cmin, cmax), user: 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents),
+        shape: '{"clips": [{"first_line": 12, "last_line": 31, "title": "three to six words", "headline": "four to eight words", "why": "one sentence"}]}',
+        status: function (t) { say(st, t); }, waiting: lead + 'Claude is analyzing the transcript (a minute or two)…', manual: lead + 'Follow the three steps below.' }, function (e2, res) {
+        if (e2 === 'cancel') { busy(false); return say(st, 'Cancelled. The transcript is saved, so starting again is quick.'); }
         busy(false);
         if (e2) return say(st, e2, 'err');
         found = { info: info, clips: E.clipTimes(res.clips, info.words, sents, info.total) };
@@ -308,13 +361,14 @@
       if (info.apple) notes.push('The Whisper speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');
       if (!info.tight) notes.push('This Mac is older than macOS 26, so word timing is a little looser: check the highlight after pauses.');
       else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
-      if (!$('fix').checked || !store('bulwarkClaudeKey')) {
-        if ($('fix').checked) notes.push('No API key saved (Settings tab), so words were not proofread.');
-        return place();
-      }
-      say(st, 'Claude is proofreading ' + info.words.length + ' words…');
+      if (!$('fix').checked) return place();
       var names = $('names').value.replace(/^\s+|\s+$/g, '');
-      claude(E.fixSystem(), 'Clip: ' + info.name + (names ? '\nNames that may come up: ' + names : '') + '\n\nWords:\n' + E.numbered(info.words), E.fixSchema, 'medium', function (e2, res) {
+      ask({ box: $('kmanual'), what: 'the words', field: 'fixes', effort: 'medium', schema: E.fixSchema, skip: 'Skip proofreading',
+        system: E.fixSystem(), user: 'Clip: ' + info.name + (names ? '\nNames that may come up: ' + names : '') + '\n\nWords:\n' + E.numbered(info.words),
+        shape: '{"fixes": [{"n": 14, "word": "Putin"}]}',
+        status: function (t) { say(st, t); }, waiting: 'Claude is proofreading ' + info.words.length + ' words…', manual: 'Transcribed ' + info.words.length + ' words. Follow the three steps below to have Claude proofread them, or skip.' }, function (e2, res) {
+        if (e2 === 'cancel') { busy(false); return say(st, 'Cancelled. No captions were placed.'); }
+        if (e2 === 'skip') { notes.push('Words were not proofread.'); return place(); }
         if (e2) notes.push('Words were not proofread: ' + e2);
         else { var n = E.applyFixes(info.words, res.fixes); notes.push(n ? 'Claude corrected ' + n + ' word' + (n === 1 ? '' : 's') + '.' : 'Claude found nothing to correct.'); }
         place();

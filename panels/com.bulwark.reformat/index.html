@@ -52,6 +52,10 @@
   .clip .head { color: #fff; font-weight: 600; margin: 2px 0; }
   .clip .why, .clip .ends { color: #9a9a9a; font-size: 11.5px; }
   .clip button { display: inline-block; width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
+  .manual { border: 1px solid #3a6ff2; border-radius: 6px; background: #22283a; padding: 10px; margin: 0 0 12px; }
+  .manual .mtitle { color: #fff; font-weight: 600; margin-bottom: 8px; }
+  .manual .mstep { color: #d0d0d0; font-size: 12px; margin: 2px 0 10px; }
+  .manual .mrow { display: flex; gap: 14px; }
   a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
 </style>
 </head>
@@ -103,6 +107,7 @@
   <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, Claude analyzes the transcript and suggests every moment worth clipping, and the ones you tick are cut into their own sequences in the bin "<span id="binname"></span>".</div>
   <button id="find">Analyze transcript and suggest clips</button>
   <div id="fstat" class="status"></div>
+  <div id="fmanual"></div>
   <div id="clips"></div>
   <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>
   <div id="cstat" class="status"></div>
@@ -116,6 +121,7 @@
   <input id="names" type="text" placeholder="Names to get right (optional): Tim Miller, JVL…" style="margin-bottom:10px">
   <button id="caption">Caption this sequence</button>
   <div id="kstat" class="status"></div>
+  <div id="kmanual"></div>
   <hr>
   <h2>Caption outline</h2>
   <div class="sub">Change the stroke on captions already in the sequence.</div>
@@ -128,7 +134,7 @@
 
   <div class="tab" id="tab-settings">
   <h2>Claude API key</h2>
-  <div class="sub">Needed to suggest clips and to correct misheard words. Paste a Bulwark Anthropic API key once; it is saved on this Mac only. Transcript text is sent to Anthropic; audio and video never leave the Mac.</div>
+  <div class="sub">Optional. With a key, clip suggestions and word proofreading happen inside the panel in one click. Without one, the panel walks you through copying the transcript into Claude chat and pasting the answer back. The key is saved on this Mac only; audio and video never leave the Mac.</div>
   <div class="row"><input id="key" type="password" placeholder="sk-ant-…" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button><button id="clearkey" class="secondary" style="width:auto;margin:0">Remove</button></div>
   <div id="keystat" class="status"></div>
   <hr>
