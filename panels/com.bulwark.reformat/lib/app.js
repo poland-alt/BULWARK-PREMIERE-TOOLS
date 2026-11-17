@@ -529,8 +529,13 @@
       hit.className = 'cap now';
       var list = $('caplist'), typing = document.activeElement && list.contains(document.activeElement);
       if (typing) return;                      // never move the list under someone who is editing
+      // keep the playing caption in the middle of the list...
       var top = hit.offsetTop - list.offsetTop;
-      if (top < list.scrollTop || top + hit.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = Math.max(0, top - list.clientHeight / 2);
+      list.scrollTop = Math.max(0, top - (list.clientHeight - hit.offsetHeight) / 2);
+      // ...and, when the list is on screen but the caption is not (a short panel), bring the panel along too.
+      // If the list is scrolled out of sight the panel is left alone: you are doing something else.
+      var lr = list.getBoundingClientRect(), hr = hit.getBoundingClientRect(), H = window.innerHeight;
+      if (lr.bottom > 0 && lr.top < H && (hr.top < 0 || hr.bottom > H)) window.scrollBy(0, hr.top - (H - hr.height) / 2);
     });
   }, 400);
   $('loadcaps').addEventListener('click', function () {
