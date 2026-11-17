@@ -9,6 +9,79 @@
     return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
   };
 
+  // ---- word timing ----
+  // WhisperKit hears the words best, but (like most recognisers) counts the pause before a word as part of it, so a
+  // word after a pause "starts" early. Apple's dictation recogniser mishears more but times each word tightly.
+  // So: words from WhisperKit, times from the tight list wherever both heard the same word at about the same moment.
+  function key(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function alike(x, y) {            // "starlink"/"starling", "they've"/"they"
+    if (x === y) return true;
+    var n = 0;
+    while (n < x.length && n < y.length && x.charAt(n) === y.charAt(n)) n++;
+    return n >= 3 && n >= 0.6 * Math.min(x.length, y.length);
+  }
+  function capLong(w) {             // a word far longer than it could be said starts late in its stretch, not at the front
+    var most = 0.15 + 0.08 * key(w.w).length;
+    if (w.e - w.s > 2 * most) w.s = w.e - most;
+  }
+  function inOrder(out) {
+    for (var q = 0; q < out.length; q++) {
+      if (q > 0 && out[q].s < out[q - 1].s + 0.03) out[q].s = out[q - 1].s + 0.03;
+      if (q > 0 && out[q - 1].e > out[q].s) out[q - 1].e = out[q].s;
+      if (out[q].e < out[q].s + 0.03) out[q].e = out[q].s + 0.03;
+      out[q].s = Math.round(out[q].s * 1000) / 1000; out[q].e = Math.round(out[q].e * 1000) / 1000;
+    }
+    return out;
+  }
+  // Returns { words, timed: share of words that got a tight time }
+  E.mergeTimes = function (heard, tight0) {
+    var tight = [], i, q;
+    for (i = 0; i < tight0.length; i++) {            // "Ukraine" + "'s" arrive as two pieces: join them
+      var t = tight0[i];
+      if (!key(t.w)) continue;
+      if (/^['\u2019]/.test(t.w) && tight.length) { tight[tight.length - 1].w += t.w; tight[tight.length - 1].e = t.e; }
+      else tight.push({ s: t.s, e: t.e, w: t.w });
+    }
+    var out = [], at = [], j = 0, lead = 0.04, hit = 0;
+    for (i = 0; i < heard.length; i++) { out.push({ s: heard[i].s, e: heard[i].e, w: heard[i].w }); at.push(-1); }
+    for (i = 0; i < heard.length; i++) {
+      // the word really starts inside the stretch WhisperKit gave it (which begins early and ends about right)
+      var k = key(heard[i].w), m = -1, near = -1;
+      while (j < tight.length && tight[j].s < heard[i].s - 0.25) j++;
+      for (var n = j; n < tight.length && tight[n].s <= heard[i].e + 0.1; n++) {
+        var tk = key(tight[n].w);
+        if (tk === k) { m = n; break; }
+        if (near < 0 && alike(tk, k)) near = n;
+      }
+      if (m < 0) m = near;
+      if (m >= 0) { at[i] = m; j = m + 1; }
+    }
+    for (i = 0; i < heard.length;) {                 // stretches where they disagree: same number of words, pair them off
+      if (at[i] >= 0) { i++; continue; }
+      var r = i; while (r < heard.length && at[r] < 0) r++;
+      var lo = i > 0 ? at[i - 1] + 1 : 0, hi = r < heard.length ? at[r] : tight.length;
+      if (hi - lo === r - i) for (q = i; q < r; q++) at[q] = lo + (q - i);
+      i = r;
+    }
+    for (q = 0; q < out.length; q++) {
+      if (at[q] >= 0) { out[q].s = tight[at[q]].s + lead; out[q].e = tight[at[q]].e + lead; hit++; }
+      else { out[q].s += 0.11; out[q].e += 0.11; }  // WhisperKit's own times run about a tenth of a second early
+      capLong(out[q]);
+    }
+    return { words: inOrder(out), timed: out.length ? hit / out.length : 0 };
+  };
+  // WhisperKit on its own (a Mac without the tight recogniser): shift, and pull long words to their end.
+  E.whisperOnly = function (heard) {
+    var out = [];
+    for (var i = 0; i < heard.length; i++) {
+      var w = { s: heard[i].s + 0.11, e: heard[i].e + 0.11, w: heard[i].w };
+      var next = i + 1 < heard.length ? heard[i + 1].s + 0.11 : w.e;
+      if (next - w.e < 0.05) w.e = Math.max(w.e, next);
+      capLong(w); out.push(w);
+    }
+    return { words: inOrder(out), timed: 0 };
+  };
+
   // ---- clips ----
   // Sentences the model can point at by number: [{ a: first word index, b: last word index, text }]
   E.sentences = function (words) {

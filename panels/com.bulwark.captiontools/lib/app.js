@@ -5,7 +5,7 @@
   var MAC = /Mac/i.test(navigator.platform) && window.cep && cep.process && cep.process.createProcess;
   var WORK = csi.getSystemPath(SystemPath.USER_DATA) + '/Bulwark Tools';
   var EXT = csi.getSystemPath(SystemPath.EXTENSION);
-  var HELPER = WORK + '/transcribe', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
+  var HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
   var BIN = 'SOCIAL CLIPS 16x9', MODEL = 'claude-opus-5-5';
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
@@ -20,16 +20,33 @@
     try { ver = (/ExtensionBundleVersion="([\d.]+)"/.exec(cep.fs.readFile(EXT + '/CSXS/manifest.xml').data) || [])[1] || '0'; } catch (e) {}
     cep.fs.makedir(WORK);
     var mark = cep.fs.readFile(WORK + '/version.txt');
-    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(MOGRT).err) return cb(null);
-    var a = cep.fs.readFile(EXT + '/bin/transcribe.b64'), b = cep.fs.readFile(EXT + '/templates/Bulwark Word Fill Vertical.mogrt.b64');
-    if (a.err || b.err) return cb('Part of the panel is missing. Reinstall it from the zip.');
-    var w1 = cep.fs.writeFile(HELPER, a.data.replace(/\s+/g, ''), cep.encoding.Base64), w2 = cep.fs.writeFile(MOGRT, b.data.replace(/\s+/g, ''), cep.encoding.Base64);
-    if (w1.err || w2.err) return cb('Could not set up the transcriber in ' + WORK + '.');
-    var p = cep.process.createProcess('/bin/chmod', '755', HELPER);
+    if (!mark.err && mark.data === ver && !cep.fs.stat(HELPER).err && !cep.fs.stat(WHISPER).err && !cep.fs.stat(MOGRT).err) return cb(null);
+    var parts = [['/bin/transcribe.b64', HELPER], ['/bin/wtranscribe.b64', WHISPER], ['/templates/Bulwark Word Fill Vertical.mogrt.b64', MOGRT]];
+    for (var i = 0; i < parts.length; i++) {
+      var src = cep.fs.readFile(EXT + parts[i][0]);
+      if (src.err) return cb('Part of the panel is missing. Reinstall it from the zip.');
+      if (cep.fs.writeFile(parts[i][1], src.data.replace(/\s+/g, ''), cep.encoding.Base64).err) return cb('Could not set up the transcriber in ' + WORK + '.');
+    }
+    var p = cep.process.createProcess('/bin/chmod', '755', HELPER, WHISPER);
     if (p.err) return cb('Could not set up the transcriber.');
     var done = false;
     function fin() { if (done) return; done = true; cep.fs.writeFile(WORK + '/version.txt', ver); cb(null); }
     cep.process.onquit(p.data, fin); setTimeout(fin, 3000);
+  }
+
+  // Runs a helper that writes JSON to `json`; cb(result object or null)
+  function runHelper(args, json, cb) {
+    cep.fs.deleteFile(json);
+    var proc = cep.process.createProcess.apply(cep.process, args), done = false;
+    function fin() {
+      if (done) return; done = true;
+      var res = null;
+      try { res = JSON.parse(cep.fs.readFile(json).data); } catch (e) {}
+      cb(res);
+    }
+    if (proc.err) { done = true; return cb(null); }
+    cep.process.onquit(proc.data, function () { setTimeout(fin, 300); });
+    setTimeout(fin, 60 * 60000);
   }
 
   // ---- words of the open sequence: cb(err, { id, name, total, frame, w, h, words, timed }) ----
@@ -44,33 +61,41 @@
         if (!fresh) {
           try {
             var c = JSON.parse(cep.fs.readFile(cache).data);
-            if (Math.abs(c.total - info.total) < 0.02 && c.words.length) { info.words = c.words; info.timed = c.timed; info.cached = true; return cb(null, info); }
+            if (Math.abs(c.total - info.total) < 0.02 && c.words.length) { info.words = c.words; info.timed = c.timed; info.tight = c.tight; info.cached = true; return cb(null, info); }
           } catch (e) {}
         }
         var mins = Math.max(1, Math.round(info.total / 60));
         status('Exporting the audio (Premiere is busy for a moment' + (mins > 10 ? '; a ' + mins + ' minute sequence can take a few minutes' : '') + ')…');
         setTimeout(function () {
-          var wav = WORK + '/audio.wav', json = WORK + '/words.json';
+          var wav = WORK + '/audio.wav';
           jsx('$.bulwark.exportAudio(' + q(wav) + ')', function (r2) {
             if (r2 !== 'OK') return cb(r2.split('|').slice(1).join('|') || 'Premiere could not export the audio.');
-            status('Transcribing on this Mac…');
-            cep.fs.deleteFile(json);
-            var proc = cep.process.createProcess(HELPER, wav, json), done = false;
-            if (proc.err) return cb('Could not start the transcriber (error ' + proc.err + ').');
-            function fin() {
-              if (done) return; done = true;
+            var first = !!cep.fs.stat(MODELS + '/ready.txt').err;
+            status(first ? 'Getting the speech model (about 640 MB, this Mac\'s first time only; a few minutes)…' : 'Transcribing on this Mac…');
+            // WhisperKit for the words, Apple's dictation recogniser for tight word times, side by side
+            var heard, tight, left = 2;
+            function both() {
+              if (--left) return;
+              var w = heard && heard.words && heard.words.length ? heard.words : null, t = tight && tight.words && tight.words.length ? tight.words : null;
+              if (!w && !(heard && heard.words)) {
+                // WhisperKit could not run (no internet for the model, older Mac): Apple's recognisers alone, if this Mac has them
+                return runHelper([HELPER, wav, WORK + '/words.json'], WORK + '/words.json', function (r5) {
+                  cep.fs.deleteFile(wav);
+                  if (!r5 || !r5.words || !r5.words.length) return cb('The transcriber did not finish' + (heard && heard.error ? ': ' + heard.error : '') + '. It needs an Apple silicon Mac on macOS 14 or later, and the internet the first time (to get the speech model).');
+                  info.words = r5.words; info.timed = r5.timed; info.tight = true; info.apple = true;
+                  cb(null, info);
+                });
+              }
               cep.fs.deleteFile(wav);
-              var res = null;
-              try { res = JSON.parse(cep.fs.readFile(json).data); } catch (e) {}
-              if (!res) return cb('The transcriber did not finish. It needs macOS 26 or later on an Apple silicon Mac.');
-              if (res.error) return cb(res.error);
-              if (!res.words || !res.words.length) return cb('No speech was found in this sequence.');
-              info.words = res.words; info.timed = res.timed;
-              cep.fs.writeFile(cache, JSON.stringify({ total: info.total, words: res.words, timed: res.timed }));
+              if (!w) return cb('No speech was found in this sequence.');
+              cep.fs.writeFile(MODELS + '/ready.txt', 'ok');
+              var m = t ? E.mergeTimes(w, t) : E.whisperOnly(w);
+              info.words = m.words; info.timed = m.timed; info.tight = !!t;
+              cep.fs.writeFile(cache, JSON.stringify({ total: info.total, words: m.words, timed: m.timed, tight: info.tight }));
               cb(null, info);
             }
-            cep.process.onquit(proc.data, function () { setTimeout(fin, 300); });
-            setTimeout(fin, 45 * 60000);
+            runHelper([WHISPER, wav, WORK + '/words.json', MODELS], WORK + '/words.json', function (r3) { heard = r3; both(); });
+            runHelper([HELPER, wav, WORK + '/tight.json', 'tight'], WORK + '/tight.json', function (r4) { tight = r4; both(); });
           });
         }, 60);
       });
@@ -227,7 +252,9 @@
           });
         })();
       }
-      if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
+      if (info.apple) notes.push('The Whisper speech model could not be used, so Apple\'s recogniser did the words: expect more misheard words.');
+      if (!info.tight) notes.push('This Mac is older than macOS 26, so word timing is a little looser: check the highlight after pauses.');
+      else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
       if (!$('fix').checked || !store('bulwarkClaudeKey')) {
         if ($('fix').checked) notes.push('No API key saved, so words were not proofread.');
         return place();

@@ -19,10 +19,13 @@ WHAT'S NEW IN v2.0 (the Caption Tools panel, now "Clips & Captions")
    API key: paste it once at the bottom of the panel. It is saved on your
    Mac only. Transcript text goes to Anthropic; audio and video do not.
    Without a key, captions still work (words are just not proofread).
- - Needs a Mac with Apple silicon and macOS 26 or later (the transcriber
-   is Apple's on-device speech recognition). The first run may download
-   Apple's speech model.
- - Limits: the transcriber mishears some names; proofreading catches most.
+ - Transcribing happens on your Mac (Apple silicon, macOS 14 or later)
+   with WhisperKit. The first time, the panel downloads the speech model
+   (about 640 MB, a few minutes); after that it needs no internet.
+   On macOS 26 the panel also uses Apple's recogniser to time each word
+   more tightly; on older macOS the highlight is a little looser after
+   pauses.
+ - Limits: names can still be misheard; proofreading catches most.
    Word timing is within about a tenth of a second on clean speech and
    looser under music or crosstalk. Clip picks are suggestions: check the
    in and out points before posting.

@@ -20,6 +20,8 @@
         "CSXS/manifest.xml",
         "bin/transcribe.b64",
         "bin/transcribe.swift",
+        "bin/wtranscribe.b64",
+        "bin/wtranscribe.swift",
         "index.html",
         "jsx/host.jsx",
         "lib/CSInterface.js",

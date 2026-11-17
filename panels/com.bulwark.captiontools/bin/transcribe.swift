@@ -1,5 +1,5 @@
 // Bulwark transcriber: word-timed transcript of an audio file, on this Mac (Apple SpeechAnalyzer, macOS 26+).
-// usage: transcribe <audio file> <output json>
+// usage: transcribe <audio file> <output json> [tight]
 // Writes {"words":[{"s":start,"e":end,"w":"text"}...],"timed":share of words with tight timing} or {"error":"..."}.
 //
 // Two recognisers run over the same audio. SpeechTranscriber hears the words best but its word times include the
@@ -79,7 +79,17 @@ func merge(_ a: [W], _ b0: [W]) -> ([W], Double) {
         let t0 = l >= 0 ? out[l].e : a[i].s, t1 = r < a.count ? out[r].s : t0 + (s1 - s0)
         let scale = s1 > s0 && t1 > t0 ? (t1 - t0) / (s1 - s0) : 1
         for q in i..<r { out[q].s = t0 + (a[q].s - s0) * scale; out[q].e = t0 + (a[q].e - s0) * scale }
+        // Their ends are about right but they start early (the pause before a word counts as the word):
+        // a word that comes out far longer than it could be said starts late in its stretch, not at the front.
+        for q in i..<r {
+            let most = 0.15 + 0.08 * Double(key(a[q].w).count)
+            if out[q].e - out[q].s > most { out[q].s = out[q].e - most }
+        }
         i = r
+    }
+    for q in 0..<out.count {                           // even the tight times can swallow a long pause before a word
+        let most = 0.15 + 0.08 * Double(key(out[q].w).count)
+        if out[q].e - out[q].s > 2 * most { out[q].s = out[q].e - most }
     }
     for q in 0..<out.count {                           // keep it strictly in order
         if q > 0 && out[q].s < out[q - 1].s + 0.03 { out[q].s = out[q - 1].s + 0.03 }
@@ -109,11 +119,18 @@ struct Main {
                 else { await analyzer.cancelAndFinishNow() }
                 return try await words.value
             }
+            func r(_ x: Double) -> Double { return (x * 1000).rounded() / 1000 }
+            func js(_ ws: [W]) -> [[String: Any]] { return ws.map { ["s": r($0.s), "e": r($0.e), "w": $0.w] } }
+            if a.count > 3 && a[3] == "tight" {        // only the tightly timed words: the panel pairs them with WhisperKit's words
+                finish(out, ["words": js(try await run(dictation, Task { try await collect(dictation.results) { $0.text } }))], 0)
+            }
             async let heard = run(speech, Task { try await collect(speech.results) { $0.text } })
             async let timed = run(dictation, Task { try await collect(dictation.results) { $0.text } })
-            let (words, share) = merge(try await heard, (try? await timed) ?? [])
-            func r(_ x: Double) -> Double { return (x * 1000).rounded() / 1000 }
-            finish(out, ["words": words.map { ["s": r($0.s), "e": r($0.e), "w": $0.w] as [String: Any] }, "timed": r(share)], 0)
+            let h = try await heard, t = (try? await timed) ?? []
+            let (words, share) = merge(h, t)
+            var res: [String: Any] = ["words": js(words), "timed": r(share)]
+            if a.count > 3 && a[3] == "debug" { res["heard"] = js(h); res["tight"] = js(t) }
+            finish(out, res, 0)
         } catch {
             finish(out, ["error": "Transcription failed: \(error.localizedDescription)"], 1)
         }
