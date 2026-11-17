@@ -103,13 +103,15 @@
     for (var i = 0; i < sents.length; i++) lines.push('[' + (i + 1) + '] ' + E.clock(words[sents[i].a].s) + ' ' + sents[i].text);
     return lines.join('\n');
   };
-  E.clipSystem = function () {
+  E.clipSystem = function (min, max) {
+    min = min || 90; max = max || 150;
+    var lo = E.clock(min), hi = E.clock(max), floor = E.clock(Math.max(10, min - 15)), ceil = E.clock(max + 15);
     return 'You pick social video clips for The Bulwark, a political news and commentary outlet, from the transcript of a full episode. ' +
       'Editors cut each pick into its own 16x9 sequence and then reformat it to vertical for Instagram, TikTok and YouTube Shorts.\n\n' +
       'The transcript is numbered by sentence, each with the time it starts. It was made by speech recognition, so names and some words are misheard; read through that. There are no speaker labels.\n\n' +
       'Suggest every moment in the episode that would make a strong clip. You decide how many: an episode may have two or it may have ten. Do not pad the list with weak ones to reach a number, and do not leave a good one out. What makes a clip work:\n' +
       '- It stands on its own. Someone who has not seen the episode understands it from the first sentence, so start where the thought starts (the question or the setup), not at the punchline.\n' +
-      '- It runs about 1:30 to 2:30. Include the setup and the follow-through; a 40 second punchline on its own is too short. Never under 1:15 or over 2:45.\n' +
+      '- It runs about ' + lo + ' to ' + hi + '. Include the setup and the follow-through; a punchline on its own is too short. Never under ' + floor + ' or over ' + ceil + '.\n' +
       '- It ends on a landed point, a laugh or a clean conclusion, not mid-argument and not on a throwaway "anyway".\n' +
       '- It has a reason to be shared: a sharp argument, real news, a strong emotional beat, a very funny exchange.\n' +
       '- Clips do not overlap, and sponsor reads, housekeeping, intros and sign-offs are never clips.\n\n' +

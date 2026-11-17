@@ -5,31 +5,32 @@
       "notes": "Nests with media inside (react frames) now become a 3-UP: person, media, person. Multicam clips are scaled to fill as a single camera instead of being stacked.",
       "files": [
         "CSXS/manifest.xml",
-        "index.html",
-        "jsx/reformat.jsx",
-        "lib/CSInterface.js",
-        "lib/faces.js",
-        "lib/update-source.js",
-        "lib/updater.js"
-      ]
-    },
-    "com.bulwark.captiontools": {
-      "version": "2.0.1",
-      "notes": "New: find clips in a full episode and cut them into their own 16x9 sequences, and caption vertical clips in the house style (gold active word). Transcribes on your Mac (first use downloads a 640 MB speech model). Clip picking needs a Claude API key pasted at the bottom of the panel.",
-      "files": [
-        "CSXS/manifest.xml",
         "bin/transcribe.b64",
         "bin/transcribe.swift",
         "bin/wtranscribe.b64",
         "bin/wtranscribe.swift",
         "index.html",
-        "jsx/host.jsx",
+        "jsx/captions.jsx",
+        "jsx/reformat.jsx",
         "lib/CSInterface.js",
         "lib/app.js",
         "lib/engine.js",
+        "lib/faces.js",
         "lib/update-source.js",
         "lib/updater.js",
         "templates/Bulwark Word Fill Vertical.mogrt.b64"
+      ]
+    },
+    "com.bulwark.captiontools": {
+      "version": "2.1.0",
+      "notes": "This panel has moved: captions are now a tab in the one Bulwark Premiere Tools panel (update Bulwark Vertical Reformat to get it).",
+      "files": [
+        "CSXS/manifest.xml",
+        "index.html",
+        "jsx/host.jsx",
+        "lib/CSInterface.js",
+        "lib/update-source.js",
+        "lib/updater.js"
       ]
     }
   }

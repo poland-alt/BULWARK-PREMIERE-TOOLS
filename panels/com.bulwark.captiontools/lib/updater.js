@@ -34,7 +34,9 @@
       get(base + 'latest.json', function (err, text) {
         var info = null;
         try { info = JSON.parse(text).panels[opts.panel]; } catch (e) {}
-        if (err || !info || !info.version || !info.files || cmp(info.version, version) <= 0) return;   // up to date, or offline: say nothing
+        var newer = !err && info && info.version && info.files && cmp(info.version, version) > 0;
+        if (opts.onResult) opts.onResult(err || !info ? 'offline' : newer ? 'update' : 'current', version, info && info.version);
+        if (!newer) return;   // up to date, or offline: say nothing
 
         var box = opts.banner, msg = el('div', 'Update available: v' + info.version + ' (you have v' + version + ')', 'font-weight:600;color:#fff;'),
             notes = el('div', info.notes || '', 'margin:4px 0 8px;color:#d0d0d0;white-space:pre-line;'),

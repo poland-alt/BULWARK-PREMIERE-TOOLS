@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtensionManifest Version="7.0" ExtensionBundleId="com.bulwark.reformat" ExtensionBundleVersion="1.7.0"
-  ExtensionBundleName="Bulwark Vertical Reformat" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  ExtensionBundleName="Bulwark Premiere Tools" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
     <Extension Id="com.bulwark.reformat.panel" Version="1.7.0" />
   </ExtensionList>
@@ -22,9 +22,9 @@
         <Lifecycle><AutoVisible>true</AutoVisible></Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>Bulwark Vertical Reformat</Menu>
+          <Menu>Bulwark Premiere Tools</Menu>
           <Geometry>
-            <Size><Height>760</Height><Width>340</Width></Size>
+            <Size><Height>760</Height><Width>360</Width></Size>
             <MinSize><Height>220</Height><Width>260</Width></MinSize>
           </Geometry>
         </UI>

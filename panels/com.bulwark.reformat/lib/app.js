@@ -1,4 +1,4 @@
-// Bulwark Clips & Captions: the panel side. Transcribe on this Mac -> ask Claude for clips -> cut them;
+// Bulwark Premiere Tools: the Clips, Captions and Settings tabs. Transcribe on this Mac -> ask Claude for clips -> cut them;
 // and transcribe a vertical clip -> place active-word captions.
 (function () {
   var E = window.BulwarkEngine, csi = new CSInterface();
@@ -6,12 +6,18 @@
   var WORK = csi.getSystemPath(SystemPath.USER_DATA) + '/Bulwark Tools';
   var EXT = csi.getSystemPath(SystemPath.EXTENSION);
   var HELPER = WORK + '/transcribe', WHISPER = WORK + '/wtranscribe', MODELS = WORK + '/models', MOGRT = WORK + '/Bulwark Word Fill Vertical.mogrt';
-  var BIN = 'SOCIAL CLIPS 16x9', MODEL = 'claude-opus-5-5';
+  var MODEL = 'claude-opus-5-5';
+  // settings: the fields on the Settings tab (and two on Captions), remembered on this Mac
+  var DEFAULTS = { size: '56', stroke: '7', ypos: '67', names: '', clipmin: '90', clipmax: '150', bin: 'SOCIAL CLIPS 16x9', fix: 'on' };
   function $(id) { return document.getElementById(id); }
   function say(el, text, cls) { el.className = 'status' + (cls ? ' ' + cls : ''); el.textContent = text; }
   function jsx(code, cb) { csi.evalScript(code, function (r) { cb(String(r || '')); }); }
   function q(v) { return JSON.stringify(v); }
+  function num(id, lo, hi, dflt) { var v = parseFloat($(id).value); return v >= lo && v <= hi ? v : dflt; }
+  function binName() { return $('bin').value.replace(/[\\\/|\r\n]/g, ' ').replace(/^\s+|\s+$/g, '') || DEFAULTS.bin; }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+
+  jsx('$.evalFile(' + q(EXT + '/jsx/captions.jsx') + ')', function () {});
 
   // ---- the helper and the template travel inside the panel as text; unpack them once per version ----
   function setUp(cb) {
@@ -105,7 +111,7 @@
   // ---- Claude ----
   function claude(system, user, schema, effort, cb, plain) {
     var key = store('bulwarkClaudeKey');
-    if (!key) return cb('Add a Claude API key at the bottom of this panel first.');
+    if (!key) return cb('Add a Claude API key on the Settings tab first.');
     var body = { model: MODEL, max_tokens: 16000, system: system, messages: [{ role: 'user', content: user }],
       output_config: { effort: effort, format: { type: 'json_schema', schema: schema } } };
     if (!plain) body.fallbacks = 'default';      // if a safety filter declines, let the API retry on its fallback model
@@ -124,7 +130,7 @@
       try { res = JSON.parse(x.responseText); } catch (e) {}
       var msg = res && res.error && res.error.message || '';
       if (x.status === 400 && !plain && /fallback|beta/i.test(msg)) return claude(system, user, schema, effort, cb, true);
-      if (x.status === 401) return cb('Claude did not accept the API key. Paste it again at the bottom of the panel.');
+      if (x.status === 401) return cb('Claude did not accept the API key. Paste it again on the Settings tab.');
       if (x.status === 429) return cb('Claude is rate limiting this key. Wait a minute and try again.');
       if (x.status >= 500) return cb('Claude is having trouble (' + x.status + '). Try again in a minute.');
       if (x.status !== 200 || !res) return cb('Claude returned an error (' + x.status + ')' + (msg ? ': ' + msg : '.'));
@@ -141,9 +147,10 @@
   function keyState() { say($('keystat'), store('bulwarkClaudeKey') ? 'A key is saved on this Mac.' : 'No key saved yet.', store('bulwarkClaudeKey') ? 'ok' : ''); }
   $('savekey').addEventListener('click', function () {
     var v = $('key').value.replace(/\s+/g, '');
-    if (!v) { store('bulwarkClaudeKey', ''); try { localStorage.removeItem('bulwarkClaudeKey'); } catch (e) {} return keyState(); }
+    if (!v) return say($('keystat'), 'Paste the key into the box first.', 'err');
     store('bulwarkClaudeKey', v); $('key').value = ''; keyState();
   });
+  $('clearkey').addEventListener('click', function () { try { localStorage.removeItem('bulwarkClaudeKey'); } catch (e) {} $('key').value = ''; keyState(); });
   keyState();
 
   // ---- 1. find clips ----
@@ -154,14 +161,14 @@
     if (!found || !found.clips.length) { $('cut').style.display = 'none'; return; }
     found.clips.forEach(function (c, i) {
       var d = document.createElement('div'); d.className = 'clip';
-      var len = c.e - c.s, odd = len < 75 || len > 165;
+      var len = c.e - c.s, lo = num('clipmin', 15, 600, 90) - 15, hi = Math.max(lo + 30, num('clipmax', 30, 900, 150)) + 15, odd = len < lo || len > hi;
       d.innerHTML = '<div class="top"><input type="checkbox" checked><input type="text"><button class="secondary">Go to</button></div>' +
         '<div class="meta"></div><div class="head"></div><div class="why"></div><div class="ends"></div>';
       var inputs = d.getElementsByTagName('input');
       inputs[0].addEventListener('change', function () { c.off = !inputs[0].checked; });
       inputs[1].value = c.title; inputs[1].addEventListener('input', function () { c.title = inputs[1].value; });
       d.getElementsByTagName('button')[0].addEventListener('click', function () { jsx('$.bulwark.jump(' + c.s + ')', function () {}); });
-      d.querySelector('.meta').textContent = E.clock(c.s) + ' to ' + E.clock(c.e) + '  (' + E.clock(len) + ')' + (odd ? '  outside 1:15 to 2:45, check it' : '');
+      d.querySelector('.meta').textContent = E.clock(c.s) + ' to ' + E.clock(c.e) + '  (' + E.clock(len) + ')' + (odd ? '  outside ' + E.clock(lo) + ' to ' + E.clock(hi) + ', check it' : '');
       d.querySelector('.head').textContent = c.headline;
       d.querySelector('.why').textContent = c.why;
       d.querySelector('.ends').textContent = 'Starts: "' + c.first.slice(0, 70) + (c.first.length > 70 ? '…' : '') + '"  Ends: "' + (c.last.length > 70 ? '…' : '') + c.last.slice(-70) + '"';
@@ -171,14 +178,14 @@
   }
   function findClips(fresh) {
     var st = $('fstat');
-    if (!store('bulwarkClaudeKey')) return say(st, 'Add a Claude API key at the bottom of this panel first.', 'err');
+    if (!store('bulwarkClaudeKey')) { say(st, 'Add a Claude API key on the Settings tab first.', 'err'); return; }
     busy(true); say($('cstat'), ''); found = null; showClips();
     transcribe(function (t) { say(st, t); }, fresh, function (err, info) {
       if (err) { busy(false); return say(st, err, 'err'); }
       if (info.total < 180) { busy(false); return say(st, 'This sequence is only ' + E.clock(info.total) + ' long. Open the full episode to find clips in it.', 'err'); }
       var sents = E.sentences(info.words);
       say(st, (info.cached ? 'Using the transcript from last time. ' : 'Transcribed ' + info.words.length + ' words. ') + 'Claude is analyzing the transcript (a minute or two)…');
-      claude(E.clipSystem(), 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents), E.clipSchema, 'high', function (e2, res) {
+      claude(E.clipSystem(num('clipmin', 15, 600, 90), Math.max(num('clipmin', 15, 600, 90) + 15, num('clipmax', 30, 900, 150))), 'Episode: ' + info.name + '\nLength: ' + E.clock(info.total) + '\n\nTranscript:\n' + E.transcriptText(info.words, sents), E.clipSchema, 'high', function (e2, res) {
         busy(false);
         if (e2) return say(st, e2, 'err');
         found = { info: info, clips: E.clipTimes(res.clips, info.words, sents, info.total) };
@@ -196,7 +203,7 @@
 
   $('cut').addEventListener('click', function () {
     if (!found) return;
-    var st = $('cstat'), list = found.clips.filter(function (c) { return !c.off; }), i = 0, made = [], failed = [];
+    var st = $('cstat'), list = found.clips.filter(function (c) { return !c.off; }), i = 0, made = [], failed = [], BIN = binName();
     if (!list.length) return say(st, 'Tick at least one clip.', 'err');
     busy(true);
     (function next() {
@@ -204,7 +211,7 @@
         return jsx('$.bulwark.openSeq(' + q(found.info.id) + ')', function () {
           busy(false);
           say(st, made.length + ' sequence' + (made.length === 1 ? '' : 's') + ' cut into the bin "' + BIN + '":\n' + made.join('\n') +
-            (failed.length ? '\nNot cut: ' + failed.join('; ') : '') + '\nNext: open one, run Bulwark Vertical Reformat, then caption it below.', failed.length && !made.length ? 'err' : 'ok');
+            (failed.length ? '\nNot cut: ' + failed.join('; ') : '') + '\nNext: open one, make it vertical on the Reframe tab, then caption it on the Captions tab.', failed.length && !made.length ? 'err' : 'ok');
         });
       }
       var c = list[i++], name = 'SOC - ' + (c.title || 'Clip ' + i);
@@ -220,10 +227,56 @@
   });
 
   // ---- 2. captions ----
-  ['size', 'stroke', 'ypos', 'names'].forEach(function (id) {
-    var v = store('bulwark_' + id); if (v) $(id).value = v;
-    $(id).addEventListener('change', function () { store('bulwark_' + id, $(id).value); });
+  function capStyle() { $('capstyle').textContent = 'Size ' + num('size', 10, 200, 56) + ', stroke ' + num('stroke', 0, 100, 7) + (($('fix').checked) ? ', words proofread by Claude' : '') + ' (change on the Settings tab).'; $('binname').textContent = binName(); }
+  function loadSettings() {
+    for (var id in DEFAULTS) {
+      var v = store('bulwark_' + id); if (v === null || v === undefined || v === '') v = DEFAULTS[id];
+      if ($(id).type === 'checkbox') $(id).checked = v !== 'off'; else $(id).value = v;
+    }
+    capStyle();
+  }
+  Object.keys(DEFAULTS).forEach(function (id) {
+    $(id).addEventListener('change', function () { store('bulwark_' + id, $(id).type === 'checkbox' ? ($(id).checked ? 'on' : 'off') : $(id).value); capStyle(); });
   });
+  loadSettings();
+  $('resetall').addEventListener('click', function () {
+    for (var id in DEFAULTS) try { localStorage.removeItem('bulwark_' + id); } catch (e) {}
+    loadSettings(); say($('updstat'), 'Settings are back to the defaults.', 'ok');
+  });
+  $('cleartx').addEventListener('click', function () {
+    var n = 0, dir = cep.fs.readdir(WORK);
+    if (!dir.err) for (var i = 0; i < dir.data.length; i++) if (/^words-.*\.json$/.test(dir.data[i]) && !cep.fs.deleteFile(WORK + '/' + dir.data[i]).err) n++;
+    say($('txstat'), n ? n + ' saved transcript' + (n === 1 ? '' : 's') + ' cleared.' : 'No saved transcripts to clear.', 'ok');
+  });
+  $('checkupd').addEventListener('click', function () {
+    say($('updstat'), 'Checking…');
+    window.bulwarkCheckUpdates(function (state, have, latest) {
+      if (state === 'update') say($('updstat'), 'Version ' + latest + ' is available: see the notice at the top of the panel.', 'ok');
+      else if (state === 'current') say($('updstat'), 'You are on the latest version (v' + have + ').', 'ok');
+      else say($('updstat'), 'Could not reach the update server. Check the internet connection.', 'err');
+    });
+  });
+
+  // ---- caption outline (captions already in the sequence) ----
+  function outline(scope) {
+    var w = parseFloat($('oW').value), o = $('oOut');
+    if (!(w >= 0)) return say(o, 'Enter an outline width of 0 or more.', 'err');
+    $('oSel').disabled = $('oAll').disabled = true; say(o, 'Working…');
+    jsx('$.bulwark.setOutline(' + w + ',"' + scope + '")', function (r) {
+      $('oSel').disabled = $('oAll').disabled = false;
+      var p = r.split('|');
+      if (p.length < 4) return say(o, 'Premiere did not answer: ' + r, 'err');
+      var updated = +p[0], noControl = +p[1], notGraphic = +p[2], err = p.slice(3).join('|');
+      if (err) return say(o, err, 'err');
+      var msg = 'Set Outline Width to ' + w + ' on ' + updated + ' caption' + (updated === 1 ? '' : 's') + '.';
+      if (noControl) msg += '\n' + noControl + ' graphic' + (noControl === 1 ? ' has' : 's have') + ' no Outline Width control, left alone.';
+      if (notGraphic && scope === 'selected') msg += '\n' + notGraphic + ' selected clip' + (notGraphic === 1 ? ' is' : 's are') + ' not a graphic, left alone.';
+      say(o, msg, updated ? 'ok' : '');
+    });
+  }
+  $('oSel').addEventListener('click', function () { outline('selected'); });
+  $('oAll').addEventListener('click', function () { outline('all'); });
+
   $('caption').addEventListener('click', function () {
     var st = $('kstat'), size = parseFloat($('size').value), stroke = parseFloat($('stroke').value), y = parseFloat($('ypos').value);
     if (!(size > 0) || !(stroke >= 0) || !(y > 0 && y < 100)) return say(st, 'Check the size, stroke and height numbers.', 'err');
@@ -256,7 +309,7 @@
       if (!info.tight) notes.push('This Mac is older than macOS 26, so word timing is a little looser: check the highlight after pauses.');
       else if (info.timed < 0.6) notes.push('Word timing could only be pinned down on ' + Math.round(info.timed * 100) + '% of words (noisy audio or music): check the highlight.');
       if (!$('fix').checked || !store('bulwarkClaudeKey')) {
-        if ($('fix').checked) notes.push('No API key saved, so words were not proofread.');
+        if ($('fix').checked) notes.push('No API key saved (Settings tab), so words were not proofread.');
         return place();
       }
       say(st, 'Claude is proofreading ' + info.words.length + ' words…');

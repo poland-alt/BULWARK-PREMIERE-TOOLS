@@ -1,8 +1,22 @@
-BULWARK PREMIERE TOOLS - v2.0 test build
+BULWARK PREMIERE TOOLS - v2.1 test build
 ========================================
 
-WHAT'S NEW IN v2.0 (the Caption Tools panel, now "Clips & Captions")
----------------------------------------------------------------------
+WHAT'S NEW IN v2.1
+------------------
+ - One panel instead of two: Window > Extensions > Bulwark Premiere Tools
+   (it keeps the old name "Bulwark Vertical Reformat" in that menu until
+   Premiere restarts). Tabs across the top:
+     Clips     suggest clips from a full episode and cut them
+     Reframe   16x9 to 9x16 (everything the Vertical Reformat panel did)
+     Captions  caption a vertical clip; change the stroke on existing ones
+     Settings  Claude API key, caption size and stroke, clip length and
+               bin name, clear saved transcripts, check for updates
+   The panel opens on the tab you used last.
+ - The separate Bulwark Caption Tools panel is retired. If you still have
+   it, it shows a note pointing here; the installer removes it.
+
+WHAT'S NEW IN v2.0
+------------------
  - Find clips in a full episode. Open the finished 16x9 episode sequence
    and press "Analyze transcript and suggest clips". The panel
    transcribes the episode on your Mac, and Claude suggests every 1:30 to
@@ -17,7 +31,7 @@ WHAT'S NEW IN v2.0 (the Caption Tools panel, now "Clips & Captions")
    word being spoken in gold (FFBA2E). No CaptionX step. The font must be
    installed. Wrong word? Fix it in the Caption field of that clip.
  - Claude API key. Finding clips and proofreading words need an Anthropic
-   API key: paste it once at the bottom of the panel. It is saved on your
+   API key: paste it once on the Settings tab. It is saved on your
    Mac only. Transcript text goes to Anthropic; audio and video do not.
    Without a key, captions still work (words are just not proofread).
  - Transcribing happens on your Mac (Apple silicon, macOS 14 or later)

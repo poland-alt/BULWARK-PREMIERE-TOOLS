@@ -7,109 +7,23 @@
   :root { color-scheme: dark; }
   body { margin: 0; padding: 16px; background: #1e1e1e; color: #e6e6e6; font: 13px/1.45 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
   h1 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
-  label { display: block; margin: 0 0 6px; color: #b5b5b5; }
-  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-  select { width: 100%; padding: 4px; outline: none; margin-bottom: 10px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 13px; }
-  select option { padding: 4px 6px; border-radius: 4px; }
-  select option:checked { background: #3a6ff2 linear-gradient(0deg, #3a6ff2 0%, #3a6ff2 100%); color: #fff; }
-  label.check { display: flex; gap: 6px; align-items: center; margin: 0 0 12px; color: #d0d0d0; }
-  hr { border: 0; border-top: 1px solid #383838; margin: 18px 0 14px; }
-  #rout { margin-top: 10px; color: #b5b5b5; white-space: pre-line; } #rout.ok { color: #7fd38a; } #rout.err { color: #ff7b7b; }
-  #review { margin-top: 8px; color: #f0c674; white-space: pre-line; }
-  input[type=number] { width: 80px; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
-  button { display: block; width: 100%; padding: 9px 10px; margin-bottom: 8px; background: #3a6ff2; color: #fff; border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-  button.secondary { background: #3a3a3a; }
-  button:disabled { opacity: .5; cursor: default; }
-  #out { margin-top: 10px; min-height: 36px; color: #b5b5b5; white-space: pre-line; }
-  #out.ok { color: #7fd38a; } #out.err { color: #ff7b7b; }
-  .hint { color: #777; font-size: 11px; margin-top: 8px; }
-  h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: #fff; }
-  .sub { color: #999; font-size: 11.5px; margin: 0 0 10px; }
-  .fields { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-  .fields label { margin: 0; font-size: 11.5px; }
-  .fields input { display: block; margin-top: 3px; width: 64px; }
-  input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 13px; }
-  .status { margin: 2px 0 10px; min-height: 16px; color: #b5b5b5; white-space: pre-line; } .status.ok { color: #7fd38a; } .status.err { color: #ff7b7b; }
-  .clip { border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; margin-bottom: 8px; background: #252525; }
-  .clip .top { display: flex; gap: 8px; align-items: center; }
-  .clip .top input[type=text] { flex: 1; padding: 4px 6px; }
-  .clip .meta { color: #f0c674; font-size: 11.5px; margin: 6px 0 2px; }
-  .clip .head { color: #fff; font-weight: 600; margin: 2px 0; }
-  .clip .why, .clip .ends { color: #9a9a9a; font-size: 11.5px; }
-  .clip button { display: inline-block; width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
-  a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
+  p { color: #b5b5b5; margin: 0 0 10px; }
+  b { color: #fff; }
+  button { display: block; width: 100%; padding: 9px 10px; margin: 0 0 8px; background: #3a6ff2; color: #fff; border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
 </style>
 </head>
 <body>
   <div id="update"></div>
-  <h1>Bulwark Clips &amp; Captions <span id="ver" style="color:#777;font-weight:400;font-size:11px;margin-left:6px;"></span></h1>
-
-  <h2>1. Find clips in a full episode</h2>
-  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, has Claude analyze the transcript and suggest every 1:30 to 2:30 moment worth clipping, and cuts the ones you tick into their own sequences in the bin "SOCIAL CLIPS 16x9".</div>
-  <button id="find">Analyze transcript and suggest clips</button>
-  <div id="fstat" class="status"></div>
-  <div id="clips"></div>
-  <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>
-  <div id="cstat" class="status"></div>
-
-  <hr>
-  <h2>2. Caption a vertical clip</h2>
-  <div class="sub">Open the 9x16 clip. Captions go on a new top track: Special Gothic Condensed SemiBold, white with a black stroke, the word being spoken in gold.</div>
-  <div class="fields">
-    <label>Font size<input id="size" type="number" min="10" max="200" step="1" value="56"></label>
-    <label>Stroke<input id="stroke" type="number" min="0" max="100" step="1" value="7"></label>
-    <label>Height on screen %<input id="ypos" type="number" min="5" max="95" step="1" value="67"></label>
-  </div>
-  <label class="check"><input id="fix" type="checkbox" checked> Let Claude correct misheard words and names</label>
-  <input id="names" type="text" placeholder="Names to get right (optional): Tim Miller, JVL…" style="margin-bottom:10px">
-  <button id="caption">Caption this sequence</button>
-  <div id="kstat" class="status"></div>
-
-  <hr>
-  <h2>Claude API key</h2>
-  <div class="sub">Needed to find clips and to correct words. Paste a Bulwark Anthropic API key once; it is saved on this Mac only. Transcript text is sent to Anthropic; audio and video never leave the Mac.</div>
-  <div class="row"><input id="key" type="password" placeholder="sk-ant-…" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button></div>
-  <div id="keystat" class="status"></div>
-
-  <hr>
-  <h2>Caption outline</h2>
-  <div class="sub">Change the stroke on captions already in the sequence.</div>
-  <label for="w">Outline Width</label>
-  <div class="row"><input id="w" type="number" min="0" max="100" step="0.5" value="7"></div>
-  <button id="sel">Apply to selected clips</button>
-  <button id="all" class="secondary">Apply to every caption in the sequence</button>
-  <div id="out"></div>
-  <div class="hint">Works on any Motion Graphics Template clip that has an "Outline Width" control (CaptionX Word Fill and the Bulwark template). Other clips are left alone.</div>
+  <h1>This panel has moved <span id="ver" style="color:#777;font-weight:400;font-size:11px;margin-left:6px;"></span></h1>
+  <p>Captions now live in one panel with everything else: <b>Bulwark Premiere Tools</b>, on its <b>Captions</b> tab (next to Clips, Reframe and Settings).</p>
+  <button id="open">Open Bulwark Premiere Tools</button>
+  <p>If nothing opens, update the other panel first (it may still be called Bulwark Vertical Reformat in Window &gt; Extensions until Premiere restarts), then close this one. It is safe to leave or remove.</p>
   <script src="lib/CSInterface.js"></script>
   <script src="lib/update-source.js"></script>
   <script src="lib/updater.js"></script>
-  <script src="lib/engine.js"></script>
   <script>
-    var csi = new CSInterface();
     BulwarkUpdater.start({ panel: 'com.bulwark.captiontools', banner: document.getElementById('update'), versionEl: document.getElementById('ver') });
-    var out = document.getElementById('out');
-    // ---- Caption outline ----
-    function run(scope) {
-      var w = parseFloat(document.getElementById('w').value);
-      if (!(w >= 0)) { out.className = 'err'; out.textContent = 'Enter an outline width of 0 or more.'; return; }
-      var btns = [document.getElementById('sel'), document.getElementById('all')];
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-      out.className = ''; out.textContent = 'Working…';
-      csi.evalScript('$.bulwark.setOutline(' + w + ',"' + scope + '")', function (r) {
-        for (var j = 0; j < btns.length; j++) btns[j].disabled = false;
-        var p = String(r || '').split('|');
-        if (p.length < 4) { out.className = 'err'; out.textContent = 'Premiere did not answer: ' + r; return; }
-        var updated = +p[0], noControl = +p[1], notGraphic = +p[2], err = p.slice(3).join('|');
-        if (err) { out.className = 'err'; out.textContent = err; return; }
-        var msg = 'Set Outline Width to ' + w + ' on ' + updated + ' caption' + (updated === 1 ? '' : 's') + '.';
-        if (noControl) msg += '\n' + noControl + ' graphic' + (noControl === 1 ? ' has' : 's have') + ' no Outline Width control, left alone.';
-        if (notGraphic && scope === 'selected') msg += '\n' + notGraphic + ' selected clip' + (notGraphic === 1 ? ' is' : 's are') + ' not a graphic, left alone.';
-        out.className = updated ? 'ok' : ''; out.textContent = msg;
-      });
-    }
-    document.getElementById('sel').addEventListener('click', function () { run('selected'); });
-    document.getElementById('all').addEventListener('click', function () { run('all'); });
+    document.getElementById('open').addEventListener('click', function () { new CSInterface().requestOpenExtension('com.bulwark.reformat.panel', ''); });
   </script>
-  <script src="lib/app.js"></script>
 </body>
 </html>
