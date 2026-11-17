@@ -504,6 +504,40 @@
     });
   });
 
+  // ---- caption editor: every caption as an ordinary text box ----
+  $('loadcaps').addEventListener('click', function () {
+    var st = $('estat'), list = $('caplist');
+    say(st, 'Reading the captions…'); list.innerHTML = '';
+    jsx('$.bulwark.listCaptions()', function (r) {
+      var lines = r.split('\n');
+      if (lines[0] !== 'OK') return say(st, r.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err');
+      lines.shift();
+      if (!lines.length) return say(st, 'No captions in this sequence yet.');
+      lines.forEach(function (line) {
+        var f = line.split('\t'), c = { track: +f[0], s: +f[1], e: +f[2], text: f[3] || '', timing: f[4] || '' };
+        var row = document.createElement('div'), tm = document.createElement('span'), inp = document.createElement('input');
+        row.className = 'cap'; tm.textContent = E.clock(c.s); inp.type = 'text'; inp.value = c.text;
+        inp.addEventListener('focus', function () { jsx('$.bulwark.jump(' + (c.s + 0.02) + ')', function () {}); });
+        function save() {
+          var text = inp.value.replace(/\s+/g, ' ').replace(/^ | $/g, '').toUpperCase();
+          if (text === c.text) return;
+          if (!text) { inp.value = c.text; return say(st, 'A caption cannot be empty. To remove one, delete its clip in the timeline.', 'err'); }
+          var timing = c.timing ? E.retime(c.timing, text.split(' ').length, c.e - c.s) : '';
+          inp.value = text;
+          jsx('$.bulwark.setCaption(' + [c.track, c.s, q(text), q(timing)].join(',') + ')', function (r2) {
+            if (r2 !== 'OK') { inp.className = 'bad'; return say(st, r2.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err'); }
+            c.text = text; c.timing = timing || c.timing; inp.className = 'saved';
+            say(st, 'Saved: ' + text, 'ok');
+          });
+        }
+        inp.addEventListener('change', save);
+        inp.addEventListener('keydown', function (ev) { if (ev.keyCode === 13) inp.blur(); });
+        row.appendChild(tm); row.appendChild(inp); list.appendChild(row);
+      });
+      say(st, lines.length + ' captions. Edit any of them below.', 'ok');
+    });
+  });
+
   // ---- caption outline (captions already in the sequence) ----
   function outline(scope) {
     var w = parseFloat($('oW').value), o = $('oOut');

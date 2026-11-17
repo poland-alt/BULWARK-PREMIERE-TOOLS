@@ -354,4 +354,59 @@ $.bulwark.setOutline = function (width, scope) {
             return "OK|" + done + "|" + had;
         } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : "") + "|" + done; }
     };
+
+    // ---- the caption editor: read every caption in the open sequence, and write one back ----
+    function textOf(pr) { try { return String(fromJSON(pr.getValue()).textEditValue || ""); } catch (e) { return ""; } }
+    function controls(clip) {
+        var mgt = null;
+        try { mgt = clip.getMGTComponent(); } catch (e0) {}
+        if (!mgt) return null;
+        var cap = null, tim = null;
+        for (var q = 0; q < mgt.properties.numItems; q++) {
+            var n = mgt.properties[q].displayName;
+            if (n === "Caption") cap = mgt.properties[q]; else if (n === "Word Timing") tim = mgt.properties[q];
+        }
+        return cap ? { cap: cap, tim: tim } : null;
+    }
+    // "OK" then one line per caption: track<TAB>start<TAB>end<TAB>text<TAB>word timings
+    $.bulwark.listCaptions = function () {
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            var out = ["OK"];
+            for (var t = 0; t < seq.videoTracks.numTracks; t++) {
+                var tr = seq.videoTracks[t];
+                for (var c = 0; c < tr.clips.numItems; c++) {
+                    var k = tr.clips[c], ct = controls(k);
+                    if (!ct) continue;
+                    out.push([t, k.start.seconds.toFixed(4), k.end.seconds.toFixed(4), textOf(ct.cap).replace(/[\t\r\n]/g, " "), ct.tim ? textOf(ct.tim) : ""].join("\t"));
+                }
+            }
+            return out.join("\n");
+        } catch (e) { return "ERR|" + e; }
+    };
+    $.bulwark.setCaption = function (track, start, text, timing) {
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            var tr = seq.videoTracks[track];
+            if (!tr) return "ERR|That caption's track is gone. Load the captions again.";
+            for (var c = 0; c < tr.clips.numItems; c++) {
+                var k = tr.clips[c];
+                if (Math.abs(k.start.seconds - start) > 0.002) continue;
+                var ct = controls(k);
+                if (!ct) break;
+                function put(pr, value) {
+                    var v = fromJSON(pr.getValue());
+                    v.textEditValue = value; v.capPropTextRunCount = 1;
+                    v.fontTextRunLength = v.fontTextRunLength instanceof Array ? [value.length] : value.length;
+                    pr.setValue(toJSON(v), 1);
+                }
+                put(ct.cap, text);
+                if (ct.tim && timing) put(ct.tim, timing);
+                return "OK";
+            }
+            return "ERR|That caption has moved or been deleted. Load the captions again.";
+        } catch (e) { return "ERR|" + e; }
+    };
 })();

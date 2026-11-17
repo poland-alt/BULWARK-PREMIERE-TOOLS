@@ -236,6 +236,24 @@
     return parts;
   };
 
+  // ---- editing a caption's words ----
+  // The highlight needs one start time per word. Same number of words: the times stay. More or fewer: the new words
+  // are spread along the old ones' times (and the clip's length), so the highlight still runs start to end.
+  E.retime = function (timing, words, dur) {
+    var t = String(timing || '').split(','), old = [], i;
+    for (i = 0; i < t.length; i++) if (t[i] !== '') old.push(parseFloat(t[i]) || 0);
+    if (!old.length) old = [0];
+    if (old.length === words) return old.map(function (x) { return x.toFixed(3); }).join(',');
+    old.push(Math.max(dur, old[old.length - 1] + 0.05));       // where a word after the last one would start
+    var out = [], n = old.length - 1;
+    for (i = 0; i < words; i++) {
+      var pos = i * n / words, a = Math.floor(pos), f = pos - a;
+      out.push((old[a] + (old[a + 1] - old[a]) * f).toFixed(3));
+    }
+    out[0] = '0.000';
+    return out.join(',');
+  };
+
   // ---- cuts and shots ----
   // shotMap text from Premiere -> { cuts: [secs], segs: [{ s, kind }] }  (kind 1 solo, 2 2-up, 3 3-UP / PIP)
   E.shots = function (cutText, segText) {
