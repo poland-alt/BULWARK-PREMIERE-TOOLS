@@ -125,10 +125,12 @@ If you already ran v1.1 on a project: delete the "<sequence> VERT"
 sequence and any "WS VERT" / "WS VERT 2" nests it made, then run again.
 Only the Vertical Reformat panel changed. Caption Tools is the same.
 
-Two Premiere Pro panels:
+One Premiere Pro panel, Bulwark Premiere Tools, with four tabs:
 
-  Bulwark Vertical Reformat   turns a finished 16x9 sequence into a 9x16 one
-  Bulwark Caption Tools       sets the outline width on many captions at once
+  Clips      suggests social clips from a full episode and cuts them
+  Reframe    turns a finished 16x9 sequence into a 9x16 one
+  Captions   captions a vertical clip; sets the stroke on existing captions
+  Settings   API key, caption style, clip length, updates
 
 Tested on Premiere Pro 2027 (27.0) on Mac.
 
@@ -143,22 +145,22 @@ INSTALL (Mac) - about one minute
    If it says it can't be opened, go to System Settings > Privacy & Security,
    scroll down and click "Open Anyway".)
 5. A Terminal window says "Installed." You can close it.
-6. Open Premiere Pro, then Window > Extensions > Bulwark Vertical Reformat
-   (and Window > Extensions > Bulwark Caption Tools).
+6. Open Premiere Pro, then Window > Extensions > Bulwark Premiere Tools.
 
 Updating: from v1.5 on, use the "Update now" button in the panel. To come
 from an older version (or to repair a panel), run the installer again and
 restart Premiere.
 
 Manual install, if you prefer:
-  a. Copy the two folders inside "panels" to
+  a. Copy the folder inside "panels" to
        ~/Library/Application Support/Adobe/CEP/extensions/
      (In Finder: Go > Go to Folder..., paste the path; create the
      "extensions" folder if it is missing.)
   b. Run this in Terminal, then restart Premiere:
        defaults write com.adobe.CSXS.12 PlayerDebugMode 1
 
-What the installer changes: it copies the two panel folders above and turns
+What the installer changes: it copies the panel folder above (and removes the
+old separate Bulwark Caption Tools panel, if present) and turns
 on Adobe's "PlayerDebugMode" setting, which Premiere needs to load panels
 that are not signed through Adobe's store. Nothing else.
 
