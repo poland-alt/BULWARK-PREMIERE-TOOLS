@@ -2,7 +2,7 @@
   "panels": {
     "com.bulwark.reformat": {
       "version": "2.1.0",
-      "notes": "Now one panel, Bulwark Premiere Tools, with tabs: Clips (suggest and cut clips from a full episode), Reframe, Captions (gold active-word captions) and Settings. Needs a Claude API key (Settings tab) for clip suggestions; first transcription downloads a 640 MB speech model.",
+      "notes": "Now one panel, Bulwark Premiere Tools, with tabs: Clips (suggest and cut clips from a full episode), Reframe, Captions (gold active-word captions) and Settings. No API key needed: clip suggestions go through Claude chat by copy and paste. First transcription downloads a 640 MB speech model.",
       "files": [
         "CSXS/manifest.xml",
         "bin/transcribe.b64",

@@ -30,10 +30,14 @@ WHAT'S NEW IN v2.0
    Gothic Condensed SemiBold, size 56, white, black stroke 7, with the
    word being spoken in gold (FFBA2E). No CaptionX step. The font must be
    installed. Wrong word? Fix it in the Caption field of that clip.
- - Claude API key. Finding clips and proofreading words need an Anthropic
-   API key: paste it once on the Settings tab. It is saved on your
-   Mac only. Transcript text goes to Anthropic; audio and video do not.
-   Without a key, captions still work (words are just not proofread).
+ - No API key needed. For clip suggestions (and caption proofreading)
+   the panel shows three steps: "Copy the transcript for Claude", paste it
+   into a new chat at claude.ai and send, then copy Claude's answer and
+   press "Paste Claude's answer". The clips then list in the panel as
+   usual. If you do have an Anthropic API key, paste it once on the
+   Settings tab and those steps happen inside the panel in one click.
+   Either way only transcript text goes to Claude; audio and video stay
+   on your Mac.
  - Transcribing happens on your Mac (Apple silicon, macOS 14 or later)
    with WhisperKit. The first time, the panel downloads the speech model
    (about 640 MB, a few minutes); after that it needs no internet.
