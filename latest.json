@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.1.1",
-      "notes": "Transcribing is much faster (a 30 minute episode in about a minute) and shows live progress; the first-time setup no longer sits for minutes. Reframe: a multicam sequence named 2-up, 3-up, 2-box or 3-box is treated as the wide shot.",
+      "version": "2.2.0",
+      "notes": "Captions: auto reposition by shot (solo 75%, 2-up 50%), split at picture cuts, optional faint drop shadow. Settings: choose Claude, ChatGPT, Gemini, Apple Intelligence or no key, and pick the model. Transcribing is much faster with live progress. Multicam sequences named 2-up/3-up/2-box/3-box count as the wide shot.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",

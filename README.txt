@@ -1,5 +1,26 @@
-BULWARK PREMIERE TOOLS - v2.1.1 test build
-==========================================
+BULWARK PREMIERE TOOLS - v2.2 test build
+========================================
+
+WHAT'S NEW IN v2.2
+------------------
+ - Captions tab, three new tick boxes:
+     Auto reposition captions   captions are placed by shot: 75% down on a
+                                solo shot, 50% on a 2-up (the join between
+                                the two windows), 67% on a 3-UP. Untick it
+                                to use one height for the whole clip.
+     Split captions at cuts     a caption that runs across a picture cut
+                                becomes two clips meeting at the cut, so
+                                each shot's captions can be selected and
+                                moved on their own.
+     Faint drop shadow          adds a soft shadow under every caption.
+   "Captions already placed" also has a button to add the shadow to
+   captions that are already in a sequence.
+ - Settings tab, AI assistant: choose who suggests clips and proofreads
+   captions: Claude, ChatGPT or Gemini (each with its own API key), Apple
+   Intelligence (on your Mac, free, needs macOS 26 with Apple Intelligence
+   on; rougher picks), or no key (copy and paste through any chat).
+   With a key saved, "Refresh list" loads the models that key can use and
+   you pick one; you can also type a model ID.
 
 WHAT'S NEW IN v2.1.1
 --------------------
