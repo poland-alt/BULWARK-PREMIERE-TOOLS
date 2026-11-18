@@ -334,7 +334,9 @@
       var all = mine(), list = all[kind] || [], name = l.from + ' (' + l.people.length + (l.people.length === 1 ? ' person' : ' people') + ')';
       l.people.forEach(function (p) { delete p.was; });
       list = list.filter(function (x) { return x.name !== name; });
-      list.push({ name: name, people: l.people, frame: l.frame, frameScale: l.frameScale });
+      var entry = { name: name, people: l.people, frame: l.frame, frameScale: l.frameScale };
+      if (l.media) entry.media = l.media;            // where media sits, if the nest had a video in its media window
+      list.push(entry);
       all[kind] = list; store('bulwark_setuplayouts', JSON.stringify(all));
       store('bulwark_setup_' + kind + l.people.length, name);
       fillLayouts(); drawSaved();

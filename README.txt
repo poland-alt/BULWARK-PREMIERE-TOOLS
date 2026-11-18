@@ -33,8 +33,11 @@ WHAT'S NEW IN v2.6
    recording is put on V8 / A8 of the main sequence, switched off, to
    check against. If a match looks weak the panel stops and says so.
    Livestream media: media clips that have sound are matched to the
-   master too, and placed on the main sequence where they played, on
-   the track above the wide shot. A StreamYard file name's own time is
+   master too. With a media layout chosen, each clip is put in the
+   media window of "WS MEDIA" where it played, and that nest is laid on
+   the main sequence (the track above the wide shot) for as long as
+   each clip plays, so the media shows in its frame with the people
+   beside it. With no media layout the clips go on full screen. A StreamYard file name's own time is
    used if the sound will not match.
    One person, several recordings: give two files the same name and
    they share a nest, each put where it belongs (someone who dropped off

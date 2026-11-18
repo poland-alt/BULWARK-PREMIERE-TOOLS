@@ -232,7 +232,7 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
         try {
             var seq = app.project.activeSequence;
             if (!seq) return "ERR|Open the wide shot (or media layout) sequence to copy its layout.";
-            var people = [], frame = null, t, S = app.project.sequences;
+            var people = [], frame = null, mediaWin = null, t, S = app.project.sequences;
             function isSeq(item) { if (!item) return false; for (var i = 0; i < S.numSequences; i++) if (S[i].projectItem && S[i].projectItem.nodeId === item.nodeId) return true; return false; }
             for (t = 0; t < seq.videoTracks.numTracks; t++) {
                 var tr = seq.videoTracks[t];
@@ -240,10 +240,13 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 var cl = tr.clips[0];
                 if (isSeq(cl.projectItem)) { var m = readMotion(cl); m.track = t + 1; m.was = String(cl.name); people.push(m); }
                 else if (/\.(png|psd|tiff?|jpe?g)$/i.test(String(cl.name))) { frame = { name: String(cl.name), scale: readMotion(cl).scale, track: t + 1 }; }
+                else { var mm = readMotion(cl); if (mm.pos && mm.scale) mediaWin = { pos: mm.pos, scale: mm.scale }; }      // a video sitting in the media window: where media goes
             }
             if (people.length < 1) return "ERR|\"" + seq.name + "\" has no nested cameras on its tracks. Open the wide shot sequence (for example \"WS\").";
             people.sort(function (a, b) { return (a.pos[0] - b.pos[0]) || (a.pos[1] - b.pos[1]); });
-            return "OK|" + str({ from: seq.name, people: people, frame: frame ? frame.name : "", frameScale: frame ? frame.scale : 100 });
+            var res = { from: seq.name, people: people, frame: frame ? frame.name : "", frameScale: frame ? frame.scale : 100 };
+            if (mediaWin) res.media = mediaWin;
+            return "OK|" + str(res);
         } catch (err) { return "ERR|" + String(err); }
     };
 
@@ -350,6 +353,16 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 if (parts.length > 1) notes.push(P[i].name + " is " + parts.length + " recordings" + (timed ? ", each put where it belongs on the stream" : ", one after the other") + ".");
             }
 
+            // livestream media that was matched to the master, in the order it played: [{ path, offset, item, at }]
+            var timedMedia = [];
+            for (i = 0; i < M.length; i++) if (M[i].offset !== undefined && M[i].offset !== null) { M[i].item = itemByPath(M[i].path); M[i].at = M[i].offset - base; if (M[i].item && M[i].at >= 0) timedMedia.push(M[i]); }
+            timedMedia.sort(function (a, b) { return a.at - b.at; });
+            var mediaSpans = [];                         // where media sits in the media layout nest: [{ at, end }]
+            function fitInside(item) {                   // 100 for a 1920x1080 clip; smaller or larger ones are brought to that size
+                try { var m = /VideoInfo>\s*(\d+)\s*x\s*(\d+)/.exec(item.getProjectMetadata()); if (m && +m[1] > 0 && +m[2] > 0) return Math.min(1920 / +m[1], 1080 / +m[2]) * 100; } catch (e) {}
+                return 100;
+            }
+
             // which track each person sits on (the layout says; otherwise left to right, bottom up)
             function trackOf(layout, k) { return layout && layout.people && layout.people[k] && layout.people[k].track ? layout.people[k].track - 1 : k; }
             function build(name, layout, emptyTrack) {      // a layout nest: everyone placed, frame on top
@@ -357,9 +370,24 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 if (lp.length !== P.length) { notes.push("\"" + name + "\" was not built: its layout is for " + lp.length + " people and there are " + P.length + "."); return null; }
                 for (k = 0; k < P.length; k++) top = Math.max(top, trackOf(layout, k) + 1);
                 var frameTrack = top + (emptyTrack ? 1 : 0);
-                var s = newSequence(name, fps, nests, frameTrack + 1, P.length);
+                var s = newSequence(name, fps, nests, frameTrack + 1, Math.max(P.length, frameTrack + 1));
                 made.push(s.name);
                 for (k = 0; k < P.length; k++) setMotion(place(s, trackOf(layout, k), P[k].seq.projectItem, 0), lp[k]);
+                if (emptyTrack && timedMedia.length) {
+                    // The media goes in its window, each clip where it played. This nest then carries the media's sound
+                    // only: the voices are already on the main sequence's own tracks, and would double up.
+                    var win = layout.media || { pos: [0.6432, 0.5], scale: 65 }, lastEnd = 0;
+                    for (k = 0; k < P.length; k++) dropAudio(s, trackOf(layout, k));
+                    for (k = 0; k < timedMedia.length; k++) {
+                        if (timedMedia[k].at < lastEnd - 0.0005) continue;         // overlaps the clip before it: left for the editor
+                        try {
+                            var mcl = place(s, top, timedMedia[k].item, timedMedia[k].at);
+                            setMotion(mcl, { pos: win.pos, scale: Math.round(win.scale * fitInside(timedMedia[k].item)) / 100 });
+                            lastEnd = mcl.end.seconds;
+                            mediaSpans.push({ at: timedMedia[k].at, end: mcl.end.seconds });
+                        } catch (eM) {}
+                    }
+                }
                 var frame = layout.frame ? itemByName(layout.frame) : null;
                 if (layout.frame && !frame) notes.push("\"" + name + "\": the frame \"" + layout.frame + "\" is not in this project, so none was added. Import it and drop it on V" + (frameTrack + 1) + ".");
                 if (frame) {
@@ -372,7 +400,7 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 return s;
             }
             var wide = cfg.wide ? build(freeName("WS"), cfg.wide, false) : null;
-            if (cfg.mediaLayout) build(freeName("WS MEDIA"), cfg.mediaLayout, true);
+            var mediaNest = cfg.mediaLayout ? build(freeName("WS MEDIA"), cfg.mediaLayout, true) : null;
 
             // 4. the main sequence: everyone stacked, the wide shot above them, the master recording on top
             var nV = P.length + (wide ? 1 : 0), vTracks = Math.max(7, nV + (masterItem ? 1 : 0) + 2), aTracks = Math.max(7, P.length + (masterItem ? 1 : 0));
@@ -417,20 +445,35 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 notes.push("The master recording is on " + (mc ? "V" + (mt + 1) + " / " : "") + "A" + (at8 + 1) + ", switched off, as a reference to check sync against.");
             }
 
-            // 4b. livestream media: each clip that was matched to the master goes on the main sequence where it played,
-            //     on the track above the wide shot (a second track takes one that would overlap the clip before it)
-            var placedMedia = 0, skipped = 0, mTrack = P.length + (wide ? 1 : 0), ends = [0, 0];
+            // 4b. livestream media on the main sequence, on the track above the wide shot. With a media layout, the
+            //     media-frame nest is shown for as long as each clip plays (the people beside the media); without one,
+            //     the clips themselves go on, full screen.
+            var placedMedia = 0, skipped = 0, mTrack = P.length + (wide ? 1 : 0), ends = [0, 0], topUsable = main.videoTracks.numTracks - (masterItem ? 1 : 0);
             for (i = 0; i < P.length; i++) mTrack = Math.max(mTrack, trackOf(cfg.wide, i) + 1 + (wide ? 1 : 0));
-            var timedMedia = [];
-            for (i = 0; i < M.length; i++) if (M[i].offset !== undefined && M[i].offset !== null) timedMedia.push(M[i]);
-            timedMedia.sort(function (a, b) { return a.offset - b.offset; });
-            for (i = 0; i < timedMedia.length; i++) {
-                var mi = itemByPath(timedMedia[i].path), mAt = timedMedia[i].offset - base, lane = mAt >= ends[0] - 0.0005 ? 0 : (mAt >= ends[1] - 0.0005 ? 1 : -1);
-                if (!mi || mAt < 0 || lane < 0 || mTrack + lane >= main.videoTracks.numTracks - (masterItem ? 1 : 0)) { skipped++; continue; }
-                try { var mcl = place(main, mTrack + lane, mi, mAt); ends[lane] = mcl.end.seconds; placedMedia++; } catch (eMedia) { skipped++; }
+            if (mediaNest && mediaSpans.length && mTrack < topUsable) {
+                var mAudio = main.audioTracks[Math.min(mTrack, main.audioTracks.numTracks - 1)];
+                for (i = 0; i < mediaSpans.length; i++) {
+                    try {
+                        var hadA2 = mAudio.clips.numItems, nc = place(main, mTrack, mediaNest.projectItem, mediaSpans[i].at);
+                        // the whole nest lands from its start: trim it to the stretch this clip covers, so the nest's
+                        // own time still matches the main sequence's
+                        var startsAt = nc.start.seconds;                  // where it actually landed (on a frame)
+                        nc.inPoint = secs(startsAt); nc.end = secs(mediaSpans[i].end);
+                        if (mAudio.clips.numItems > hadA2) { var na = lastClip(mAudio); na.inPoint = secs(na.start.seconds); na.end = secs(mediaSpans[i].end); }
+                        placedMedia++;
+                    } catch (eNest) { skipped++; }
+                }
+                skipped += timedMedia.length - mediaSpans.length;
+                if (placedMedia) notes.push("\"" + mediaNest.name + "\" has the " + mediaSpans.length + " media clip" + (mediaSpans.length === 1 ? "" : "s") + " in its window, and is on V" + (mTrack + 1) + " of the main sequence for as long as each one plays.");
+            } else {
+                for (i = 0; i < timedMedia.length; i++) {
+                    var mAt = timedMedia[i].at, lane = mAt >= ends[0] - 0.0005 ? 0 : (mAt >= ends[1] - 0.0005 ? 1 : -1);
+                    if (lane < 0 || mTrack + lane >= topUsable) { skipped++; continue; }
+                    try { var mcl2 = place(main, mTrack + lane, timedMedia[i].item, mAt); ends[lane] = mcl2.end.seconds; placedMedia++; } catch (eMedia) { skipped++; }
+                }
+                if (placedMedia) notes.push(placedMedia + " media clip" + (placedMedia === 1 ? "" : "s") + " placed full screen on V" + (mTrack + 1) + (ends[1] ? " and V" + (mTrack + 2) : "") + " of the main sequence, where " + (placedMedia === 1 ? "it" : "they") + " played in the stream. Choose a media layout to have them in the media frame instead.");
             }
-            if (placedMedia) notes.push(placedMedia + " media clip" + (placedMedia === 1 ? "" : "s") + " placed on V" + (mTrack + 1) + (ends[1] ? " and V" + (mTrack + 2) : "") + " of the main sequence, where " + (placedMedia === 1 ? "it" : "they") + " played in the stream.");
-            if (skipped) notes.push(skipped + " media clip" + (skipped === 1 ? " was" : "s were") + " imported but not placed (no room, or before the start): place by hand.");
+            if (skipped) notes.push(skipped + " media clip" + (skipped === 1 ? " was" : "s were") + " imported but not placed (it overlaps another, or there was no room): place by hand.");
 
             // 5. the voice tracks' effects, on any voice track the template did not already cover
             if (cfg.mixer && cfg.mixer.tracks && cfg.mixer.tracks.length) applyMixer(main, cfg.mixer, 1, P.length, notes, true);

@@ -115,18 +115,18 @@
         "index.html": "d07eeb1c31483548cfe325660f154942e4e67b46998a2a1d7176caa06bfe73e1",
         "jsx/captions.jsx": "f0a7c19894850375c0c88f7661942e89224889fc47fca9b9c50e7a8107156ebd",
         "jsx/reformat.jsx": "3960601291321ff8e61c4f6f374fb9434afa18535dc6f10952dfedf7242efad4",
-        "jsx/setup.jsx": "2608365ff67a205f5f59158f995974cb4adc2c2a564fd3b41d9e3f3ffaa1200e",
+        "jsx/setup.jsx": "72ba78e72d5a866b3a6958ad09137635c2ca23a68415b5f9428e6facd96ade03",
         "lib/CSInterface.js": "43d8b9959ad581f193b3626a057d9afb922e3cf8da89fa9e9a6831d374b39433",
         "lib/app.js": "78ec4ebf2da7d84dc8e397bb024ed5e5f23729a1ce3ba652ea2f01f9dae8322e",
         "lib/engine.js": "4c93ae6983a5c6595a1eb7a4aa84dfb0f25b3294ac0a6e6a118e82c50e0f4fe5",
         "lib/faces.js": "0ad04b46bb03c45f84d96ee7357a8687b5dcace0b7f0ed5697543dfb0f7ca874",
         "lib/readtext.js": "8b8a7df98cf4392924ffa4fe59bb8c0c82868847b34916fd108b2317256f2137",
-        "lib/setup.js": "3b8ad945e68d9585684ec28587f315ecf864484089dd1f130d4b1d1b49f3e85e",
+        "lib/setup.js": "83a7184af59a328140e2a6ec903907c96100f427209b4934afeea0f4cf59d7a7",
         "lib/ui.js": "c70bdeabf485b4d9717637505fa5b85b7395b59bbb76ff40f5a112c35fe14711",
         "lib/update-key.js": "8d73f1bc112834d2e0f562eb9390e6e7ad6fa3b0762ceb4a172e02f672a0686e",
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf",
-        "presets/layouts.json": "7dc493cfe5385b6e43183880082d6a9fe40c6ea0242ff1e6c2d05d7653ee2274",
+        "presets/layouts.json": "145aa6fb47e506d7cdbc2c44ed2fa18a5eefd550afcf79b8ba9632b0c79e4b6b",
         "presets/main-template.json": "647804288a9390fe6b469a509ea41229fc9fa2808182f489f860ffcdba0ed9bc",
         "presets/main-template.prproj.b64": "8c708afdd607065ac249cab9f30fa3d7be6ffb926d1142813e9da054a7bbb6ad",
         "presets/mixer-default.json": "50b2f567a4564c9cfcfb0a44efa0caa0c5521cb0a3700ee80dfe38175b67468b",
@@ -187,7 +187,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "u+KT4EdVLgaECqAtmgg2cd5hIyTcGqIUhr4NlSh6HPtNtZ9daZwACaCLez9OH/5FhcOy3u1qaTSzX/D5D7r/1w=="
+      "sig": "Q+dZOTZgnNjzR3jSpgMdAqUtnKAQVFk4ax4uocsJzRDXb187PDbQVrgiFN3C67Zc2d3KGZ96gUerdlNu+z3zbw=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -210,7 +210,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "wfwhpnGiPI/cn8BdrQWooEcl3oSje5crPEmbWOnKBBdVdifvxJQlXTJDH6RmzOYPa1J6E/u1D1O3oZwmun32Eg=="
+      "sig": "jUVDIEuWfd4eSmNgbLxtzv8l3LnMWk/A9927XDYDOY/56E52pK14Loz2uMbBJs66jzmUTNIMgqFfm5tKg8gmDA=="
     }
   }
 }

@@ -181,7 +181,14 @@
     }
    ],
    "frame": "Three Frame Media - 16:9.png",
-   "frameScale": 50
+   "frameScale": 50,
+   "media": {
+    "pos": [
+     0.6432,
+     0.5
+    ],
+    "scale": 65
+   }
   },
   {
    "name": "Two Frame Media",
@@ -204,7 +211,14 @@
     }
    ],
    "frame": "TWO Frame Media - 16:9.png",
-   "frameScale": 50
+   "frameScale": 50,
+   "media": {
+    "pos": [
+     0.646,
+     0.5
+    ],
+    "scale": 65
+   }
   }
  ]
 }
