@@ -13,6 +13,8 @@ WHAT'S NEW IN v2.5
    between where the bar sits and the bottom border).
  - Thumbnail tab: "Title up / down" slider moves the title in any
    layout. Double-click the slider to put the title back.
+ - Thumbnail tab: "Title lines" sets the title to 1, 2 or 3 lines.
+   Auto (the default) uses one line, or two when one is too long.
  - Thumbnail tab: "Change folder..." picks where thumbnails and exported
    pictures are saved (any folder or drive). "Back to Desktop" returns
    to Desktop > Bulwark Thumbnails.

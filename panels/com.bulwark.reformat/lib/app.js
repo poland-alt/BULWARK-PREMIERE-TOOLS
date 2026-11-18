@@ -517,7 +517,7 @@
   // windows). Templates ship in the panel (templates/thumbs) and can be added on this Mac (Bulwark Tools/thumbnail
   // templates). See "HOW TO ADD A THUMBNAIL TEMPLATE.txt".
   var TPL_SHIPPED = EXT + '/templates/thumbs', TPL_LOCAL = WORK + '/thumbnail templates';
-  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0, headY: 0 };      // headY: how far the title is moved down (up if negative), in thumbnail pixels
+  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0, headY: 0, headLines: 0 };      // headY: how far the title is moved down (up if negative), in thumbnail pixels
        // pics[i]: { img, source, kind, region }
   function imageFrom(b64, cb) {
     var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
@@ -667,8 +667,16 @@
     function font(px) { ctx.font = (H.weight || 600) + ' ' + px + 'px "' + (H.font || 'Special Gothic Condensed') + '", "Arial Narrow", sans-serif'; }
     function width(s2, px) { font(px); return ctx.measureText(s2).width; }
     var lines = [text], size = one.size, L = one;
-    if (width(text, one.size) > one.maxWidth) {
-      var w = text.split(' '), best = null;
+    var want = thumb.headLines || 0, w = text.split(' '), best = null;      // 0 = fit it: one line, or two when one is too long
+    if (want >= 3 && w.length >= 3) {
+      // three lines: the two breaks that leave the longest line as short as it can be
+      for (var p1 = 1; p1 < w.length - 1; p1++) for (var p2 = p1 + 1; p2 < w.length; p2++) {
+        var parts = [w.slice(0, p1).join(' '), w.slice(p1, p2).join(' '), w.slice(p2).join(' ')];
+        var wide3 = Math.max(width(parts[0], 100), width(parts[1], 100), width(parts[2], 100));
+        if (!best || wide3 < best.wide) best = { parts: parts, wide: wide3 };
+      }
+      lines = best.parts; size = Math.min(two.size, two.maxWidth / best.wide * 100); L = two;
+    } else if ((want >= 2 && w.length >= 2) || (want !== 1 && width(text, one.size) > one.maxWidth)) {
       for (var i = 1; i < w.length; i++) {
         var a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), wide = Math.max(width(a, 100), width(b, 100));
         // a colon or dash is where a headline wants to break, as long as neither line gets too long for a readable size
@@ -677,7 +685,7 @@
       }
       if (best) { lines = [best.a, best.b]; size = Math.min(two.size, two.maxWidth / best.wide * 100); L = two; }
       else size = one.maxWidth / width(text, 100) * 100;
-    }
+    } else if (width(text, one.size) > one.maxWidth) size = one.maxWidth / width(text, 100) * 100;      // kept to one line: shrink to fit
     size = Math.round(size);
     var cap = (H.capHeight || 0.722) * size, widest = 0, k, gap = L.gap || 0, top = H.top === undefined ? 860 : H.top;
     for (k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
@@ -719,7 +727,7 @@
   // -- undo / redo: what is in each window, how each picture is placed, the template and the headline --
   var undoStack = [], redoStack = [];
   function snap() {
-    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value, headY: thumb.headY,
+    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value, headY: thumb.headY, headLines: thumb.headLines,
       pics: thumb.pics.map(function (p) { return p ? { p: p, mx: p.mx, my: p.my, zoom: p.zoom } : null; }) };
   }
   function undoButtons() { $('tundo').disabled = !undoStack.length; $('tredo').disabled = !redoStack.length; }
@@ -727,7 +735,7 @@
   function restore(st) {
     if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) pickTemplate(st.tpl);
     thumb.pics = st.pics.map(function (x) { if (!x) return undefined; x.p.mx = x.mx; x.p.my = x.my; x.p.zoom = x.zoom; return x.p; });
-    thumb.slot = st.slot; $('thead').value = st.head; thumb.headY = st.headY || 0; $('thy').value = thumb.headY;
+    thumb.slot = st.slot; $('thead').value = st.head; thumb.headY = st.headY || 0; $('thy').value = thumb.headY; thumb.headLines = st.headLines || 0; markLines();
     markSlots(); undoButtons();
   }
   function undo() { if (!undoStack.length) return; redoStack.push(snap()); restore(undoStack.pop()); say($('tstat'), 'Undone.'); }
@@ -843,7 +851,7 @@
   $('tfill').addEventListener('click', function () { autofillHeadline(true); });
   $('tnew').addEventListener('click', function () {
     remember();                                   // Cmd+Z brings the old one back
-    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0; thumb.headY = 0; $('thy').value = 0;
+    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0; thumb.headY = 0; $('thy').value = 0; thumb.headLines = 0; markLines();
     $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options'; shownPicks = []; $('texport').style.display = 'none';
     markSlots();
     say($('tstat'), 'Cleared. Starting a thumbnail for the open clip…');
@@ -1062,6 +1070,12 @@
       });
     }, 60);
   });
+  // how many lines the title takes: Auto fits it on one or two; 1, 2 and 3 hold it to that many
+  function markLines() { [].forEach.call($('tlines').children, function (c) { c.className = 'chip' + (+c.getAttribute('data-n') === (thumb.headLines || 0) ? ' on' : ''); }); }
+  [].forEach.call($('tlines').children, function (c) {
+    c.addEventListener('click', function () { var n = +c.getAttribute('data-n'); if (n === thumb.headLines) return; remember(); thumb.headLines = n; markLines(); drawThumb(); });
+  });
+  markLines();
   // the title's own slider: down to the right, up to the left
   $('thy').addEventListener('mousedown', remember);
   $('thy').addEventListener('input', function () { thumb.headY = +$('thy').value; drawThumb(); });
