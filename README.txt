@@ -8,8 +8,7 @@ WHAT'S NEW IN v2.4
      - The open sequence is always shown at the top, with its length
        and whether it is 16x9 or 9x16.
      - The tabs run in working order (Clips, Reframe, Captions,
-       Thumbnail); the gear is Settings. The step that fits the open
-       sequence gets a gold dot.
+       Thumbnail); the gear is Settings.
      - Each tab shows its main button first. The less-used choices are
        under "Options"; click it to open them.
      - Work in progress shows a progress bar.

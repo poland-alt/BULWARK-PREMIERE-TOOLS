@@ -24,13 +24,13 @@
   #uisize { display: flex; align-items: center; gap: 3px; color: var(--text3); font-size: 10px; user-select: none; }
   #uisize span#uismaller, #uisize span#uibigger { padding: 2px 6px; border-radius: 4px; color: var(--text2); cursor: pointer; font-weight: 700; transition: background .12s; }
   #uisize span#uismaller:hover, #uisize span#uibigger:hover { background: var(--raise); color: #fff; }
-  #seqbar { display: flex; align-items: center; gap: 8px; padding: 8px 11px; background: #88001F; border: 1px solid #a3112f; border-radius: 8px; color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.08) inset; }
+  #seqbar { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
 
-  #seqname { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #seqmeta { color: rgba(255,255,255,.78); font-size: 11px; white-space: nowrap; }
+  #seqname { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #seqmeta { color: var(--text3); font-size: 11px; white-space: nowrap; }
   .badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; background: var(--raise); color: var(--text2); }
   .badge.wide { background: var(--gold-bg); color: var(--gold); } .badge.tall { background: var(--green-bg); color: var(--green); }
-  #seqbar .badge, #seqbar .badge.wide, #seqbar .badge.tall { background: rgba(0,0,0,.32); color: #fff; }
+
 
   /* steps */
   #tabs { display: flex; align-items: flex-end; gap: 3px; margin: 10px 0 12px; border-bottom: 1px solid #4a4a4a; }
@@ -39,7 +39,7 @@
   #tabs span:hover { color: #fff; background: #363636; }
   #tabs span.on { color: #fff; background: var(--bg); border-color: #4a4a4a; padding-top: 8px; margin-bottom: -1px; padding-bottom: 8px; box-shadow: 0 2px 0 var(--blue) inset; }
 
-  #tabs span[data-next]:not(.on):after { content: ""; position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 3px; background: var(--gold); }
+
   #tabs span[data-tab=settings] { flex: 0 0 34px; }
   #tabs span[data-tab=settings] svg { width: 15px; height: 15px; fill: currentColor; }
   .tab { display: none; } .tab.on { display: block; animation: fade .16s ease-out; }
