@@ -32,6 +32,16 @@ WHAT'S NEW IN v2.6
    person's nest starts their clip where it belongs, and the master
    recording is put on V8 / A8 of the main sequence, switched off, to
    check against. If a match looks weak the panel stops and says so.
+   Livestream media: media clips that have sound are matched to the
+   master too, and placed on the main sequence where they played, on
+   the track above the wide shot. A StreamYard file name's own time is
+   used if the sound will not match.
+   One person, several recordings: give two files the same name and
+   they share a nest, each put where it belongs (someone who dropped off
+   a stream and came back). StreamYard file names are read for the
+   person's name and whether it is a webcam or media.
+   Each person's clip is scaled to fill the picture, whatever size it
+   was recorded at.
    Track mixer: the main sequence starts from a template with Automatic
    Click Remover, DeNoise, Parametric Equalizer and Dynamics on voice
    tracks 1-3 and a Hard Limiter (no input boost) on the Mix track.

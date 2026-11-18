@@ -288,41 +288,66 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
         var notes = [], made = [];
         try {
             if (!app.project) return "ERR|Open a project first.";
-            var cfg = parse(readFile(cfgPath)), i, P = cfg.people || [];
+            var cfg = parse(readFile(cfgPath)), i, k, P = cfg.people || [], M = cfg.media || [];
             if (!P.length) return "ERR|Add at least one person's video.";
+            // a person is one recording or several (someone who dropped off the stream and came back): { name, parts: [{ path, offset }] }
             for (i = 0; i < P.length; i++) {
-                if (!new File(P[i].path).exists) return "ERR|File not found: " + P[i].path;
+                if (!P[i].parts) P[i].parts = [{ path: P[i].path, offset: P[i].offset }];
+                for (k = 0; k < P[i].parts.length; k++) if (!new File(P[i].parts[k].path).exists) return "ERR|File not found: " + P[i].parts[k].path;
                 if (seqNamed(P[i].name)) return "ERR|This project already has a sequence named \"" + P[i].name + "\". Rename that person here, or the sequence, and run it again.";
             }
+            for (i = 0; i < M.length; i++) if (typeof M[i] === "string") M[i] = { path: M[i] };
             var bins = cfg.bins || {}, footage = binPath(bins.footage || "01-media"), nests = binPath(bins.nests || "NESTS"), mainBin = binPath(bins.main || "*SEQUENCES");
             var fps = cfg.fps || "23.976";
 
             // 1. bring the files in (one already in the project is used as it is)
             var need = [], all = [];
-            for (i = 0; i < P.length; i++) all.push(P[i].path);
+            for (i = 0; i < P.length; i++) for (k = 0; k < P[i].parts.length; k++) all.push(P[i].parts[k].path);
             if (cfg.master) all.push(cfg.master.path);
             for (i = 0; i < all.length; i++) if (!itemByPath(all[i])) need.push(all[i]);
             if (need.length) app.project.importFiles(need, true, footage, false);
             var mediaNeed = [];
-            for (i = 0; i < (cfg.media || []).length; i++) if (!itemByPath(cfg.media[i])) mediaNeed.push(cfg.media[i]);
+            for (i = 0; i < M.length; i++) if (!itemByPath(M[i].path)) mediaNeed.push(M[i].path);
             if (mediaNeed.length) app.project.importFiles(mediaNeed, true, binPath(bins.media || "01-media/MEDIA"), false);
-            for (i = 0; i < P.length; i++) { P[i].item = itemByPath(P[i].path); if (!P[i].item) return "ERR|Premiere could not import " + P[i].path; }
+            for (i = 0; i < P.length; i++) for (k = 0; k < P[i].parts.length; k++) { P[i].parts[k].item = itemByPath(P[i].parts[k].path); if (!P[i].parts[k].item) return "ERR|Premiere could not import " + P[i].parts[k].path; }
             var masterItem = cfg.master ? itemByPath(cfg.master.path) : null;
             if (cfg.master && !masterItem) return "ERR|Premiere could not import " + cfg.master.path;
 
             // 2. the shared clock starts where the earliest person's recording starts
-            var base = null;
-            for (i = 0; i < P.length; i++) { P[i].offset = +P[i].offset || 0; if (base === null || P[i].offset < base) base = P[i].offset; }
+            var base = null, timed = false;
+            for (i = 0; i < P.length; i++) for (k = 0; k < P[i].parts.length; k++) {
+                var pt = P[i].parts[k];
+                if (pt.offset !== undefined && pt.offset !== null) timed = true;
+                pt.offset = +pt.offset || 0;
+                if (base === null || pt.offset < base) base = pt.offset;
+            }
 
-            // 3. a nest per person
+            // 3. a nest per person. Each clip is made to fill the picture, whatever size it was recorded at.
+            function fill(clip, item) {
+                try {
+                    var m = /VideoInfo>\s*(\d+)\s*x\s*(\d+)/.exec(item.getProjectMetadata());
+                    if (!m || !(+m[1] > 0) || !(+m[2] > 0)) return;
+                    var sc = Math.round(Math.max(1920 / +m[1], 1080 / +m[2]) * 10000) / 100;
+                    if (Math.abs(sc - 100) > 0.05) setMotion(clip, { scale: sc, pos: [0.5, 0.5] });
+                } catch (eFill) {}
+            }
             var longest = 0;
             for (i = 0; i < P.length; i++) {
-                var ps = newSequence(P[i].name, fps, nests, 1, 1);
+                var ps = newSequence(P[i].name, fps, nests, 1, 1), parts = P[i].parts, cursor = 0;
                 made.push(ps.name);
-                var at = P[i].offset - base, vc = place(ps, 0, P[i].item, at);
                 P[i].seq = ps;
-                if (vc.end.seconds > longest) longest = vc.end.seconds;
-                if (at > 0.0005) notes.push(P[i].name + " starts " + at.toFixed(2) + "s in, to line up with the others.");
+                parts.sort(function (a, b) { return a.offset - b.offset; });
+                for (k = 0; k < parts.length; k++) {
+                    // with no sync to go by, a second recording simply follows the first
+                    var at = timed ? parts[k].offset - base : cursor;
+                    if (at < cursor - 0.0005) { notes.push(P[i].name + ": \"" + parts[k].item.name + "\" overlaps the recording before it, so it starts where that one ends. Check it by hand."); at = cursor; }
+                    var vc = place(ps, 0, parts[k].item, at);
+                    fill(vc, parts[k].item);
+                    cursor = vc.end.seconds;
+                    if (vc.end.seconds > longest) longest = vc.end.seconds;
+                    if (k === 0 && at > 0.0005) notes.push(P[i].name + " starts " + at.toFixed(2) + "s in, to line up with the others.");
+                }
+                if (parts.length > 1) notes.push(P[i].name + " is " + parts.length + " recordings" + (timed ? ", each put where it belongs on the stream" : ", one after the other") + ".");
             }
 
             // which track each person sits on (the layout says; otherwise left to right, bottom up)
@@ -391,6 +416,21 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 try { aTrack.setMute(1); } catch (eM2) {}
                 notes.push("The master recording is on " + (mc ? "V" + (mt + 1) + " / " : "") + "A" + (at8 + 1) + ", switched off, as a reference to check sync against.");
             }
+
+            // 4b. livestream media: each clip that was matched to the master goes on the main sequence where it played,
+            //     on the track above the wide shot (a second track takes one that would overlap the clip before it)
+            var placedMedia = 0, skipped = 0, mTrack = P.length + (wide ? 1 : 0), ends = [0, 0];
+            for (i = 0; i < P.length; i++) mTrack = Math.max(mTrack, trackOf(cfg.wide, i) + 1 + (wide ? 1 : 0));
+            var timedMedia = [];
+            for (i = 0; i < M.length; i++) if (M[i].offset !== undefined && M[i].offset !== null) timedMedia.push(M[i]);
+            timedMedia.sort(function (a, b) { return a.offset - b.offset; });
+            for (i = 0; i < timedMedia.length; i++) {
+                var mi = itemByPath(timedMedia[i].path), mAt = timedMedia[i].offset - base, lane = mAt >= ends[0] - 0.0005 ? 0 : (mAt >= ends[1] - 0.0005 ? 1 : -1);
+                if (!mi || mAt < 0 || lane < 0 || mTrack + lane >= main.videoTracks.numTracks - (masterItem ? 1 : 0)) { skipped++; continue; }
+                try { var mcl = place(main, mTrack + lane, mi, mAt); ends[lane] = mcl.end.seconds; placedMedia++; } catch (eMedia) { skipped++; }
+            }
+            if (placedMedia) notes.push(placedMedia + " media clip" + (placedMedia === 1 ? "" : "s") + " placed on V" + (mTrack + 1) + (ends[1] ? " and V" + (mTrack + 2) : "") + " of the main sequence, where " + (placedMedia === 1 ? "it" : "they") + " played in the stream.");
+            if (skipped) notes.push(skipped + " media clip" + (skipped === 1 ? " was" : "s were") + " imported but not placed (no room, or before the start): place by hand.");
 
             // 5. the voice tracks' effects, on any voice track the template did not already cover
             if (cfg.mixer && cfg.mixer.tracks && cfg.mixer.tracks.length) applyMixer(main, cfg.mixer, 1, P.length, notes, true);

@@ -51,7 +51,19 @@
   var files = [], mode = store('bulwark_setupmode') === 'live' ? 'live' : 'raw', made = null;
   var busy = false;                               // while a run is going the list and the mode stay as they were when it started
   function lock(on) { busy = on; $('srun').disabled = on; $('sadd').disabled = on; $('tab-setup').className = $('tab-setup').className.replace(/ ?running/, '') + (on ? ' running' : ''); }
+  // StreamYard's local recordings: "<show title>-<Who>-<webcam|video|screen>-00h_25m_49s_598ms-StreamYard.mp4"
+  function streamYard(path) {
+    var m = /-([^-]+)-(webcam|video|screen|audio)-(\d+)h_(\d+)m_(\d+)s_(\d+)ms-StreamYard\.[a-z0-9]+$/i.exec(path.split('/').pop());
+    return m ? { who: m[1].replace(/_/g, ' '), kind: m[2].toLowerCase(), at: +m[3] * 3600 + +m[4] * 60 + +m[5] + +m[6] / 1000 } : null;
+  }
   function guessName(path) {
+    var sy = streamYard(path);
+    if (sy) {
+      // the same person as one already listed (WILL and "Will Saletan"): use that name, so the two recordings share a nest
+      var first = sy.who.split(' ')[0].toLowerCase(), hit = null;
+      files.forEach(function (f) { if (f.role === 'person' && f.name.replace(/^\s+/, '').split(' ')[0].toLowerCase() === first) hit = f.name; });
+      return hit || sy.who;
+    }
     var n = path.split('/').pop().replace(/\.[^.]+$/, '');
     n = n.replace(/^riverside[_-]/i, '').replace(/[_-]?(raw|cfr|solo|recording|video|audio|synced|track)\b.*$/i, '');
     n = n.replace(/[-_ ]+[0-9a-f]{6,}.*$/i, '').replace(/[-_ ]+\d+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, '');
@@ -60,7 +72,8 @@
     return n.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
   }
   function guessRole(path) {
-    var n = path.split('/').pop().toLowerCase();
+    var n = path.split('/').pop().toLowerCase(), sy = streamYard(path);
+    if (sy) return sy.kind === 'webcam' ? 'person' : 'media';
     if (/\.(png|jpe?g|gif|psd|tiff?|webp|heic)$/.test(n)) return 'media';
     if (mode === 'live' && /master|full[ _-]?raw|program|stream|composite|back ?channel|backup|mixed/.test(n)) return 'master';
     return 'person';
@@ -89,11 +102,12 @@
       if (f.role === 'person') {
         var name = document.createElement('input'); name.type = 'text'; name.value = f.name; name.placeholder = 'Name'; name.title = 'This person\'s nest is named this';
         name.addEventListener('input', function () { f.name = name.value; });
+        name.addEventListener('change', fillLayouts);      // two rows given the same name are one person, which changes the headcount
         row.appendChild(name);
       }
       var fn = document.createElement('span'); fn.className = 'fname'; fn.textContent = f.path.split('/').pop(); fn.title = f.path; row.appendChild(fn);
-      if (f.role === 'person' && f.offset !== undefined && mode === 'live') {
-        var off = document.createElement('span'); off.className = 'off'; off.textContent = clock(f.offset); off.title = 'Where this recording starts on the master recording'; row.appendChild(off);
+      if (f.role !== 'master' && f.offset !== undefined && mode === 'live') {
+        var off = document.createElement('span'); off.className = 'off'; off.textContent = clock(f.offset); off.title = 'Where this starts on the master recording'; row.appendChild(off);
       }
       function btn(text, title, fn2) { var b = document.createElement('span'); b.className = 'mv'; b.textContent = text; b.title = title; b.addEventListener('click', fn2); row.appendChild(b); }
       if (f.role === 'person') {
@@ -105,8 +119,9 @@
     });
     fillLayouts();
   }
+  function headcount() { var seen = {}, n = 0; people().forEach(function (f) { var k = f.name.replace(/^\s+|\s+$/g, '').toLowerCase(); if (!seen[k]) { seen[k] = true; n++; } }); return n; }
   function fillLayouts() {
-    var n = people().length;
+    var n = headcount();
     [['swide', 'wide', 'No wide shot'], ['smedia', 'media', 'No media layout']].forEach(function (cfg) {
       var sel = $(cfg[0]), keep = sel.value, list = layouts(cfg[1]).filter(function (l) { return l.people.length === n; });
       sel.innerHTML = '';
@@ -120,11 +135,11 @@
     });
     fillFrames();
   }
-  ['swide', 'smedia'].forEach(function (id) { $(id).addEventListener('change', function () { store('bulwark_setup_' + (id === 'swide' ? 'wide' : 'media') + people().length, $(id).value); fillFrames(); }); });
+  ['swide', 'smedia'].forEach(function (id) { $(id).addEventListener('change', function () { store('bulwark_setup_' + (id === 'swide' ? 'wide' : 'media') + headcount(), $(id).value); fillFrames(); }); });
 
   // ---- which frame goes on top: the layout's own, or any still in the project's 16x9 frame bins ----
   var projectFrames = [];                          // [{ bin, name }]
-  function layoutNamed(kind, id) { var name = $(id).value, n = people().length; return name ? layouts(kind).filter(function (l) { return l.name === name && l.people.length === n; })[0] || null : null; }
+  function layoutNamed(kind, id) { var name = $(id).value, n = headcount(); return name ? layouts(kind).filter(function (l) { return l.name === name && l.people.length === n; })[0] || null : null; }
   function fillFrames() {
     [['swframe', 'wide', 'swide'], ['smframe', 'media', 'smedia']].forEach(function (cfg) {
       var sel = $(cfg[0]), l = layoutNamed(cfg[1], cfg[2]), keep = store('bulwark_setupframe_' + cfg[1] + '_' + (l ? l.name : '')), has = false;
@@ -187,7 +202,9 @@
 
   // ---- livestream: where each person's recording starts on the master ----
   function sync(cb) {
-    var master = files.filter(function (f) { return f.role === 'master'; })[0], P = people(), out = DIR + '/sync.json';
+    var master = files.filter(function (f) { return f.role === 'master'; })[0], out = DIR + '/sync.json';
+    // everyone's recordings, and any media that is video or sound (a still has nothing to match)
+    var P = files.filter(function (f) { return f.role === 'person' || (f.role === 'media' && !/\.(png|jpe?g|gif|psd|tiff?|webp|heic)$/i.test(f.path)); });
     unpack(function (err) {
       if (err) return cb(err);
       cep.fs.deleteFile(out);
@@ -209,9 +226,16 @@
         var bad = [];
         P.forEach(function (f) {
           var it = (res.items || []).filter(function (x) { return x.path === f.path; })[0];
-          if (!it || it.offset === undefined) { bad.push(f.name + ' (could not be read)'); f.offset = undefined; return; }
+          var label = f.role === 'person' ? f.name : f.path.split('/').pop(), sy = streamYard(f.path);
+          if (f.role === 'media') {
+            // media that will not match by sound is still imported; a StreamYard file name says when it played
+            if (it && it.offset !== undefined && it.ok) f.offset = it.offset;
+            else f.offset = sy ? sy.at : undefined;
+            return;
+          }
+          if (!it || it.offset === undefined) { bad.push(label + ' (could not be read)'); f.offset = undefined; return; }
           f.offset = it.offset; f.sure = !!it.ok;
-          if (!it.ok) bad.push(f.name + ' (weak match)');
+          if (!it.ok) bad.push(label + ' (weak match)');
         });
         cb(null, bad);
       }
@@ -238,17 +262,27 @@
       r2.appendChild(a); box.appendChild(r2);
     }
   }
+  // The people, left to right, each with their recordings: two files given the same name are one person's.
+  function grouped() {
+    var out = [], by = {};
+    people().forEach(function (f) {
+      var name = f.name.replace(/^\s+|\s+$/g, ''), key = name.toLowerCase();
+      if (!by[key]) { by[key] = { name: name, parts: [] }; out.push(by[key]); }
+      by[key].parts.push({ path: f.path, offset: mode === 'live' ? (f.offset || 0) : null });
+    });
+    return out;
+  }
   function build(force) {
-    var P = people(), master = files.filter(function (f) { return f.role === 'master'; })[0];
+    var P = grouped(), master = files.filter(function (f) { return f.role === 'master'; })[0];
     function pick(kind, id) { var name = $(id).value; return name ? layouts(kind).filter(function (l) { return l.name === name && l.people.length === P.length; })[0] || null : null; }
     unpack(function (err) {
       if (err) return done(err);
       var tpl = $('smixer').checked ? template() : null;
       var cfg = {
         fps: $('sfps').value, mainName: $('smain').value.replace(/^\s+|\s+$/g, '') || 'MAIN SEQUENCE',
-        people: P.map(function (f) { return { name: f.name.replace(/^\s+|\s+$/g, ''), path: f.path, offset: mode === 'live' ? (f.offset || 0) : 0 }; }),
+        people: grouped(),
         master: mode === 'live' && master ? { path: master.path } : null,
-        media: files.filter(function (f) { return f.role === 'media'; }).map(function (f) { return f.path; }),
+        media: files.filter(function (f) { return f.role === 'media'; }).map(function (f) { return { path: f.path, offset: mode === 'live' && f.offset !== undefined ? f.offset : null }; }),
         wide: P.length > 1 ? withFrame(pick('wide', 'swide'), 'swframe') : null, mediaLayout: P.length > 1 ? withFrame(pick('media', 'smedia'), 'smframe') : null,
         template: tpl ? { path: tpl.path, id: tpl.id, from: tpl.from } : null, mixer: $('smixer').checked ? mixer : null
       };
@@ -267,15 +301,10 @@
     function done(msg) { lock(false); say(msg, 'err'); }
   }
   $('srun').addEventListener('click', function () {
-    var P = people(), master = files.filter(function (f) { return f.role === 'master'; })[0], names = {};
+    var P = people(), master = files.filter(function (f) { return f.role === 'master'; })[0];
     $('snotes').innerHTML = '';
     if (!P.length) return say('Add each person\'s video first.', 'err');
-    for (var i = 0; i < P.length; i++) {
-      var n = P[i].name.replace(/^\s+|\s+$/g, '');
-      if (!n) return say('Give every person a name: it becomes the name of their nest.', 'err');
-      if (names[n.toLowerCase()]) return say('Two people are both named "' + n + '". Give each a different name.', 'err');
-      names[n.toLowerCase()] = true;
-    }
+    for (var i = 0; i < P.length; i++) if (!P[i].name.replace(/^\s+|\s+$/g, '')) return say('Give every person a name: it becomes the name of their nest.', 'err');
     if (mode === 'live' && !master) return say('Livestream mode needs the master recording. Add it and set its role to Master, or switch to Raw video.', 'err');
     lock(true);
     if (mode !== 'live') return build();
