@@ -45,6 +45,12 @@ WHAT'S NEW IN v2.3
    picked on the Reframe tab is listed first. More frames can be added:
    "Open my thumbnail templates folder" opens the place, with a how-to.
  - Pictures under "Your images" have an x in the corner to remove them.
+ - Signed updates. Every release is signed with a key kept on the release
+   Mac, and the panel checks that signature and a fingerprint of every
+   file before it installs an update. An update that was not made with
+   that key, or that was altered on the way, is refused and nothing is
+   changed. (Panels older than this version cannot check, so this
+   protects every update after this one.)
  - Clips tab, "Suggest IG headlines": open a cut clip (16x9 or vertical)
    and the AI assistant suggests eight on-screen headlines of 4 to 8
    words, each with a Copy button. Works with whichever assistant is
