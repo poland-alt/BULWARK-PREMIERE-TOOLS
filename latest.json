@@ -2,7 +2,7 @@
   "panels": {
     "com.bulwark.reformat": {
       "version": "2.3.0",
-      "notes": "New Thumbnail tab: builds the 1080x1920 thumbnail from the vertical clip, with picture options of each person and the media to choose from, and templates that can be added per show. Also on the Clips tab: Suggest IG headlines.",
+      "notes": "New Thumbnail tab: builds the 1080x1920 thumbnail from the vertical clip, with frames for 18 shows in 2-picture and 3-picture layouts, picture options of each person and the media, your own images, and the headline read from the clip. Also: Suggest IG headlines on the Clips tab, and a panel size control (A- / A+).",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",

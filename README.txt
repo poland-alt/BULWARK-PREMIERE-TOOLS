@@ -36,11 +36,15 @@ WHAT'S NEW IN v2.3
  - Panel size: A- and A+ at the top right (and a slider in Settings)
    make everything in the panel bigger or smaller. The layout is tighter
    overall and no longer stretches across a wide panel.
- - Thumbnail templates per show: each template is a folder with a
-   settings file and the artwork. "Open my thumbnail templates folder"
-   on the Thumbnail tab opens the place to add your own, with a how-to
-   file. A template marked for a show is offered first when that show is
-   picked on the Reframe tab.
+ - Thumbnail frames for 18 shows, each in a 2-picture and a 3-picture
+   layout: Breakdown, Bulwark Podcast, Bulwark Takes, Focus Group,
+   Hollywood, Huddled Masses, Illegal News, Mona Charen, Morning Shots,
+   Oppo, Overtime, Press Pass, Receipts, Sarah Matthews, Secret Show, TNL,
+   Triad, Trio + MAGA Monday. Pick the show in the "Show (frame)" list
+   and the layout with the chips beside the preview. A show that is
+   picked on the Reframe tab is listed first. More frames can be added:
+   "Open my thumbnail templates folder" opens the place, with a how-to.
+ - Pictures under "Your images" have an x in the corner to remove them.
  - Clips tab, "Suggest IG headlines": open a cut clip (16x9 or vertical)
    and the AI assistant suggests eight on-screen headlines of 4 to 8
    words, each with a Copy button. Works with whichever assistant is
