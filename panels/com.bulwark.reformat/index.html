@@ -188,6 +188,19 @@
   #tpicks .own .del { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; line-height: 14px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
   #tpicks .own .del:hover { background: var(--red); }
   #update:empty { display: none; }
+  /* no cut-off labels: a button, chip or dropdown that is too narrow for its words wraps them, and a row of buttons
+     that does not fit side by side goes onto a second line */
+  button { white-space: normal; height: auto; min-height: 30px; padding-top: 5px; padding-bottom: 5px; line-height: 1.2; }
+  button.small, .clip button, #headlist .head button { height: auto; min-height: 24px; padding-top: 3px; padding-bottom: 3px; }
+  #tside button { height: auto; min-height: 26px; padding-top: 4px; padding-bottom: 4px; }
+  .row { flex-wrap: wrap; }
+  .row > button { flex: 1 1 auto; width: auto; }
+  .row > input[type=text] { flex: 1 1 110px; width: auto; min-width: 0; }
+  .row > input[type=text] + button { flex: 0 0 auto; }
+  .chips, #sections .chips, #people { flex-wrap: wrap; }
+  .chip, #sections .chip, #people .chip { flex: 1 1 auto; white-space: normal; }
+  .pk { height: auto; min-height: 28px; padding-top: 4px; padding-bottom: 4px; white-space: normal; line-height: 1.25; }
+  .pk span { overflow: visible; text-overflow: clip; }
 </style>
 </head>
 <body>

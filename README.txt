@@ -17,6 +17,9 @@ WHAT'S NEW IN v2.5
    Auto (the default) uses one line, or two when one is too long.
  - Thumbnail tab: "Title size" slider makes the title smaller or bigger.
    Double-click the slider to put it back.
+ - Buttons, chips and dropdowns no longer cut their words short in a
+   narrow panel: the words wrap, and a row of buttons that does not fit
+   goes onto a second line.
  - Thumbnail tab: "Change folder..." picks where thumbnails and exported
    pictures are saved (any folder or drive). "Back to Desktop" returns
    to Desktop > Bulwark Thumbnails.

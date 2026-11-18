@@ -2,7 +2,7 @@
   "panels": {
     "com.bulwark.reformat": {
       "version": "2.5.0",
-      "notes": "Thumbnail tab: export the picture options as PNG files, choose the save folder, a 1-picture layout with no bar, sliders for the title's size and position, and 1, 2 or 3 title lines.",
+      "notes": "Thumbnail tab: export the picture options as PNG files, choose the save folder, a 1-picture layout with no bar, sliders for the title's size and position, and 1, 2 or 3 title lines. Buttons no longer cut their words short.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
@@ -102,7 +102,7 @@
         "bin/ptranscribe.swift": "32d748ce45704f76eb94a64bdbb2df8283d94a417dc122d8ab23b2b0a23eb378",
         "bin/transcribe.b64": "629ddd1a6c7d22c7c948110f4d9f3966caea3801626314cf4944b0430ae46337",
         "bin/transcribe.swift": "121ea57340cd89bfdaf4d65ca4aa2b4d1de6715ed89fe9f0ff4ad0bc5469888b",
-        "index.html": "44b468cb2f74b5a646243dd200ff74de74c1264879c72e60912478ebe9601ede",
+        "index.html": "438f0bb3ab8e31ed6ec1e7acf3648c8ba564f1bc4617a70dc711d10d93c95a5a",
         "jsx/captions.jsx": "f0a7c19894850375c0c88f7661942e89224889fc47fca9b9c50e7a8107156ebd",
         "jsx/reformat.jsx": "332900cf1d3adb477d00084f0f68a4619d6d2df8201bd42ab19cb5e9d50c6307",
         "lib/CSInterface.js": "43d8b9959ad581f193b3626a057d9afb922e3cf8da89fa9e9a6831d374b39433",
@@ -171,7 +171,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "RN28a2Zc098CmMzOH4NnOUx3Rf1L0PBupUYZFQa4w17mZJLUeD/jiBeXC2aP+TKJivTu7RGmZTBHxwmFOMz9Uw=="
+      "sig": "tEAUjCMf+CKJO+9m/ZuvUV2/YvhdsjO5wl9PDrdEvKAdnbis65ed3kVr84R1a6d6tQ23c533r9Lpnkx9tGQFQQ=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -194,7 +194,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "yK6dne8J0aWnB54Y4DpSTjD8rZNNKYDo8kngY1RlhOeOmUE8726gJcTGhW1RSJ3xzGYH60RR3opN4Ru9Gi8Frg=="
+      "sig": "CTEP8sh5U3onnoKLgrs6xhYQeiCCPM37cXJgdUxWLJ3BJhNaVVzQ39jyLZUkNbc4jYhRpq11e80+E5ewC1CJ0A=="
     }
   }
 }
