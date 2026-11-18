@@ -1,7 +1,9 @@
 // Bulwark panel updater.
 // Looks at a public GitHub repo for a newer version of this panel. If there is one it shows a notice with an
 // "Update now" button; clicking it downloads the panel's files and replaces the ones in this panel's own folder.
-// Nothing is changed until every file has downloaded, and nothing happens without the click.
+// Nothing is changed until every file has downloaded AND the release has been proved genuine: the list of files and
+// their fingerprints must carry a signature made with the key held on the release Mac (checked against the public
+// key in lib/update-key.js), and every downloaded file must match its fingerprint. Nothing happens without the click.
 (function () {
   function cmp(a, b) {
     a = String(a).split('.'); b = String(b).split('.');
@@ -17,9 +19,40 @@
     x.send();
   }
   function el(tag, text, css) { var e = document.createElement(tag); if (text) e.textContent = text; if (css) e.style.cssText = css; return e; }
+  function bytes(b64) { var s = atob(b64), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function hex(buf) { var a = new Uint8Array(buf), s = ''; for (var i = 0; i < a.length; i++) s += (a[i] < 16 ? '0' : '') + a[i].toString(16); return s; }
+
+  // Is this release genuine? done(null) when it is, done('why not') otherwise.
+  function verify(panel, info, got, done) {
+    var subtle = window.crypto && window.crypto.subtle, key = String(window.BULWARK_UPDATE_KEY || '');
+    if (!subtle || !window.TextEncoder) return done('This version of Premiere cannot check that the update is genuine.');
+    if (!key) return done('This panel has no key to check updates with. Reinstall it from the zip.');
+    if (!info.sig || !info.hashes) return done('The update is not signed.');
+    var files = info.files.slice(0).sort(), lines = [], i;
+    for (i = 0; i < files.length; i++) {
+      if (!/^[0-9a-f]{64}$/.test(String(info.hashes[files[i]] || ''))) return done('The update\'s list of files is incomplete.');
+      lines.push(info.hashes[files[i]] + ' ' + files[i]);
+    }
+    var enc = new TextEncoder(), message = enc.encode('bulwark-update-v1\n' + panel + '\n' + info.version + '\n' + lines.join('\n'));
+    var sig; try { sig = bytes(info.sig); } catch (e) { return done('The update\'s signature is damaged.'); }
+    subtle.importKey('spki', bytes(key), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']).then(function (k) {
+      return subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, sig, message);
+    }).then(function (ok) {
+      if (!ok) return done('The update\'s signature does not match: it was not made by the Bulwark release key.');
+      var n = 0;
+      (function next() {                                 // the list is genuine; now every file must be what the list says
+        if (n >= files.length) return done(null);
+        var f = files[n++];
+        subtle.digest('SHA-256', enc.encode(got[f])).then(function (h) {
+          if (hex(h) !== info.hashes[f]) return done(f + ' is not the file that was released.');
+          next();
+        }, function () { done('Could not check ' + f + '.'); });
+      })();
+    }, function () { done('The update could not be checked.'); });
+  }
 
   window.BulwarkUpdater = {
-    // opts: { panel: 'com.bulwark.reformat', banner: element for the notice, versionEl: element that shows the version }
+    // opts: { panel: 'com.bulwark.reformat', banner: element for the notice, versionEl: element that shows the version, onResult }
     start: function (opts) {
       var csi = new CSInterface(), root = csi.getSystemPath(SystemPath.EXTENSION), version = '0';
       try {
@@ -59,20 +92,25 @@
                 got[f] = body; next();
               });
             }
-            // everything is here: check it is really this version before touching the installed panel
+            // everything is here: prove it is a genuine release of this version before touching the installed panel
             var man = got['CSXS/manifest.xml'] || '';
             if (man.indexOf('ExtensionBundleVersion="' + info.version + '"') < 0 || man.indexOf(opts.panel) < 0) return fail('The download does not match v' + info.version + '. Nothing was changed.');
-            for (var j = 0; j < files.length; j++) {
-              var path = root + '/' + files[j], dir = path.slice(0, path.lastIndexOf('/'));
-              try { window.cep.fs.makedir(dir); } catch (e3) {}
-              var res = window.cep.fs.writeFile(path, got[files[j]]);
-              if (res.err) return fail('Could not write ' + files[j] + ' (error ' + res.err + '). Reinstall from the zip to be safe.');
-            }
-            status.style.color = '#7fd38a'; status.textContent = 'Updated to v' + info.version + '. Reloading…';
-            setTimeout(function () { window.location.reload(); }, 900);
+            status.textContent = 'Checking the update is genuine…';
+            verify(opts.panel, info, got, function (why) {
+              if (why) return fail(why + ' Nothing was changed. Tell Jared.');
+              for (var j = 0; j < files.length; j++) {
+                var path = root + '/' + files[j], dir = path.slice(0, path.lastIndexOf('/'));
+                try { window.cep.fs.makedir(dir); } catch (e3) {}
+                var res = window.cep.fs.writeFile(path, got[files[j]]);
+                if (res.err) return fail('Could not write ' + files[j] + ' (error ' + res.err + '). Reinstall from the zip to be safe.');
+              }
+              status.style.color = '#7fd38a'; status.textContent = 'Updated to v' + info.version + '. Reloading…';
+              setTimeout(function () { window.location.reload(); }, 900);
+            });
           })();
         });
       });
     }
   };
+  window.BulwarkUpdater._verify = verify;
 })();
