@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.4.1",
-      "notes": "Tabs at the top are now proper tabs.",
+      "version": "2.5.0",
+      "notes": "Thumbnail tab: export the picture options as full-size PNG files, all at once or one at a time.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
@@ -88,7 +88,7 @@
         "templates/thumbs/trio-maga-monday/top.jpg.b64"
       ],
       "hashes": {
-        "CSXS/manifest.xml": "9af605df1f025c393404b9c9fa84cc3a9861ba554b0de0aa8d678cf011e3b1e5",
+        "CSXS/manifest.xml": "61248453d638b846bc4c9a8b4e594ed595d6de1b931621aeafd99703dd3d2d2b",
         "bin/THIRD-PARTY-LICENSES.txt": "182773a2ce2264b671f4b930f1fd6c2e125c0c860682e3ad2015d5caa4fb324a",
         "bin/ai.b64": "f3d528f0eb9fe5d2983d14f30493558685df72d8dbc3eba80b711bae6ad25c6e",
         "bin/ai.swift": "fe8d26e757a802626dbf547f84dfababdc899f76d595e5d6ccf679cfaa77d818",
@@ -102,11 +102,11 @@
         "bin/ptranscribe.swift": "32d748ce45704f76eb94a64bdbb2df8283d94a417dc122d8ab23b2b0a23eb378",
         "bin/transcribe.b64": "629ddd1a6c7d22c7c948110f4d9f3966caea3801626314cf4944b0430ae46337",
         "bin/transcribe.swift": "121ea57340cd89bfdaf4d65ca4aa2b4d1de6715ed89fe9f0ff4ad0bc5469888b",
-        "index.html": "64cbeb8d7e50ca0c1ea92c65b9e0968783be15d19b0cbacdc3f64e77c0f00224",
+        "index.html": "a7115570e80d29fac90dacdb2ddca1a9668ea2d955e5300e93c1a9a319cdd34c",
         "jsx/captions.jsx": "f0a7c19894850375c0c88f7661942e89224889fc47fca9b9c50e7a8107156ebd",
         "jsx/reformat.jsx": "332900cf1d3adb477d00084f0f68a4619d6d2df8201bd42ab19cb5e9d50c6307",
         "lib/CSInterface.js": "43d8b9959ad581f193b3626a057d9afb922e3cf8da89fa9e9a6831d374b39433",
-        "lib/app.js": "2930faac20758d5ab29b8cea4ab26799341deba33b7275b6600e611a1b031dbd",
+        "lib/app.js": "c1c5466c94d1feb688d8ca5a00c46f2dbb62c0a5f4e419060381a911a4d8661d",
         "lib/engine.js": "42070e7a17e5c0abbb322e6d79505692268e4f70f8a165401e1e3884d61efc17",
         "lib/faces.js": "0ad04b46bb03c45f84d96ee7357a8687b5dcace0b7f0ed5697543dfb0f7ca874",
         "lib/readtext.js": "8b8a7df98cf4392924ffa4fe59bb8c0c82868847b34916fd108b2317256f2137",
@@ -171,7 +171,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbe0dc97cbb132d24621bf16155f32e376dc840a9601b6840769ad1d779795ce",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "kQgYm/qw+ZMynptY3UYjzWGYSqTjFTpDHnNUSyvBX15ArWnANt0H6Vl5o5DJtCHWWDB2uHFnX7n6W2EAqXKZig=="
+      "sig": "J5tawk6CKlq7kFS2yNPtxLD/w5myEmGRnXkUYGD+A51k0I4MVNAorck1LsbTmJR4j+POO6xILdsQYpKbvtaPWA=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -194,7 +194,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "1w/g9KFev14e0IqB/ptylV/KgMK5uJH1vUI++LFbs5EIRH8AhLfWizZBwLNaPaRM3oCShvLLEyWBis1hBMlYrQ=="
+      "sig": "9gj4zilqrYkGiAKGRVefBYz7pnPH617NpauZG88Bfpu1JQN4ekvS8KyK9VAQhmE7SgPFVDxZGf/YG4Sab0JMGg=="
     }
   }
 }

@@ -182,7 +182,9 @@
   #tpicks canvas { width: 100%; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; display: block; transition: border-color .1s, transform .1s; }
   #tpicks canvas:hover { border-color: var(--blue2); transform: scale(1.03); }
   #tpicks .tm { display: none; }
-  #tpicks .own { position: relative; }
+  #tpicks .own, #tpicks .pick { position: relative; }
+  #tpicks .pick .dl { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; line-height: 15px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; display: none; }
+  #tpicks .pick:hover .dl { display: block; } #tpicks .pick .dl:hover { background: var(--blue); }
   #tpicks .own .del { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; line-height: 14px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
   #tpicks .own .del:hover { background: var(--red); }
   #update:empty { display: none; }
@@ -313,8 +315,9 @@
     <div class="row" style="margin:0 0 6px"><input id="thead" type="text" placeholder="Headline"><button id="tfill" class="secondary" style="width:auto;margin:0" title="Read the headline that is on the open vertical clip">From clip</button></div>
     <div class="row" style="margin:0 0 4px"><button id="tpicksbtn" class="secondary" style="margin:0">Show picture options</button><button id="tgrab" class="secondary" style="margin:0">Use playhead frame</button><button id="tfile" class="secondary" style="margin:0" title="Use a picture from this Mac. You can also drop an image file onto the preview.">Add image file</button></div>
     <div id="tstat" class="status"></div>
+    <button id="texport" class="secondary" style="display:none;margin:0 0 6px" title="Save every picture option below as a full-size PNG. To save just one, point at it and click the arrow in its corner.">Export these pictures</button>
     <div id="tpicks"></div>
-    <details><summary>How this works</summary><div class="in hint" style="margin:0">Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. Drag a picture in the preview to move it. "Add image file" puts in any picture from this Mac, or drop an image onto the preview. "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest. Double-click a picture option to jump the playhead there. Cmd+Z undoes the last change while this tab is showing.<br><br><a class="link" id="ttplfolder">Open my thumbnail templates folder</a></div></details>
+    <details><summary>How this works</summary><div class="in hint" style="margin:0">Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. Drag a picture in the preview to move it. "Add image file" puts in any picture from this Mac, or drop an image onto the preview. "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest. Double-click a picture option to jump the playhead there. "Export these pictures" saves every option as a full-size PNG (Desktop &gt; Bulwark Thumbnails); the arrow in a picture's corner saves just that one. Cmd+Z undoes the last change while this tab is showing.<br><br><a class="link" id="ttplfolder">Open my thumbnail templates folder</a></div></details>
   </div>
   </div>
 

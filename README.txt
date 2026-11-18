@@ -1,5 +1,13 @@
-BULWARK PREMIERE TOOLS - v2.4 test build
+BULWARK PREMIERE TOOLS - v2.5 test build
 ========================================
+
+WHAT'S NEW IN v2.5
+------------------
+ - Thumbnail tab: the picture options can be saved as files. After
+   "Show picture options", press "Export these pictures" to save every
+   option as a full-size PNG, or point at one picture and click the
+   arrow in its corner to save just that one. They go to
+   Desktop > Bulwark Thumbnails > "<clip name> pictures".
 
 WHAT'S NEW IN v2.4
 ------------------

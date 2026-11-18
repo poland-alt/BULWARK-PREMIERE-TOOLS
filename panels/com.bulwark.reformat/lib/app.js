@@ -838,7 +838,7 @@
   $('tnew').addEventListener('click', function () {
     remember();                                   // Cmd+Z brings the old one back
     thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0;
-    $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options';
+    $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options'; shownPicks = []; $('texport').style.display = 'none';
     markSlots();
     say($('tstat'), 'Cleared. Starting a thumbnail for the open clip…');
     autofillHeadline(false);
@@ -943,12 +943,44 @@
       });
     });
   });
+  // -- the picture options as files: each at full size, into Desktop > Bulwark Thumbnails > "<clip> pictures" --
+  var shownPicks = [];
+  function cleanName(n) { return String(n || '').replace(/[\\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, ''); }
+  function picksDir() { return WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails/' + (cleanName(thumb.name) || 'Clip') + ' pictures'; }
+  function savePick(p, dir) {                    // p: { pic, who, t }; returns the path, or '' if it could not be written
+    var img = p.pic.img, reg = regionOf(p.pic), cv = document.createElement('canvas');
+    cv.width = img.width; cv.height = Math.round(reg[1]);
+    cv.getContext('2d').drawImage(img, 0, reg[0], img.width, reg[1], 0, 0, cv.width, cv.height);
+    var path = dir + '/' + (cleanName(p.who) || 'Picture') + ' ' + E.clock(p.t).replace(/:/g, '-') + '.png';
+    return cep.fs.writeFile(path, cv.toDataURL('image/png').split(',')[1], cep.encoding.Base64).err ? '' : path;
+  }
+  function finderLink(st, path, reveal) {
+    var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
+    a.addEventListener('click', function () { if (reveal) cep.process.createProcess('/usr/bin/open', '-R', path); else cep.process.createProcess('/usr/bin/open', path); });
+    st.appendChild(a);
+  }
+  function makePicksDir() { var d = picksDir(); cep.fs.makedir(d.split('/').slice(0, -1).join('/')); cep.fs.makedir(d); return d; }
+  $('texport').addEventListener('click', function () {
+    var st = $('tstat'), list = shownPicks.slice(), dir, i = 0, ok = 0;
+    if (!list.length) return say(st, 'Press "Show picture options" first.', 'err');
+    dir = makePicksDir(); $('texport').disabled = true;
+    (function next() {
+      if (i >= list.length) {
+        $('texport').disabled = false;
+        if (!ok) return say(st, 'Could not save to ' + dir + '.', 'err');
+        st.className = 'status ok'; st.textContent = ok + ' pictures saved to Desktop > Bulwark Thumbnails > ' + dir.split('/').pop() + '  ';
+        return finderLink(st, dir, false);
+      }
+      say(st, 'Saving the pictures: ' + Math.round(i / list.length * 100) + '%…');
+      setTimeout(function () { if (savePick(list[i], dir)) ok++; i++; next(); }, 15);     // one at a time, so the bar moves
+    })();
+  });
   // -- several frames of everyone in the clip, to choose from --
   $('tpicksbtn').addEventListener('click', function () {
     var st = $('tstat'), box = $('tpicks'), dir = WORK + '/picks';
     if (!thumb.tpl) return say(st, 'No thumbnail template was found. Reinstall the panel.', 'err');
     cep.fs.makedir(WORK); cep.fs.makedir(dir);
-    $('tpicksbtn').disabled = true;
+    $('tpicksbtn').disabled = true; shownPicks = []; $('texport').style.display = 'none';
     [].slice.call(box.children).forEach(function (el) { if (el.id !== 'tpicks-own' && !(el.nextSibling && el.nextSibling.id === 'tpicks-own')) box.removeChild(el); });
     say(st, 'Pulling pictures of everyone in this clip (Premiere flips through its sequences for a moment)…');
     jsx('$.bulwark.seqInfo()', function (ri) { thumb.name = ri.split('|').slice(6).join('|') || thumb.name; });
@@ -980,9 +1012,20 @@
               cv.addEventListener('click', function () { setPicture(pic); say(st, who + ' at ' + E.clock(+f[2]) + ' is in the thumbnail.', 'ok'); });
               cv.addEventListener('dblclick', function () { jsx('$.bulwark.jump(' + (+f[2]) + ')', function () {}); });
               tm.className = 'tm'; tm.textContent = E.clock(+f[2]);
-              cell.appendChild(cv); cell.appendChild(tm); shown++;
+              var entry = { pic: pic, who: who, t: +f[2] }, dl = document.createElement('span');
+              shownPicks.push(entry);
+              dl.className = 'dl'; dl.textContent = '\u2193'; dl.title = 'Save this picture as a file';
+              dl.addEventListener('click', function (ev) {
+                ev.stopPropagation();
+                var path = savePick(entry, makePicksDir());
+                if (!path) return say(st, 'Could not save that picture.', 'err');
+                st.className = 'status ok'; st.textContent = 'Saved ' + path.split('/').pop() + ' to Desktop > Bulwark Thumbnails > ' + path.split('/').slice(-2)[0] + '  ';
+                finderLink(st, path, true);
+              });
+              cell.className = 'pick'; cell.appendChild(cv); cell.appendChild(tm); cell.appendChild(dl); shown++;
             }
-            if (!--left) say(st, shown + ' pictures of ' + order.join(', ') + '. Click one to put it in the marked window.', shown ? 'ok' : 'err');
+            if (!--left && shown) $('texport').style.display = '';
+            if (!left) say(st, shown + ' pictures of ' + order.join(', ') + '. Click one to put it in the marked window.', shown ? 'ok' : 'err');
           });
         });
       });
@@ -1042,7 +1085,7 @@
   $('tsave').addEventListener('click', function () {
     var st = $('tstat'), dir = WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails';
     cep.fs.makedir(dir);
-    var name = (thumb.name || 'thumbnail').replace(/[\\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, ''), path = dir + '/' + name + ' thumbnail.png';
+    var name = cleanName(thumb.name) || 'thumbnail', path = dir + '/' + name + ' thumbnail.png';
     var data = $('tcanvas').toDataURL('image/png').split(',')[1];
     if (cep.fs.writeFile(path, data, cep.encoding.Base64).err) return say(st, 'Could not save to ' + dir + '.', 'err');
     st.className = 'status ok'; st.textContent = 'Saved to Desktop > Bulwark Thumbnails > ' + name + ' thumbnail.png  ';
