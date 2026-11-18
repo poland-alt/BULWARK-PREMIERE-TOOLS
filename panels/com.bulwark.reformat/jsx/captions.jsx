@@ -93,6 +93,22 @@ $.bulwark.setOutline = function (width, scope) {
         function two(n) { return (n < 10 ? "0" : "") + n; }
         return two(Math.floor(f / fps / 3600)) + ":" + two(Math.floor(f / fps / 60) % 60) + ":" + two(Math.floor(f / fps) % 60) + ":" + two(f % fps);
     }
+    // Captions, titles and other text on screen at a moment: switched off for a clean picture, then back on.
+    function textOff(seq, t) {
+        var off = [];
+        for (var v = 0; v < seq.videoTracks.numTracks; v++) {
+            var cl = seq.videoTracks[v].clips;
+            for (var c = 0; c < cl.numItems; c++) {
+                var k = cl[c];
+                if (k.disabled || k.start.seconds > t + 0.0005 || k.end.seconds <= t + 0.0005) continue;
+                var mgt = null;
+                try { mgt = k.getMGTComponent(); } catch (e0) {}
+                if (mgt || !k.projectItem || /^graphic$/i.test(String(k.name))) { k.disabled = true; off.push(k); }
+            }
+        }
+        return off;
+    }
+    function textOn(list) { for (var i = 0; i < list.length; i++) { try { list[i].disabled = false; } catch (e) {} } }
     function nestOf(item) {
         if (!item) return null;
         for (var i = 0; i < app.project.sequences.numSequences; i++) {
@@ -133,7 +149,10 @@ $.bulwark.setOutline = function (width, scope) {
                     how = "source";
                 }
             }
-            if (how === "render") { var q = qe.project.getActiveSequence(); q.exportFramePNG(q.CTI.timecode, basePath); }
+            if (how === "render") {
+                var hidden = textOff(seq, t);
+                try { var q = qe.project.getActiveSequence(); q.exportFramePNG(q.CTI.timecode, basePath); } finally { textOn(hidden); }
+            }
             return "OK|" + t + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|" + how + "|" + clean(seq.name);
         } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
@@ -215,11 +234,12 @@ $.bulwark.setOutline = function (width, scope) {
             }
             app.project.openSequence(seq.sequenceID);
             if (media.length) {
-                var mq = qe.project.getActiveSequence(), mp = spread(media, Math.max(2, Math.round(per / 2)));
+                var mq = qe.project.getActiveSequence(), mp = spread(media, Math.max(5, per));
                 for (j = 0; j < mp.length; j++) {
                     var kind = shotKindAt(seq, mp[j].t), mbase = dir + "/pick_" + (n++);
                     var mold = new File(mbase + ".png"); if (mold.exists) mold.remove();
-                    mq.exportFramePNG(tcOf(seq, mp[j].t), mbase);
+                    var hid = textOff(seq, mp[j].t);
+                    try { mq.exportFramePNG(tcOf(seq, mp[j].t), mbase); } finally { textOn(hid); }
                     lines.push([mbase + ".png", "Media", mp[j].t.toFixed(2), "render", kind, kind === 2 ? "bottom" : (kind === 3 ? "middle" : "whole")].join("\t"));
                 }
             }
