@@ -188,7 +188,8 @@
   #tpicks .own .del { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; line-height: 14px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
   #tpicks .own .del:hover { background: var(--red); }
   #update:empty { display: none; }
-  /* setup tab: one row per recording */
+  /* setup tab: one row per recording; while a run is going the list and mode cannot be changed */
+  #tab-setup.running #sfiles, #tab-setup.running #smode, #tab-setup.running .field { pointer-events: none; opacity: .55; }
   #sfiles .srow { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
   #sfiles .srow .picker { flex: 0 0 92px; }
   #sfiles .srow input[type=text] { flex: 1 1 60px; min-width: 0; }

@@ -142,7 +142,7 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
         try { ip = item.getInPoint().seconds; op = item.getOutPoint().seconds; item.clearInPoint(); item.clearOutPoint(); } catch (eMarks) {}
         tr.overwriteClip(item, at || 0);
         try { if (ip !== null && (ip > 0 || op < item.getOutPoint().seconds - 0.001)) { item.setInPoint(ip, 4); item.setOutPoint(op, 4); } } catch (eMarks2) {}
-        if (tr.clips.numItems <= n) throw new Error("Premiere would not place \"" + item.name + "\" in \"" + seq.name + "\".");
+        if (tr.clips.numItems <= n) throw new Error("Premiere would not place \"" + item.name + "\" in \"" + seq.name + "\". A person's file needs a picture: a sound-only file can only be the Master or Media.");
         return lastClip(tr);
     }
     function dropAudio(seq, trackIndex) {              // takes the sound that came along with a clip off its track
@@ -357,7 +357,10 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
             app.project.openSequence(main.sequenceID);
             return "OK|" + str({ made: made, main: main.name, notes: notes });
         } catch (err) {
-            return "ERR|" + String(err) + (err.line ? " (line " + err.line + ")" : "") + (made.length ? " Already made: " + made.join(", ") + "." : "");
+            // leave nothing half-built behind: take back the sequences this run made, so it can simply be run again
+            var undone = 0;
+            try { var S2 = app.project.sequences; for (var d = S2.numSequences - 1; d >= 0; d--) for (var m = 0; m < made.length; m++) if (S2[d].name === made[m]) { if (app.project.deleteSequence(S2[d])) undone++; break; } } catch (eUndo) {}
+            return "ERR|" + String(err).replace(/^Error: /, "") + (err.line && !/would not place|not found|already has/.test(String(err)) ? " (line " + err.line + ")" : "") + (made.length ? (undone === made.length ? " Nothing was left half-built." : " Some of what it made is still in the project: " + made.join(", ") + ".") : "");
         }
     };
 

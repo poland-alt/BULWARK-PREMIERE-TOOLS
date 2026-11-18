@@ -49,6 +49,8 @@
   // ---- the list of recordings ----
   // role: "person" (gets a nest), "master" (the stream's own recording, livestream only), "media" (just imported)
   var files = [], mode = store('bulwark_setupmode') === 'live' ? 'live' : 'raw', made = null;
+  var busy = false;                               // while a run is going the list and the mode stay as they were when it started
+  function lock(on) { busy = on; $('srun').disabled = on; $('sadd').disabled = on; $('tab-setup').className = $('tab-setup').className.replace(/ ?running/, '') + (on ? ' running' : ''); }
   function guessName(path) {
     var n = path.split('/').pop().replace(/\.[^.]+$/, '');
     n = n.replace(/^riverside[_-]/i, '').replace(/[_-]?(raw|cfr|solo|recording|video|audio|synced|track)\b.*$/i, '');
@@ -126,8 +128,9 @@
     if (mode !== 'live') files.forEach(function (f) { if (f.role === 'master') f.role = 'person'; f.offset = undefined; });
     drawFiles();
   }
-  [].forEach.call($('smode').children, function (c) { c.addEventListener('click', function () { mode = c.getAttribute('data-mode'); store('bulwark_setupmode', mode); drawMode(); }); });
+  [].forEach.call($('smode').children, function (c) { c.addEventListener('click', function () { if (busy) return; mode = c.getAttribute('data-mode'); store('bulwark_setupmode', mode); drawMode(); }); });
   function addFiles(paths) {
+    if (busy) return;
     paths.forEach(function (p) {
       if (files.some(function (f) { return f.path === p; })) return;
       files.push({ path: p, role: guessRole(p), name: guessName(p) });
@@ -218,12 +221,12 @@
         if (r.indexOf('OK|') !== 0) return done(r.split('|').slice(1).join('|') || 'Premiere did not answer: ' + r);
         var res = {}; try { res = JSON.parse(r.slice(3)); } catch (e) {}
         made = res.made || [];
-        $('srun').disabled = false;
+        lock(false);
         say('Done. "' + res.main + '" is open, with ' + P.length + (P.length === 1 ? ' person' : ' people') + ' stacked on it. Made: ' + made.join(', ') + '.', 'ok');
         notes(res.notes || [], true);
       });
     });
-    function done(msg) { $('srun').disabled = false; say(msg, 'err'); }
+    function done(msg) { lock(false); say(msg, 'err'); }
   }
   $('srun').addEventListener('click', function () {
     var P = people(), master = files.filter(function (f) { return f.role === 'master'; })[0], names = {};
@@ -236,19 +239,19 @@
       names[n.toLowerCase()] = true;
     }
     if (mode === 'live' && !master) return say('Livestream mode needs the master recording. Add it and set its role to Master, or switch to Raw video.', 'err');
-    $('srun').disabled = true;
+    lock(true);
     if (mode !== 'live') return build();
     say('Sync: starting…');
     sync(function (err, bad) {
       drawFiles();
-      if (err) { $('srun').disabled = false; return say(err, 'err'); }
+      if (err) { lock(false); return say(err, 'err'); }
       if (bad && bad.length) {
         // not sure of a match: show what was found and let the editor decide
-        $('srun').disabled = false;
+        lock(false);
         say('Could not be sure of the sync for: ' + bad.join(', ') + '. The times found are shown beside each name. Check the files are from the same stream as the master.', 'err');
         var box = $('snotes'), r = document.createElement('div'); r.className = 'rv';
         var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Set up anyway with these times (check the sync by ear afterwards)';
-        a.addEventListener('click', function () { box.innerHTML = ''; $('srun').disabled = true; build(); });
+        a.addEventListener('click', function () { box.innerHTML = ''; lock(true); build(); });
         r.appendChild(a); box.appendChild(r);
         return;
       }

@@ -1,11 +1,59 @@
 {
  "name": "Bulwark voice tracks",
- "from": "TNL Nov 17 - YouTube, Audio 1",
+ "from": "SOC - Sarah On Abandoned Principles, Audio 1",
  "note": "Values are the 0-1 settings Premiere stores for each control.",
  "tracks": [
   {
    "track": 1,
    "fx": [
+    {
+     "slot": 1,
+     "name": "Automatic Click Remover",
+     "params": [
+      [
+       "Bypass",
+       "false"
+      ],
+      [
+       "Threshold",
+       "0.49494949"
+      ],
+      [
+       "Complexity",
+       "0.555555582"
+      ]
+     ]
+    },
+    {
+     "slot": 2,
+     "name": "DeNoise",
+     "params": [
+      [
+       "Bypass",
+       "false"
+      ],
+      [
+       "Amount",
+       "0.047186837"
+      ],
+      [
+       "Make-Up Gain",
+       "0"
+      ],
+      [
+       "Auto Gain",
+       "0"
+      ],
+      [
+       "Shelve Type",
+       "0"
+      ],
+      [
+       "Output Difference Signal",
+       "0"
+      ]
+     ]
+    },
     {
      "slot": 3,
      "name": "Parametric Equalizer",
@@ -16,19 +64,19 @@
       ],
       [
        "Low Shelf Frequency",
-       "0.000834028"
+       "0.003769536"
       ],
       [
        "Low Shelf Gain",
-       "0.5"
+       "0.5625"
       ],
       [
        "High Shelf Frequency",
-       "0.74979198"
+       "0.727191865"
       ],
       [
        "High Shelf Gain",
-       "0.5"
+       "0.644736826"
       ],
       [
        "EQ Band 1 Center Frequency",
@@ -44,11 +92,11 @@
       ],
       [
        "EQ Band 1 Enable",
-       "1.00"
+       "0"
       ],
       [
        "EQ Band 2 Center Frequency",
-       "0.008131777"
+       "0.00750626"
       ],
       [
        "EQ Band 2 Q",
@@ -56,23 +104,23 @@
       ],
       [
        "EQ Band 2 Gain",
-       "0.524999976"
+       "0.5"
       ],
       [
        "EQ Band 2 Enable",
-       "1.00"
+       "0"
       ],
       [
        "EQ Band 3 Center Frequency",
-       "0.0325271"
+       "0.011321032"
       ],
       [
        "EQ Band 3 Q",
-       "0.00019999"
+       "0.00014999"
       ],
       [
        "EQ Band 3 Gain",
-       "0.5"
+       "0.468421072"
       ],
       [
        "EQ Band 3 Enable",
@@ -80,7 +128,7 @@
       ],
       [
        "EQ Band 4 Center Frequency",
-       "0.127898246"
+       "0.132611006"
       ],
       [
        "EQ Band 4 Q",
@@ -88,7 +136,7 @@
       ],
       [
        "EQ Band 4 Gain",
-       "0.478125006"
+       "0.5"
       ],
       [
        "EQ Band 4 Enable",
@@ -112,7 +160,7 @@
       ],
       [
        "Gain",
-       "0.666666687"
+       "0.666666985"
       ],
       [
        "ConstantQ",
@@ -128,7 +176,7 @@
       ],
       [
        "Ultra-Quiet Mode",
-       "0"
+       "1.00"
       ],
       [
        "Low Shelf Enable",
@@ -140,23 +188,23 @@
       ],
       [
        "EQ Band 1 Bandwidth",
-       "0.002499987"
+       "0.00263276"
       ],
       [
        "EQ Band 2 Bandwidth",
-       "0.010749991"
+       "0.010796637"
       ],
       [
        "EQ Band 3 Bandwidth",
-       "0.039999984"
+       "0.021033887"
       ],
       [
        "EQ Band 4 Bandwidth",
-       "0.154349983"
+       "0.174074635"
       ],
       [
        "EQ Band 5 Bandwidth",
-       "0.639999926"
+       "0.696561396"
       ],
       [
        "High-Pass Filter Enable",
@@ -164,7 +212,7 @@
       ],
       [
        "High-Pass Cutoff Frequency",
-       "0.000834028"
+       "0.002502085"
       ],
       [
        "High-Pass Slope",
@@ -218,7 +266,7 @@
       ],
       [
        "Compressor Threshold",
-       "0.800000012"
+       "0.449999988"
       ],
       [
        "Compressor Ratio",
@@ -234,7 +282,7 @@
       ],
       [
        "Compressor MakeUp Gain",
-       "0.462500006"
+       "0"
       ],
       [
        "Expander Enabled",
