@@ -611,7 +611,7 @@
     var img = pic.img, reg = regionOf(pic), sy = reg[0], sh = reg[1], sw = img.width;
     var scale = Math.max(win.w / sw, win.h / sh) * Math.max(1, pic.zoom || 1), cw = win.w / scale, ch = win.h / scale;
     var slackX = sw - cw, slackY = sh - ch;
-    var fy0 = pic.source ? 0.35 : (pic.kind === 1 && pic.region === 'whole' ? 0.3 : 0.5);
+    var fy0 = pic.own ? 0.5 : (pic.source ? 0.35 : (pic.kind === 1 && pic.region === 'whole' ? 0.3 : 0.5));
     var fx = Math.max(0, Math.min(1, 0.5 - (pic.mx || 0) / 200)), fy = Math.max(0, Math.min(1, fy0 - (pic.my || 0) / 200));
     return { sx: slackX * fx, sy: sy + slackY * fy, cw: cw, ch: ch, slackX: slackX, slackY: slackY, scale: scale };
   }
@@ -711,7 +711,7 @@
     if (!thumb.tpl) return;
     remember();
     var i = thumb.slot, n = thumb.tpl.windows.length;
-    pic.mx = 0; pic.my = 0; pic.zoom = pic.source ? 1.15 : 1;
+    pic.mx = 0; pic.my = 0; pic.zoom = pic.source && !pic.own ? 1.15 : 1;
     thumb.pics[i] = pic;
     // move on to the next empty window, if there is one
     for (var k = 1; k <= n; k++) if (!thumb.pics[(i + k) % n]) { thumb.slot = (i + k) % n; break; }
@@ -808,6 +808,69 @@
   });
   document.querySelector('#tabs span[data-tab=thumb]').addEventListener('click', function () { autofillHeadline(false); });
 
+  // -- a picture of your own: from a file on this Mac, or dropped onto the preview --
+  function ownTile(pic, label) {                // it joins the picture options, so it can go in another window too
+    var box = $('tpicks'), grid = document.getElementById('tpicks-own');
+    if (!grid) {
+      var title = document.createElement('div'); title.className = 'who'; title.textContent = 'Your images';
+      grid = document.createElement('div'); grid.className = 'grid'; grid.id = 'tpicks-own';
+      box.insertBefore(grid, box.firstChild); box.insertBefore(title, grid);
+    }
+    var cell = document.createElement('div'), cv = document.createElement('canvas'), img = pic.img;
+    cv.width = 320; cv.height = Math.max(1, Math.round(320 * img.height / img.width));
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    cv.title = label + ': click to use';
+    cv.addEventListener('click', function () { setPicture({ img: img, source: true, own: true, kind: 1, region: 'whole' }); say($('tstat'), label + ' is in the thumbnail.', 'ok'); });
+    cell.appendChild(cv); grid.appendChild(cell);
+  }
+  function useOwn(img, label) {
+    if (!img || !img.width) return say($('tstat'), 'That file could not be opened as a picture.', 'err');
+    var pic = { img: img, source: true, own: true, kind: 1, region: 'whole' };
+    ownTile(pic, label); setPicture(pic);
+    say($('tstat'), label + ' is in the thumbnail. Drag it in the preview, or use the sliders, to frame it.', 'ok');
+  }
+  function fromFile(path) {
+    var st = $('tstat'), name = path.split('/').pop(), ext = (name.split('.').pop() || '').toLowerCase();
+    var mime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', avif: 'image/avif' }[ext];
+    function load(p2, type) {
+      var r = cep.fs.readFile(p2, cep.encoding.Base64);
+      if (r.err || !r.data) return say(st, 'Could not read ' + name + '.', 'err');
+      var img = new Image(); img.onload = function () { useOwn(img, name); }; img.onerror = function () { useOwn(null, name); };
+      img.src = 'data:' + type + ';base64,' + r.data;
+    }
+    if (mime) return load(path, mime);
+    // HEIC, TIFF, PSD and the like: macOS converts them to PNG first
+    say(st, 'Converting ' + name + '…');
+    var out = WORK + '/own-image.png';
+    cep.fs.makedir(WORK); cep.fs.deleteFile(out);
+    var proc = cep.process.createProcess('/usr/bin/sips', '-s', 'format', 'png', path, '--out', out), done = false;
+    function fin() { if (done) return; done = true; if (cep.fs.stat(out).err) return say(st, name + ' is not a picture this panel can open.', 'err'); load(out, 'image/png'); }
+    if (proc.err) return say(st, 'Could not convert ' + name + '.', 'err');
+    cep.process.onquit(proc.data, function () { setTimeout(fin, 200); }); setTimeout(fin, 20000);
+  }
+  $('tfile').addEventListener('click', function () {
+    if (!thumb.tpl) return say($('tstat'), 'No thumbnail template was found. Reinstall the panel.', 'err');
+    var r = cep.fs.showOpenDialogEx(false, false, 'Choose a picture for the thumbnail', '', ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'heic', 'heif', 'tif', 'tiff', 'psd', 'avif']);
+    if (r.err || !r.data || !r.data.length) return;
+    fromFile(r.data[0]);
+  });
+  (function () {                                  // drop an image file on the preview: it goes in the window it lands on
+    var cv = $('tcanvas');
+    function stop(ev) { ev.preventDefault(); ev.stopPropagation(); }
+    ['dragenter', 'dragover'].forEach(function (n) { cv.addEventListener(n, stop); });
+    cv.addEventListener('drop', function (ev) {
+      stop(ev);
+      var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0], t = thumb.tpl;
+      if (!f || !t) return;
+      var x = ev.offsetX / cv.clientWidth * cv.width, y = ev.offsetY / cv.clientHeight * cv.height;
+      for (var i = 0; i < t.windows.length; i++) { var w = t.windows[i]; if (x >= w.x && x < w.x + w.w && y >= w.y && y < w.y + w.h) { thumb.slot = i; markSlots(); } }
+      if (f.path && !/^image\/(png|jpeg|gif|webp|bmp)/.test(f.type)) return fromFile(f.path);
+      var rd = new FileReader();
+      rd.onload = function () { var img = new Image(); img.onload = function () { useOwn(img, f.name); }; img.onerror = function () { useOwn(null, f.name); }; img.src = rd.result; };
+      rd.readAsDataURL(f);
+    });
+  })();
+
   // -- one frame, from the playhead --
   $('tgrab').addEventListener('click', function () {
     var st = $('tstat'), slot = thumb.slot, base = WORK + '/thumb-grab-' + slot;
@@ -839,7 +902,8 @@
     var st = $('tstat'), box = $('tpicks'), dir = WORK + '/picks';
     if (!thumb.tpl) return say(st, 'No thumbnail template was found. Reinstall the panel.', 'err');
     cep.fs.makedir(WORK); cep.fs.makedir(dir);
-    $('tpicksbtn').disabled = true; box.innerHTML = '';
+    $('tpicksbtn').disabled = true;
+    [].slice.call(box.children).forEach(function (el) { if (el.id !== 'tpicks-own' && !(el.nextSibling && el.nextSibling.id === 'tpicks-own')) box.removeChild(el); });
     say(st, 'Pulling pictures of everyone in this clip (Premiere flips through its sequences for a moment)…');
     jsx('$.bulwark.seqInfo()', function (ri) { thumb.name = ri.split('|').slice(6).join('|') || thumb.name; });
     setTimeout(function () {
