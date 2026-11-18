@@ -7,15 +7,14 @@ WHAT'S NEW IN v2.4
    different tab and every button does what it did before.
      - The open sequence is always shown at the top, with its length
        and whether it is 16x9 or 9x16.
-     - The tabs are numbered in working order (1 Clips, 2 Reframe,
-       3 Captions, 4 Thumbnail); the gear is Settings. The step that
-       fits the open sequence gets a gold ring.
+     - The tabs run in working order (Clips, Reframe, Captions,
+       Thumbnail); the gear is Settings. The step that fits the open
+       sequence gets a gold dot.
      - Each tab shows its main button first. The less-used choices are
        under "Options"; click it to open them.
      - Work in progress shows a progress bar.
      - "Check these" after a reframe is a list; click a time to jump
        the playhead there.
-     - The colour stripe by the sequence name follows the show.
 
 WHAT'S NEW IN v2.3
 ------------------

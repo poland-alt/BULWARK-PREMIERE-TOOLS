@@ -24,22 +24,23 @@
   #uisize { display: flex; align-items: center; gap: 3px; color: var(--text3); font-size: 10px; user-select: none; }
   #uisize span#uismaller, #uisize span#uibigger { padding: 2px 6px; border-radius: 4px; color: var(--text2); cursor: pointer; font-weight: 700; transition: background .12s; }
   #uisize span#uismaller:hover, #uisize span#uibigger:hover { background: var(--raise); color: #fff; }
-  #seqbar { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; position: relative; overflow: hidden; }
-  #seqbar:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--show); transition: background .25s; }
-  #seqname { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
-  #seqmeta { color: var(--text3); font-size: 11px; white-space: nowrap; }
+  #seqbar { display: flex; align-items: center; gap: 8px; padding: 8px 11px; background: #88001F; border: 1px solid #a3112f; border-radius: 8px; color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.08) inset; }
+
+  #seqname { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #seqmeta { color: rgba(255,255,255,.78); font-size: 11px; white-space: nowrap; }
   .badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; background: var(--raise); color: var(--text2); }
   .badge.wide { background: var(--gold-bg); color: var(--gold); } .badge.tall { background: var(--green-bg); color: var(--green); }
+  #seqbar .badge, #seqbar .badge.wide, #seqbar .badge.tall { background: rgba(0,0,0,.32); color: #fff; }
 
   /* steps */
-  #tabs { display: flex; align-items: stretch; gap: 2px; margin: 10px 0 12px; border-bottom: 1px solid var(--line); }
-  #tabs span { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 4px 8px; font-size: 12px; font-weight: 600; color: var(--text3); cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s; white-space: nowrap; }
-  #tabs span i { font-style: normal; flex: 0 0 17px; height: 17px; border-radius: 9px; background: var(--raise); color: var(--text2); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; transition: background .12s, color .12s; }
-  #tabs span:hover { color: var(--text); }
-  #tabs span.on { color: #fff; border-bottom-color: var(--blue); }
-  #tabs span.on i { background: var(--blue); color: #fff; }
-  #tabs span[data-next]:not(.on) i { box-shadow: 0 0 0 2px var(--gold); color: var(--gold); }
-  #tabs span[data-tab=settings] { flex: 0 0 30px; }
+  #tabs { display: flex; align-items: flex-end; gap: 3px; margin: 10px 0 12px; border-bottom: 1px solid #4a4a4a; }
+  #tabs span { flex: 1 1 auto; position: relative; display: flex; align-items: center; justify-content: center; padding: 6px 6px 7px; font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; user-select: none; background: #2c2c2c; border: 1px solid #3a3a3a; border-bottom: none; border-radius: 7px 7px 0 0; margin-bottom: 0; transition: color .12s, background .12s; white-space: nowrap; }
+
+  #tabs span:hover { color: #fff; background: #363636; }
+  #tabs span.on { color: #fff; background: var(--bg); border-color: #4a4a4a; padding-top: 8px; margin-bottom: -1px; padding-bottom: 8px; box-shadow: 0 2px 0 var(--blue) inset; }
+
+  #tabs span[data-next]:not(.on):after { content: ""; position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 3px; background: var(--gold); }
+  #tabs span[data-tab=settings] { flex: 0 0 34px; }
   #tabs span[data-tab=settings] svg { width: 15px; height: 15px; fill: currentColor; }
   .tab { display: none; } .tab.on { display: block; animation: fade .16s ease-out; }
   @keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
@@ -195,7 +196,7 @@
   </div>
   <div id="update"></div>
   <div id="seqbar" title="The sequence that is open in Premiere. Every step works on this one."><span id="seqname">No sequence open</span><span id="seqmeta"></span><span id="seqbadge" class="badge"></span></div>
-  <div id="tabs"><span data-tab="clips"><i>1</i>Clips</span><span data-tab="reframe"><i>2</i>Reframe</span><span data-tab="captions"><i>3</i>Captions</span><span data-tab="thumb"><i>4</i>Thumbnail</span><span data-tab="settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></span></div>
+  <div id="tabs"><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="thumb">Thumbnail</span><span data-tab="settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></span></div>
 
   <div class="tab" id="tab-reframe">
   <div class="card">
