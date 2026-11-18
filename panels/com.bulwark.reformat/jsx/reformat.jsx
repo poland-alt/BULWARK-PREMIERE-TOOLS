@@ -127,6 +127,15 @@ $.bulwark.vert = {
         }
         var i, exact = findBin(app.project.rootItem, CFG.framesBin);
         if (exact && !only) return { bin: exact, shows: subBins(exact, false), how: "name" };
+        // the same name but for capitals, spacing or punctuation ("9X16 FRAMES", "9x16 Frames " with a space after it,
+        // "9x16-Frames"): taken as the frames bin just as the exact name is, whatever its files are called
+        var want = squash(CFG.framesBin), same = null;
+        for (i = 0; only !== "files" && i < all.length; i++) {
+            if (squash(all[i].bin.name) !== want) continue;
+            var subs = subBins(all[i].bin, false);
+            if (!same || subs.length > same.shows.length) same = { bin: all[i].bin, shows: subs, how: "name, loosely" };
+        }
+        if (same && same.shows.length) return same;
         var best = null;
         for (i = 0; only !== "files" && i < all.length; i++) {
             var k = squash(all[i].bin.name);
@@ -148,13 +157,18 @@ $.bulwark.vert = {
     $.bulwark.findFrames = function (only) {
         try {
             var f = locateFrames(only || ""), out = [];
-            if (!f || !f.shows.length) return "ERR|" + NO_FRAMES;
+            if (!f || !f.shows.length) return "ERR|" + noFrames();
             function nm(x) { return x ? x.name : "none"; }
             for (var i = 0; i < f.shows.length; i++) out.push(f.shows[i].name + ": " + nm(frameIn(f.shows[i], "2up")) + " / " + nm(frameIn(f.shows[i], "3up")) + " / " + nm(frameIn(f.shows[i], "pip")));
             return "OK|" + f.how + "|" + f.bin.name + "|" + out.join("|");
         } catch (err) { return "ERR|" + String(err); }
     };
-    var NO_FRAMES = "No 9x16 frames were found in this project. The panel looks for a bin named \"" + CFG.framesBin + "\" with a bin per show inside it, or failing that for any bins holding frame files named like \"9x16 2-up TNL.png\", \"9x16 3-UP TNL.png\" or \"3-PERSON VERT PIP TNL.png\". Import the frames (BULWARK VIDEO ASSETS > 9x16 Assets), then press Refresh names.";
+    // Names the project that was searched: with two projects open, Premiere hands the panel whichever is in front,
+    // and that may not be the one holding the frames.
+    function noFrames() {
+        var proj = ""; try { proj = String(app.project.name).replace(/\.prproj$/i, ""); } catch (e) {}
+        return "No 9x16 frames were found in " + (proj ? "the project \"" + proj + "\"" : "this project") + ". The panel looks for a bin named \"" + CFG.framesBin + "\" with a bin per show inside it, or failing that for any bins holding frame files named like \"9x16 2-up TNL.png\", \"9x16 3-UP TNL.png\" or \"3-PERSON VERT PIP TNL.png\". Import the frames (BULWARK VIDEO ASSETS > 9x16 Assets), then press Refresh names." + (app.projects && app.projects.numProjects > 1 ? " More than one project is open: click into the one that holds the frames first." : "");
+    }
     function showBinNamed(found, name) {
         var i, want = squash(name);
         for (i = 0; i < found.shows.length; i++) if (found.shows[i].name === name) return found.shows[i];
@@ -621,7 +635,7 @@ $.bulwark.vert = {
         try {
             if (!app.project) return "ERR|No project is open.";
             var found = locateFrames();
-            if (!found || !found.shows.length) return "ERR|" + NO_FRAMES;
+            if (!found || !found.shows.length) return "ERR|" + noFrames();
             var out = [];
             for (var i = 0; i < found.shows.length; i++) out.push(found.shows[i].name);
             return "OK|" + out.join("|");
@@ -956,7 +970,7 @@ $.bulwark.vert = {
             if (srcH >= srcW) return "ERR|\"" + src.name + "\" is already vertical (" + srcW + "x" + srcH + "). Open the 16x9 version.";
 
             var found = locateFrames();
-            if (!found || !found.shows.length) return "ERR|" + NO_FRAMES;
+            if (!found || !found.shows.length) return "ERR|" + noFrames();
             var showBin = showBinNamed(found, showBinName);
             if (!showBin) return "ERR|Could not find the \"" + showBinName + "\" frames in \"" + found.bin.name + "\". Press Refresh names and pick the show again.";
             function frameFor(l) { return frameIn(showBin, l === "pip" ? "pip" : (l === "mid3" ? "3up" : "2up")); } // frame laid over a media section

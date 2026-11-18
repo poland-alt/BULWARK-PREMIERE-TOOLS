@@ -104,7 +104,7 @@
         "bin/transcribe.swift": "121ea57340cd89bfdaf4d65ca4aa2b4d1de6715ed89fe9f0ff4ad0bc5469888b",
         "index.html": "731f53f7170c3c7da23e5f87497f0ffbcc48848668571bdeeb018f2ac7e8e6e8",
         "jsx/captions.jsx": "f0a7c19894850375c0c88f7661942e89224889fc47fca9b9c50e7a8107156ebd",
-        "jsx/reformat.jsx": "031a11e4d3a50e975d5eab5bc262b0ecc25c88655968bead732936c1392ef5f0",
+        "jsx/reformat.jsx": "3960601291321ff8e61c4f6f374fb9434afa18535dc6f10952dfedf7242efad4",
         "lib/CSInterface.js": "43d8b9959ad581f193b3626a057d9afb922e3cf8da89fa9e9a6831d374b39433",
         "lib/app.js": "78ec4ebf2da7d84dc8e397bb024ed5e5f23729a1ce3ba652ea2f01f9dae8322e",
         "lib/engine.js": "4c93ae6983a5c6595a1eb7a4aa84dfb0f25b3294ac0a6e6a118e82c50e0f4fe5",
@@ -171,7 +171,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "/Chx9CW5RY/5gDVvArpDK2u0cC4E75UNM9qRr88HWXXTzVQXd+aFbJPJi3l5qTWTkQosduJhNFNXuXrnHokKFw=="
+      "sig": "U93aRokVOaSA2Fq1Mp5cuf6fwfuGwzG6brcDv7MMVhwyNwWcJRzsgEVqepuapoti95T6gRNz2RzMz7/HY/+aBg=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -194,7 +194,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "OkMfJqF7pk2T9hqCxrGJd8adGF7c5Ers0bJf7PsSyIGQaUDjZEGr7t+kveNYjO4tJOO19GH4w2XHtZdnrAvqBQ=="
+      "sig": "QxU/nvGWHo9GsUrS0hBlbWGbE+qS/Mv9pq42EDY0y81MWqvH1SSxAyKIGdv/vKCV2utWyFQ0wwYwwRRaImW43A=="
     }
   }
 }
