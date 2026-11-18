@@ -32,10 +32,13 @@ WHAT'S NEW IN v2.6
    person's nest starts their clip where it belongs, and the master
    recording is put on V8 / A8 of the main sequence, switched off, to
    check against. If a match looks weak the panel stops and says so.
-   Track mixer: the main sequence starts from a template with the
-   Parametric Equalizer and Dynamics on voice tracks 1-3 and a Hard
-   Limiter (no input boost) on the Mix track. A fourth or fifth voice
-   track gets the same Equalizer and Dynamics.
+   Track mixer: the main sequence starts from a template with Automatic
+   Click Remover, DeNoise, Parametric Equalizer and Dynamics on voice
+   tracks 1-3 and a Hard Limiter (+10 dB input boost) on the Mix track.
+   A fourth or fifth voice track gets the same four effects.
+   A master recording with no picture goes on A8 only. While a setup is
+   running the list cannot be changed, and if anything fails the
+   sequences it had started are removed again.
    Options:
      - "Save open sequence as a wide shot layout" / "as a media layout":
        open a finished wide shot nest and press it; its positions,
