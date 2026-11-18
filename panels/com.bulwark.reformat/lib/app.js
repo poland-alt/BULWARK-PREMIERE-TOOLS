@@ -652,7 +652,7 @@
     for (var i = 0; i < t.windows.length; i++) if (thumb.pics[i]) any = true;
     if (!any) return;
     if (cv.width !== W) cv.width = W; if (cv.height !== Hh) cv.height = Hh;
-    cv.style.display = ''; $('tsave').style.display = '';
+    cv.style.display = 'block'; $('tsave').style.display = '';
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, Hh);
     for (i = 0; i < t.windows.length; i++) {
       if (!thumb.pics[i]) continue;
