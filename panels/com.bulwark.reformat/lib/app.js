@@ -437,7 +437,8 @@
         store('bulwark_txdir', path.split('/').slice(0, -1).join('/'));
       }
       var body = E.transcriptFile(info.words, fmt, info.name);
-      if (cep.fs.writeFile(path, body).err) { say(st, 'Could not save to ' + path + '.', 'err'); return cb && cb('write'); }
+      // written as exact bytes, so the mark Excel needs at the front of a .csv is kept
+      if (cep.fs.writeFile(path, btoa(unescape(encodeURIComponent(body))), cep.encoding.Base64).err) { say(st, 'Could not save to ' + path + '.', 'err'); return cb && cb('write'); }
       st.className = 'status ok'; st.textContent = 'Saved ' + path.split('/').pop() + ' (' + info.words.length + ' words, ' + E.clock(info.total) + ')  ';
       var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
       a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
