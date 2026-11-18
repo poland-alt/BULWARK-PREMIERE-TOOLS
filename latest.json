@@ -2,7 +2,7 @@
   "panels": {
     "com.bulwark.reformat": {
       "version": "2.3.0",
-      "notes": "New on the Clips tab: Suggest IG headlines (eight options of 4 to 8 words for the open clip) and Thumbnail (builds the orange 1080x1920 thumbnail from two frames of the vertical clip and a headline).",
+      "notes": "New Thumbnail tab: builds the 1080x1920 thumbnail from the vertical clip, with picture options of each person and the media to choose from, and templates that can be added per show. Also on the Clips tab: Suggest IG headlines.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",

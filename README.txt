@@ -3,14 +3,26 @@ BULWARK PREMIERE TOOLS - v2.3 test build
 
 WHAT'S NEW IN v2.3
 ------------------
- - Clips tab, "Thumbnail": makes the 1080x1920 thumbnail (orange bands,
-   two pictures, headline in its box) from the vertical clip. Park the
-   playhead on a good frame and press "Top picture from playhead", then
-   another frame and "Bottom picture from playhead". On a solo shot it
-   takes the full camera picture; on a 2-up or 3-UP it takes that window.
-   Type the headline or press "Thumbnail" next to a suggested one; it
-   goes on one line or two to fit. Move and zoom each picture with the
-   sliders, then "Save thumbnail" (Desktop > Bulwark Thumbnails).
+ - New Thumbnail tab: makes the 1080x1920 thumbnail from the vertical
+   clip.
+     1. Pick a template (2 pictures or 3 pictures; more can be added per
+        show, see below).
+     2. "Show picture options from this clip" pulls 8 pictures of each
+        person and of the media. Media pictures are taken with captions
+        and titles hidden. "Give me more options" pulls a different set.
+     3. Click a picture to put it in the window that is marked; the mark
+        moves to the next empty window. Double-click a picture to jump
+        the playhead there. "Use the frame under the playhead" takes
+        exactly the frame you are parked on.
+     4. Type the headline, or press "Thumbnail" next to a suggested IG
+        headline on the Clips tab. It goes on one line or two to fit.
+     5. Move and zoom each picture, then "Save thumbnail"
+        (Desktop > Bulwark Thumbnails).
+ - Thumbnail templates per show: each template is a folder with a
+   settings file and the artwork. "Open my thumbnail templates folder"
+   on the Thumbnail tab opens the place to add your own, with a how-to
+   file. A template marked for a show is offered first when that show is
+   picked on the Reframe tab.
  - Clips tab, "Suggest IG headlines": open a cut clip (16x9 or vertical)
    and the AI assistant suggests eight on-screen headlines of 4 to 8
    words, each with a Copy button. Works with whichever assistant is
