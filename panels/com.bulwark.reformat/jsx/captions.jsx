@@ -83,19 +83,59 @@ $.bulwark.setOutline = function (width, scope) {
     $.bulwark.playhead = function () {
         try { var seq = app.project.activeSequence; return seq ? "OK|" + seq.sequenceID + "|" + (Number(seq.getPlayerPosition().ticks) / TICKS) : "ERR|"; } catch (e) { return "ERR|" + e; }
     };
-    // Saves the frame under the playhead as <basePath>.png (the whole 1080x1920 picture, graphics included)
-    $.bulwark.grabFrame = function (basePath) {
+    // Saves a picture of the moment under the playhead as <basePath>.png.
+    // wide = true (a solo shot): when the picture on screen is a single camera's nest, the frame comes from that
+    // nest itself, so it is the full 16x9 camera shot and not the zoomed-in vertical crop. Otherwise, and for anything
+    // else on screen (2-ups, media, multicam), it is the vertical frame as rendered.
+    // Returns "OK|seconds|width|height|source or render|sequence name"
+    function tcOf(seq, secs) {
+        var tb = Number(seq.timebase), fps = Math.round(TICKS / tb), f = Math.round(secs * TICKS / tb);
+        function two(n) { return (n < 10 ? "0" : "") + n; }
+        return two(Math.floor(f / fps / 3600)) + ":" + two(Math.floor(f / fps / 60) % 60) + ":" + two(Math.floor(f / fps) % 60) + ":" + two(f % fps);
+    }
+    function nestOf(item) {
+        if (!item) return null;
+        for (var i = 0; i < app.project.sequences.numSequences; i++) {
+            var ns = app.project.sequences[i];
+            if (ns.projectItem && ns.projectItem.nodeId === item.nodeId) return ns;
+        }
+        return null;
+    }
+    $.bulwark.grabFrame = function (basePath, wide) {
         try {
             var seq = app.project.activeSequence;
             if (!seq) return "ERR|No sequence is open.";
             app.enableQE();
-            var q = qe.project.getActiveSequence();
             var old = new File(basePath + ".png");
             if (old.exists) old.remove();
-            q.exportFramePNG(q.CTI.timecode, basePath);
-            var st = seq.getSettings();
-            return "OK|" + (Number(seq.getPlayerPosition().ticks) / TICKS) + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|" + clean(seq.name);
-        } catch (e) { return "ERR|" + e; }
+            var st = seq.getSettings(), pos = seq.getPlayerPosition(), t = Number(pos.ticks) / TICKS, how = "render";
+            if (wide) {
+                // the picture on top at this moment
+                var top = null;
+                for (var tr = seq.videoTracks.numTracks - 1; tr >= 0 && !top; tr--) {
+                    var cl = seq.videoTracks[tr].clips;
+                    for (var c = 0; c < cl.numItems; c++) {
+                        var k = cl[c];
+                        if (k.disabled || !k.projectItem || k.start.seconds > t + 0.0005 || k.end.seconds <= t + 0.0005 || /adjustment layer/i.test(k.name)) continue;
+                        var mgt = null;
+                        try { mgt = k.getMGTComponent(); } catch (e0) {}
+                        if (!mgt) { top = k; break; }
+                    }
+                }
+                var ns = top ? nestOf(top.projectItem) : null, pop = 0;
+                if (ns) for (var v = 0; v < ns.videoTracks.numTracks; v++) if (ns.videoTracks[v].clips.numItems) pop++;
+                if (ns && pop === 1 && ns.frameSizeHorizontal > ns.frameSizeVertical) {
+                    var at = top.inPoint.seconds + (t - top.start.seconds);
+                    app.project.openSequence(ns.sequenceID);
+                    qe.project.getActiveSequence().exportFramePNG(tcOf(ns, at), basePath);
+                    app.project.openSequence(seq.sequenceID);
+                    try { app.project.activeSequence.setPlayerPosition(pos.ticks); } catch (e1) {}
+                    how = "source";
+                }
+            }
+            if (how === "render") { var q = qe.project.getActiveSequence(); q.exportFramePNG(q.CTI.timecode, basePath); }
+            return "OK|" + t + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|" + how + "|" + clean(seq.name);
+        } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
     $.bulwark.jump = function (secs) {
         try { app.project.activeSequence.setPlayerPosition(String(Math.round(secs * TICKS))); return "OK"; } catch (e) { return "ERR|" + e; }

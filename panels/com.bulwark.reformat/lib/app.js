@@ -534,14 +534,17 @@
   }
   // The part of a grabbed frame that belongs in a window: its own window on a 2-up / 3-UP shot, the person on a solo shot
   function drawPicture(ctx, pic, which, win, shift) {
-    var img = pic.img, sx = 0, sy = 0, sw = img.width, sh = img.height, f = img.height / 1920, focus = 0.5;
-    if (pic.kind === 2) { sy = (which === 'top' ? 0 : 977) * f; sh = (which === 'top' ? 944 : 943) * f; }
-    else if (pic.kind === 3) { sy = (which === 'top' ? 0 : 1295) * f; sh = (which === 'top' ? 607 : 625) * f; }
-    else focus = 0.3;                                    // a solo shot: faces sit in the upper part of the frame
+    var img = pic.img, sx = 0, sy = 0, sw = img.width, sh = img.height, f = img.height / 1920, focusY = 0.5;
+    if (!pic.source) {
+      if (pic.kind === 2) { sy = (which === 'top' ? 0 : 977) * f; sh = (which === 'top' ? 944 : 943) * f; }
+      else if (pic.kind === 3) { sy = (which === 'top' ? 0 : 1295) * f; sh = (which === 'top' ? 607 : 625) * f; }
+      else focusY = 0.3;                                 // a solo shot as rendered: faces sit in the upper part of the frame
+    }
     var scale = Math.max(TH.W / sw, win[1] / sh), cw = TH.W / scale, ch = win[1] / scale;     // the crop, in source pixels
-    var slackX = sw - cw, slackY = sh - ch;
-    var cy = sy + Math.max(0, Math.min(slackY, slackY * focus - shift / 100 * slackY * 0.5));
-    ctx.drawImage(img, sx + slackX / 2, cy, cw, ch, 0, win[0], TH.W, win[1]);
+    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = focusY;
+    // the slider moves the picture along whichever way it has room to move
+    if (slackY > 1) fy = Math.max(0, Math.min(1, focusY - shift / 200)); else fx = Math.max(0, Math.min(1, 0.5 - shift / 200));
+    ctx.drawImage(img, sx + slackX * fx, sy + slackY * fy, cw, ch, 0, win[0], TH.W, win[1]);
   }
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
@@ -568,6 +571,8 @@
       var w = text.split(' '), best = null;
       for (var i = 1; i < w.length; i++) {
         var a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), wide = Math.max(width(a, 100), width(b, 100));
+        // a colon or dash is where a headline wants to break, as long as neither line gets too long for a readable size
+        if (/[:\u2014\u2013-]$/.test(w[i - 1]) && wide <= 928 / 60 * 100) { best = { a: a, b: b, wide: wide }; break; }
         if (!best || wide < best.wide) best = { a: a, b: b, wide: wide };
       }
       if (best) { lines = [best.a, best.b]; size = Math.min(84, 928 / best.wide * 100); }
@@ -586,24 +591,29 @@
     var st = $('tstat'), base = WORK + '/thumb-' + which;
     cep.fs.makedir(WORK);
     say(st, 'Grabbing the frame…');
-    jsx('$.bulwark.grabFrame(' + q(base) + ')', function (r) {
-      var p = r.split('|');
-      if (p[0] !== 'OK') return say(st, p.slice(1).join('|') || 'Premiere did not answer.', 'err');
-      if (+p[2] > +p[3]) return say(st, 'This sequence is 16x9. Open the vertical clip to make a thumbnail from it.', 'err');
-      var t = +p[1]; thumb.name = p.slice(4).join('|');
+    // what kind of shot is under the playhead decides where the picture comes from
+    jsx('$.bulwark.playhead()', function (rp) {
+      var t = +rp.split('|')[2] || 0;
       jsx('$.bulwark.shotMap()', function (rm) {
-        var pm = rm.split('|'), kind = pm[0] === 'OK' ? E.kindAt(E.shots(pm[1], pm[2]).segs, t) : 1, tries = 0;
-        (function wait() {                               // Premiere writes the file a moment after it answers
-          loadImage(base + '.png', function (img) {
-            if (!img) { if (++tries > 25) return say(st, 'Premiere did not save the frame. Try again.', 'err'); return setTimeout(wait, 200); }
-            thumb[which === 'top' ? 'top' : 'bot'] = { img: img, kind: kind };
-            $(which === 'top' ? 'ttopy' : 'tboty').value = 0;
-            loadBands(function () {
-              drawThumb();
-              say(st, (which === 'top' ? 'Top' : 'Bottom') + ' picture set from ' + E.clock(t) + (kind === 1 ? ' (solo shot)' : kind === 2 ? ' (2-up: its ' + (which === 'top' ? 'top' : 'bottom') + ' window)' : ' (3-UP: its ' + (which === 'top' ? 'top' : 'bottom') + ' window)') + '.', 'ok');
+        var pm = rm.split('|'), kind = pm[0] === 'OK' ? E.kindAt(E.shots(pm[1], pm[2]).segs, t) : 1;
+        jsx('$.bulwark.grabFrame(' + q(base) + ',' + (kind === 1) + ')', function (r) {
+          var p = r.split('|'), tries = 0;
+          if (p[0] !== 'OK') return say(st, p.slice(1).join('|') || 'Premiere did not answer.', 'err');
+          if (+p[2] > +p[3]) return say(st, 'This sequence is 16x9. Open the vertical clip to make a thumbnail from it.', 'err');
+          thumb.name = p.slice(5).join('|');
+          (function wait() {                               // Premiere writes the file a moment after it answers
+            loadImage(base + '.png', function (img) {
+              if (!img) { if (++tries > 25) return say(st, 'Premiere did not save the frame. Try again.', 'err'); return setTimeout(wait, 200); }
+              thumb[which === 'top' ? 'top' : 'bot'] = { img: img, kind: kind, source: p[4] === 'source' };
+              $(which === 'top' ? 'ttopy' : 'tboty').value = 0;
+              loadBands(function () {
+                drawThumb();
+                var what = p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? ' (solo shot)' : ' (' + (kind === 2 ? '2-up' : '3-UP') + ': its ' + (which === 'top' ? 'top' : 'bottom') + ' window)';
+                say(st, (which === 'top' ? 'Top' : 'Bottom') + ' picture set from ' + E.clock(t) + what + '.', 'ok');
+              });
             });
-          });
-        })();
+          })();
+        });
       });
     });
   }
