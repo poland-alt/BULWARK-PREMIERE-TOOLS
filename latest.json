@@ -25,6 +25,7 @@
         "lib/app.js",
         "lib/engine.js",
         "lib/faces.js",
+        "lib/readtext.js",
         "lib/update-source.js",
         "lib/updater.js",
         "templates/Bulwark Word Fill Vertical.mogrt.b64",

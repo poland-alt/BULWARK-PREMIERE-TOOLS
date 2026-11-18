@@ -705,7 +705,7 @@
   });
   [].forEach.call(document.querySelectorAll('#tabs span'), function (el) { el.addEventListener('click', function () { setTimeout(wantUndoKeys, 0); }); });
   var showTab0 = window.bulwarkShowTab;
-  window.bulwarkShowTab = function (name) { showTab0(name); wantUndoKeys(); };
+  window.bulwarkShowTab = function (name) { showTab0(name); wantUndoKeys(); if (name === 'thumb' && typeof autofillHeadline === 'function') autofillHeadline(false); };
 
   function setPicture(pic) {
     if (!thumb.tpl) return;
@@ -721,6 +721,74 @@
     var tries = 0;
     (function again() { loadImage(path, function (img) { if (img) return cb(img); if (++tries > 30) return cb(null); setTimeout(again, 200); }); })();
   }
+  // -- the headline already on the open vertical clip --
+  // Read off two frames (with and without the headline graphic) by the Mac's text recognition. If the clip has no
+  // headline graphic, the sequence name stands in: "SOC - Rubio Men With Swords VERT" -> "Rubio Men With Swords".
+  function fromName(name) { return String(name || '').replace(/^\s*SOC\s*[-:]\s*/i, '').replace(/\s+VERT(\s+\d+)?\s*$/i, '').replace(/\s+/g, ' ').replace(/^ | $/g, ''); }
+  function waitFiles(paths, cb) {
+    var tries = 0;
+    (function again() {
+      for (var i = 0; i < paths.length; i++) if (cep.fs.stat(paths[i]).err) { if (++tries > 30) return cb(false); return setTimeout(again, 200); }
+      setTimeout(function () { cb(true); }, 150);
+    })();
+  }
+  function headlineFromClip(force, cb) {         // cb(text or '', where it came from)
+    cep.fs.makedir(WORK);
+    jsx('$.bulwark.headlineFrames(' + q(WORK + '/headline') + ')', function (r) {
+      var p = r.split('|'), name = p[p.length - 1];
+      if (p[0] === 'FLAT' || p[0] === 'ERR') return cb('', p[0] === 'FLAT' ? 'flat' : 'error', name);
+      if (p[0] !== 'OK') return cb(fromName(name), 'name', name);
+      waitFiles([p[1], p[2]], function (ok) {
+        if (!ok || !MAC) return cb(fromName(name), 'name', name);
+        var proc = cep.process.createProcess('/usr/bin/osascript', '-l', 'JavaScript', EXT + '/lib/readtext.js', p[1], p[2]), buf = '', done = false;
+        function fin() {
+          if (done) return; done = true;
+          cep.fs.deleteFile(p[1]); cep.fs.deleteFile(p[2]);
+          var withHead = [], without = {}, lines = buf.split('\n');
+          function key(t) { return String(t).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+          lines.forEach(function (l) {
+            var f = l.split('|');
+            if (f.length < 5 || f[1] === 'ERR') return;
+            if (f[0] === p[2]) without[key(f.slice(4).join('|'))] = 1; else withHead.push({ y: +f[1], h: +f[2], t: f.slice(4).join('|') });
+          });
+          var own = withHead.filter(function (x) { return key(x.t).length > 1 && !without[key(x.t)]; });
+          if (!own.length) return cb(fromName(name), 'name', name);
+          // the headline is the big text; stray small words that flicker between the two frames are not it
+          var big = Math.max.apply(null, own.map(function (x) { return x.h; }));
+          own = own.filter(function (x) { return x.h > big * 0.6; }).sort(function (a, b) { return a.y - b.y; });
+          cb(own.map(function (x) { return x.t; }).join(' ').replace(/\s+/g, ' '), 'clip', name);
+        }
+        if (proc.err) return cb(fromName(name), 'name', name);
+        cep.process.stdout(proc.data, function (d) { buf += d; });
+        cep.process.onquit(proc.data, function () { setTimeout(fin, 250); });
+        setTimeout(fin, 15000);
+      });
+    });
+  }
+  var headTried = '';
+  function autofillHeadline(force) {
+    if (!force && $('thead').value.replace(/\s+/g, '')) return;          // never over something typed or chosen
+    headlineFromClip(force, function (text, from, name) {
+      if (from === 'flat') { if (force) say($('tstat'), 'Open the vertical clip to read its headline; this sequence is 16x9.', 'err'); return; }
+      if (from === 'error' || !text) { if (force) say($('tstat'), 'No headline was found on this clip.', 'err'); return; }
+      if (!force && $('thead').value.replace(/\s+/g, '')) return;
+      if (force && $('thead').value !== text) remember();
+      $('thead').value = text; if (name) thumb.name = name;
+      drawThumb();
+      say($('tstat'), from === 'clip' ? 'Headline read from the clip\'s title. Check it, the reading can slip on a letter.' : 'No headline graphic on this clip, so the headline was started from the sequence name.', from === 'clip' ? 'ok' : '');
+    });
+  }
+  $('tfill').addEventListener('click', function () { autofillHeadline(true); });
+  $('tnew').addEventListener('click', function () {
+    remember();                                   // Cmd+Z brings the old one back
+    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0;
+    $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options';
+    markSlots();
+    say($('tstat'), 'Cleared. Starting a thumbnail for the open clip…');
+    autofillHeadline(false);
+  });
+  document.querySelector('#tabs span[data-tab=thumb]').addEventListener('click', function () { autofillHeadline(false); });
+
   // -- one frame, from the playhead --
   $('tgrab').addEventListener('click', function () {
     var st = $('tstat'), slot = thumb.slot, base = WORK + '/thumb-grab-' + slot;
@@ -854,6 +922,7 @@
   });
   listTemplates();
   undoButtons(); wantUndoKeys();
+  if ($('tab-thumb').className.indexOf('on') >= 0) autofillHeadline(false);
   // templates may have been added, or the show changed on the Reframe tab, since the panel opened
   document.querySelector('#tabs span[data-tab=thumb]').addEventListener('click', listTemplates);
 

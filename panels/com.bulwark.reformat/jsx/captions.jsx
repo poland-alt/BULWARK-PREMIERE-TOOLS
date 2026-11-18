@@ -256,6 +256,42 @@ $.bulwark.setOutline = function (width, scope) {
             return lines.join("\n");
         } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
+    // The headline already on a vertical clip is a text graphic whose words Premiere will not hand to a script.
+    // So two frames are saved for the panel to read: one with only that graphic's text showing (<base>_a.png), one
+    // with no text at all (<base>_b.png). The words on the first and not the second are the headline.
+    // Returns "OK|a|b|sequence name", or "NONE|sequence name" when the clip has no headline graphic.
+    $.bulwark.headlineFrames = function (base) {
+        var changed = [];
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            if (seq.frameSizeVertical <= seq.frameSizeHorizontal) return "FLAT|" + clean(seq.name);
+            var best = null, v, c;
+            for (v = 0; v < seq.videoTracks.numTracks; v++) {
+                var cl = seq.videoTracks[v].clips;
+                for (c = 0; c < cl.numItems; c++) {
+                    var k = cl[c];
+                    if (k.disabled || k.projectItem || !/^graphic$/i.test(String(k.name))) continue;
+                    var isText = false;
+                    for (var a = 0; a < k.components.numItems; a++) if (k.components[a].displayName === "Text") isText = true;
+                    if (isText && (!best || k.end.seconds - k.start.seconds > best.end.seconds - best.start.seconds)) best = k;
+                }
+            }
+            if (!best) return "NONE|" + clean(seq.name);
+            var t = Math.min(best.start.seconds + (best.end.seconds - best.start.seconds) / 2, best.start.seconds + 2);
+            app.enableQE();
+            var q = qe.project.getActiveSequence(), tc = tcOf(seq, t), i;
+            for (i = 0; i < 2; i++) { var f = new File(base + (i ? "_b" : "_a") + ".png"); if (f.exists) f.remove(); }
+            var others = textOff(seq, t);                // every caption, title and graphic at that moment...
+            changed = others;
+            best.disabled = false;                       // ...except the headline
+            q.exportFramePNG(tc, base + "_a");
+            best.disabled = true;
+            q.exportFramePNG(tc, base + "_b");
+            textOn(others); changed = [];
+            return "OK|" + base + "_a.png|" + base + "_b.png|" + clean(seq.name);
+        } catch (e) { textOn(changed); return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
+    };
     $.bulwark.jump = function (secs) {
         try { app.project.activeSequence.setPlayerPosition(String(Math.round(secs * TICKS))); return "OK"; } catch (e) { return "ERR|" + e; }
     };

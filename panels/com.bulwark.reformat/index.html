@@ -197,9 +197,10 @@
       <div class="mini"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
       <div class="row" style="margin:4px 0 0;gap:4px"><button id="tundo" class="secondary" title="Undo (Cmd+Z)">Undo</button><button id="tredo" class="secondary" title="Redo (Shift+Cmd+Z)">Redo</button></div>
       <button id="tsave">Save thumbnail</button>
+      <button id="tnew" class="secondary" title="Clear the pictures and headline and start a thumbnail for the clip that is open">New thumbnail</button>
     </div>
   </div>
-  <input id="thead" type="text" placeholder="Headline">
+  <div class="row" style="margin:0 0 2px"><input id="thead" type="text" placeholder="Headline"><button id="tfill" class="secondary" style="width:auto;margin:0;white-space:nowrap" title="Read the headline that is on the open vertical clip">From clip</button></div>
   <div class="row" style="margin:6px 0"><button id="tpicksbtn" class="secondary" style="margin:0">Show picture options</button><button id="tgrab" class="secondary" style="margin:0">Use playhead frame</button></div>
   <div id="tstat" class="status"></div>
   <div id="tpicks"></div>
