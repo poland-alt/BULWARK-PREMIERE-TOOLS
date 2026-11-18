@@ -23,6 +23,9 @@ WHAT'S NEW IN v2.3
      Up / down and Zoom for the marked window. "Use playhead frame" also
      works inside any 16x9 sequence (a person's camera nest, for
      example): park on the frame you want and press it.
+     Cmd+Z undoes the last change to the thumbnail and Shift+Cmd+Z
+     redoes it, while the Thumbnail tab is showing (there are Undo and
+     Redo buttons too). On the other tabs Cmd+Z is still Premiere's undo.
  - Panel size: A- and A+ at the top right (and a slider in Settings)
    make everything in the panel bigger or smaller. The layout is tighter
    overall and no longer stretches across a wide panel.
