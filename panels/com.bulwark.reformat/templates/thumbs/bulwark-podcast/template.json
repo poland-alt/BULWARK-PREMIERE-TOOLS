@@ -87,6 +87,20 @@
           "color": "#1A1A1B"
         }
       ]
+    },
+    {
+      "name": "1 picture",
+      "windows": [
+        {
+          "name": "Picture",
+          "x": 0,
+          "y": 241,
+          "w": 1080,
+          "h": 1442
+        }
+      ],
+      "dividers": [],
+      "headlineCentre": 1329
     }
   ],
   "headline": {

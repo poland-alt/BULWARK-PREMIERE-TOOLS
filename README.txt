@@ -8,6 +8,11 @@ WHAT'S NEW IN v2.5
    option as a full-size PNG, or point at one picture and click the
    arrow in its corner to save just that one. They go to
    Desktop > Bulwark Thumbnails > "<clip name> pictures".
+ - Thumbnail tab: every show now has a "1 picture" layout: one picture
+   with no bar across the middle, and the title lower down (halfway
+   between where the bar sits and the bottom border).
+ - Thumbnail tab: "Title up / down" slider moves the title in any
+   layout. Double-click the slider to put the title back.
  - Thumbnail tab: "Change folder..." picks where thumbnails and exported
    pictures are saved (any folder or drive). "Back to Desktop" returns
    to Desktop > Bulwark Thumbnails.

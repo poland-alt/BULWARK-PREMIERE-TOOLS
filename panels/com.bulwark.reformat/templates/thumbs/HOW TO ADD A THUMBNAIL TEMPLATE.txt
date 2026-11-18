@@ -45,7 +45,11 @@ template.json
         { "name": "Top right", "x": 556, "y": 239, "w": 524,  "h": 706 },
         { "name": "Bottom",    "x": 0,   "y": 975, "w": 1080, "h": 707 } ],
       "dividers": [ { "x": 0, "y": 945, "w": 1080, "h": 30, "color": "#D0461D" },
-                    { "x": 525, "y": 239, "w": 31, "h": 706, "color": "#D0461D" } ] }
+                    { "x": 525, "y": 239, "w": 31, "h": 706, "color": "#D0461D" } ] },
+    { "name": "1 picture",              one picture, no bar; "headlineCentre" is where the middle of
+      "windows": [                      the title goes in this layout (leave it out to use the usual place)
+        { "name": "Picture", "x": 0, "y": 239, "w": 1080, "h": 1443 } ],
+      "dividers": [], "headlineCentre": 1329 }
   ],
   "headline": {
     "top": 860,                         y of the top edge of the headline box; the box grows downward

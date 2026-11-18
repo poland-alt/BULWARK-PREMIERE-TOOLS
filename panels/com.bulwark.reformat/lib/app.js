@@ -517,7 +517,8 @@
   // windows). Templates ship in the panel (templates/thumbs) and can be added on this Mac (Bulwark Tools/thumbnail
   // templates). See "HOW TO ADD A THUMBNAIL TEMPLATE.txt".
   var TPL_SHIPPED = EXT + '/templates/thumbs', TPL_LOCAL = WORK + '/thumbnail templates';
-  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0 };      // pics[i]: { img, source, kind, region }
+  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0, headY: 0 };      // headY: how far the title is moved down (up if negative), in thumbnail pixels
+       // pics[i]: { img, source, kind, region }
   function imageFrom(b64, cb) {
     var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
     img.src = 'data:image/png;base64,' + String(b64).replace(/\s+/g, '');
@@ -542,7 +543,7 @@
           layouts.forEach(function (L, i) {
             if (!L.windows || !L.windows.length) return;
             out.push({ id: (local ? 'mine/' : '') + id + (t.layouts ? '#' + i : ''), dir: root + '/' + id, local: !!local, group: group, layout: L.name || (L.windows.length + ' pictures'),
-              name: group + (L.name ? ': ' + L.name : ''), show: t.show || '', size: t.size, windows: L.windows, dividers: L.dividers || [], headline: t.headline, overlay: t.overlay, bands: t.bands || [] });
+              name: group + (L.name ? ': ' + L.name : ''), show: t.show || '', size: t.size, windows: L.windows, dividers: L.dividers || [], headCentre: L.headlineCentre, headline: t.headline, overlay: t.overlay, bands: t.bands || [] });
           });
         } catch (e) {}
       });
@@ -615,9 +616,10 @@
     var show = showOnReframe(), saved = store('bulwark_thumbtpl'), groups = [], seen = {}, first = null;
     // the show picked on the Reframe tab comes first, then the rest by name
     thumb.tpls.sort(function (x, y) { return ((y.show === show && show ? 1 : 0) - (x.show === show && show ? 1 : 0)) || (x.local - y.local) || (x.group < y.group ? -1 : x.group > y.group ? 1 : 0) || (x.windows.length - y.windows.length); });
-    thumb.tpls.forEach(function (t) { if (!seen[t.group]) { seen[t.group] = 1; groups.push([t.group, t.group]); } if (!first && t.show === show && show) first = t.id; });
+    thumb.tpls.forEach(function (t) { if (!seen[t.group]) { seen[t.group] = 1; groups.push([t.group, t.group]); } if (t.show === show && show && (!first || t.windows.length === 2)) first = t.id; });
     var want = null;
     for (var i = 0; i < thumb.tpls.length; i++) if (thumb.tpls[i].id === saved) want = saved;
+    if (!want && !first) thumb.tpls.forEach(function (t) { if (!first && t.windows.length === 2) first = t.id; });      // two pictures is the usual one
     if (!want) want = first || (thumb.tpls[0] && thumb.tpls[0].id);
     fillSelect($('ttpl'), groups, '');
     $('ttpl').size = Math.max(2, Math.min(7, groups.length));
@@ -680,6 +682,10 @@
     var cap = (H.capHeight || 0.722) * size, widest = 0, k, gap = L.gap || 0, top = H.top === undefined ? 860 : H.top;
     for (k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
     var bw = Math.min(W - 40, widest + 2 * L.padX), bh = L.padTop + cap * lines.length + gap * (lines.length - 1) + L.padBottom;
+    // a layout can say where the title's middle goes (the one-picture layout: lower down, with no bar to sit on);
+    // the Title up / down slider moves it from there, and it never leaves the picture
+    if (t.headCentre !== undefined) top = t.headCentre - bh / 2;
+    top = Math.max(0, Math.min(((t.size && t.size[1]) || 1920) - bh, top + (thumb.headY || 0)));
     if (H.box) { ctx.fillStyle = H.box; roundRect(ctx, (W - bw) / 2, top, bw, bh, H.radius || 0); ctx.fill(); }
     ctx.fillStyle = H.text || '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; font(size);
     for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], W / 2, top + L.padTop + cap * (k + 1) + gap * k);
@@ -713,7 +719,7 @@
   // -- undo / redo: what is in each window, how each picture is placed, the template and the headline --
   var undoStack = [], redoStack = [];
   function snap() {
-    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value,
+    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value, headY: thumb.headY,
       pics: thumb.pics.map(function (p) { return p ? { p: p, mx: p.mx, my: p.my, zoom: p.zoom } : null; }) };
   }
   function undoButtons() { $('tundo').disabled = !undoStack.length; $('tredo').disabled = !redoStack.length; }
@@ -721,7 +727,7 @@
   function restore(st) {
     if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) pickTemplate(st.tpl);
     thumb.pics = st.pics.map(function (x) { if (!x) return undefined; x.p.mx = x.mx; x.p.my = x.my; x.p.zoom = x.zoom; return x.p; });
-    thumb.slot = st.slot; $('thead').value = st.head;
+    thumb.slot = st.slot; $('thead').value = st.head; thumb.headY = st.headY || 0; $('thy').value = thumb.headY;
     markSlots(); undoButtons();
   }
   function undo() { if (!undoStack.length) return; redoStack.push(snap()); restore(undoStack.pop()); say($('tstat'), 'Undone.'); }
@@ -837,7 +843,7 @@
   $('tfill').addEventListener('click', function () { autofillHeadline(true); });
   $('tnew').addEventListener('click', function () {
     remember();                                   // Cmd+Z brings the old one back
-    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0;
+    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0; thumb.headY = 0; $('thy').value = 0;
     $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options'; shownPicks = []; $('texport').style.display = 'none';
     markSlots();
     say($('tstat'), 'Cleared. Starting a thumbnail for the open clip…');
@@ -1056,6 +1062,10 @@
       });
     }, 60);
   });
+  // the title's own slider: down to the right, up to the left
+  $('thy').addEventListener('mousedown', remember);
+  $('thy').addEventListener('input', function () { thumb.headY = +$('thy').value; drawThumb(); });
+  $('thy').addEventListener('dblclick', function () { remember(); thumb.headY = 0; $('thy').value = 0; drawThumb(); });
   // sliders for the marked window's picture
   ['tmx', 'tmy', 'tz'].forEach(function (id) {
     $(id).addEventListener('mousedown', function () { if (thumb.pics[thumb.slot]) remember(); });
