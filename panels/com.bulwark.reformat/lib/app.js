@@ -562,19 +562,12 @@
     var same = thumb.tpl && thumb.tpl.windows.length === t.windows.length;
     thumb.tpl = t; store('bulwark_thumbtpl', t.id);
     if (!same) { thumb.pics = thumb.pics.slice(0, t.windows.length); thumb.slot = 0; }
-    // window chips and a move / zoom pair per window
-    var chips = $('tslots'), sl = $('tsliders'); chips.innerHTML = ''; sl.innerHTML = '';
+    // a chip per window
+    var chips = $('tslots'); chips.innerHTML = '';
     t.windows.forEach(function (w, i) {
       var c = document.createElement('span'); c.textContent = w.name || ('Window ' + (i + 1));
       c.addEventListener('click', function () { thumb.slot = i; markSlots(); });
       chips.appendChild(c);
-      var row = document.createElement('div'); row.className = 'slider'; row.style.marginLeft = '0';
-      row.innerHTML = '<span></span><input type="range" min="-100" max="100" step="2" value="0"><span>zoom</span><input type="range" min="100" max="250" step="5" value="100">';
-      row.firstChild.textContent = (w.name || ('Window ' + (i + 1))) + ': move';
-      var ins = row.getElementsByTagName('input');
-      ins[0].id = 'tmove' + i; ins[1].id = 'tzoom' + i;
-      ins[0].addEventListener('input', drawThumb); ins[1].addEventListener('input', drawThumb);
-      sl.appendChild(row);
     });
     markSlots();
     overlayOf(t, function () { drawThumb(); });
@@ -582,6 +575,11 @@
   function markSlots() {
     var c = $('tslots').children;
     for (var i = 0; i < c.length; i++) c[i].className = 'chip' + (i === thumb.slot ? ' on' : '') + (thumb.pics[i] ? ' filled' : '');
+    // the sliders belong to the marked window's picture
+    var pic = thumb.pics[thumb.slot], w = thumb.tpl && thumb.tpl.windows[thumb.slot];
+    $('tadj').textContent = 'Adjust: ' + (w ? (w.name || 'Window ' + (thumb.slot + 1)) : '') + (pic ? '' : ' (no picture yet)');
+    $('tmx').value = pic ? pic.mx : 0; $('tmy').value = pic ? pic.my : 0; $('tz').value = pic ? Math.round(pic.zoom * 100) : 100;
+    $('tmx').disabled = $('tmy').disabled = $('tz').disabled = !pic;
     drawThumb();
   }
   function listTemplates() {
@@ -607,13 +605,19 @@
     if (pic.region === 'middle') return [640 * f, 623 * f];
     return [1295 * f, 625 * f];
   }
-  function drawPicture(ctx, pic, win, shift, zoom) {
+  // The crop of a picture that fills a window: { sx, sy, cw, ch, slackX, slackY } in the picture's own pixels.
+  // pic.mx / pic.my (-100..100) slide it left-right and up-down within whatever room there is; pic.zoom adds room.
+  function cropOf(pic, win) {
     var img = pic.img, reg = regionOf(pic), sy = reg[0], sh = reg[1], sw = img.width;
-    var scale = Math.max(win.w / sw, win.h / sh) * Math.max(1, zoom || 1), cw = win.w / scale, ch = win.h / scale;     // the crop, in source pixels
-    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = pic.source ? 0.35 : (pic.kind === 1 && pic.region === 'whole' ? 0.3 : 0.5);
-    // the slider moves the picture up and down when it has room to, otherwise side to side
-    if (slackY > 4) fy = Math.max(0, Math.min(1, fy - shift / 200)); else fx = Math.max(0, Math.min(1, 0.5 - shift / 200));
-    ctx.drawImage(img, slackX * fx, sy + slackY * fy, cw, ch, win.x, win.y, win.w, win.h);
+    var scale = Math.max(win.w / sw, win.h / sh) * Math.max(1, pic.zoom || 1), cw = win.w / scale, ch = win.h / scale;
+    var slackX = sw - cw, slackY = sh - ch;
+    var fy0 = pic.source ? 0.35 : (pic.kind === 1 && pic.region === 'whole' ? 0.3 : 0.5);
+    var fx = Math.max(0, Math.min(1, 0.5 - (pic.mx || 0) / 200)), fy = Math.max(0, Math.min(1, fy0 - (pic.my || 0) / 200));
+    return { sx: slackX * fx, sy: sy + slackY * fy, cw: cw, ch: ch, slackX: slackX, slackY: slackY, scale: scale };
+  }
+  function drawPicture(ctx, pic, win) {
+    var c = cropOf(pic, win);
+    ctx.drawImage(pic.img, c.sx, c.sy, c.cw, c.ch, win.x, win.y, win.w, win.h);
   }
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
@@ -663,7 +667,7 @@
         continue;
       }
       ctx.save(); ctx.beginPath(); ctx.rect(t.windows[i].x, t.windows[i].y, t.windows[i].w, t.windows[i].h); ctx.clip();
-      drawPicture(ctx, thumb.pics[i], t.windows[i], +$('tmove' + i).value, +$('tzoom' + i).value / 100);
+      drawPicture(ctx, thumb.pics[i], t.windows[i]);
       ctx.restore();
     }
     if (t.overlayImg) ctx.drawImage(t.overlayImg, 0, 0, W, Hh);
@@ -672,8 +676,8 @@
   function setPicture(pic) {
     if (!thumb.tpl) return;
     var i = thumb.slot, n = thumb.tpl.windows.length;
+    pic.mx = 0; pic.my = 0; pic.zoom = pic.source ? 1.15 : 1;
     thumb.pics[i] = pic;
-    $('tmove' + i).value = 0; $('tzoom' + i).value = pic.source ? 115 : 100;
     // move on to the next empty window, if there is one
     for (var k = 1; k <= n; k++) if (!thumb.pics[(i + k) % n]) { thumb.slot = (i + k) % n; break; }
     markSlots(); drawThumb();
@@ -751,6 +755,41 @@
       });
     }, 60);
   });
+  // sliders for the marked window's picture
+  ['tmx', 'tmy', 'tz'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      var pic = thumb.pics[thumb.slot]; if (!pic) return;
+      pic.mx = +$('tmx').value; pic.my = +$('tmy').value; pic.zoom = +$('tz').value / 100;
+      drawThumb();
+    });
+  });
+  // the preview itself: click a window to mark it as the next one to fill; drag a picture to move it
+  (function () {
+    var cv = $('tcanvas'), drag = null;
+    function at(ev) {
+      var r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) * cv.width / r.width, y = (ev.clientY - r.top) * cv.height / r.height, t = thumb.tpl;
+      if (!t) return -1;
+      for (var i = 0; i < t.windows.length; i++) { var w = t.windows[i]; if (x >= w.x && x < w.x + w.w && y >= w.y && y < w.y + w.h) return i; }
+      return -1;
+    }
+    cv.addEventListener('mousedown', function (ev) {
+      var i = at(ev); if (i < 0) return;
+      thumb.slot = i; markSlots();
+      var pic = thumb.pics[i];
+      drag = pic ? { x: ev.clientX, y: ev.clientY, mx: pic.mx, my: pic.my, pic: pic, win: thumb.tpl.windows[i], k: cv.width / cv.getBoundingClientRect().width } : null;
+      ev.preventDefault();
+    });
+    window.addEventListener('mousemove', function (ev) {
+      if (!drag) return;
+      var c = cropOf(drag.pic, drag.win), dx = (ev.clientX - drag.x) * drag.k / c.scale, dy = (ev.clientY - drag.y) * drag.k / c.scale;
+      // a picture dragged right shows more of its left side, and so on; 200 slider units span the room there is
+      if (c.slackX > 1) drag.pic.mx = Math.max(-100, Math.min(100, drag.mx + dx / c.slackX * 200));
+      if (c.slackY > 1) drag.pic.my = Math.max(-100, Math.min(100, drag.my + dy / c.slackY * 200));
+      $('tmx').value = drag.pic.mx; $('tmy').value = drag.pic.my;
+      drawThumb();
+    });
+    window.addEventListener('mouseup', function () { drag = null; });
+  })();
   $('ttpl').addEventListener('change', function () { pickTemplate($('ttpl').value); });
   $('thead').addEventListener('input', drawThumb);
   $('ttplfolder').addEventListener('click', function () {
