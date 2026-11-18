@@ -23,6 +23,9 @@ WHAT'S NEW IN v2.3
      Up / down and Zoom for the marked window. "Use playhead frame" also
      works inside any 16x9 sequence (a person's camera nest, for
      example): park on the frame you want and press it.
+     "Add image file" puts in any picture from your Mac (PNG, JPEG,
+     HEIC, TIFF, PSD and others), or drop an image file onto a window in
+     the preview. It also joins the picture options as "Your images".
      The headline fills in by itself from the open vertical clip: the
      panel reads the title that is on the clip (or, if there is none,
      starts from the sequence name). "From clip" reads it again. "New
