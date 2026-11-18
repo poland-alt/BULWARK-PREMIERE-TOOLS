@@ -398,7 +398,7 @@
 
   // ---- 1. find clips ----
   var found = null;   // { info, clips }
-  function busy(on) { var b = ['find', 'cut', 'caption', 'heads']; for (var i = 0; i < b.length; i++) $(b[i]).disabled = on; }
+  function busy(on) { var b = ['find', 'cut', 'caption', 'heads', 'txexport']; for (var i = 0; i < b.length; i++) $(b[i]).disabled = on; }
   function showClips() {
     var box = $('clips'); box.innerHTML = '';
     if (!found || !found.clips.length) { $('cut').style.display = 'none'; return; }
@@ -419,6 +419,36 @@
     });
     $('cut').style.display = '';
   }
+  // ---- the open sequence's transcript, saved as a file ----
+  var TXEXT = { text: 'txt', timed: 'txt', srt: 'srt', csv: 'csv' };
+  function exportTranscript(path, fmt, cb) {     // path given: save there; otherwise ask where
+    var st = $('xstat');
+    busy(true);
+    transcribe(function (t) { say(st, t); }, false, function (err, info) {
+      busy(false);
+      if (err) { say(st, err, 'err'); return cb && cb(err); }
+      var ext = TXEXT[fmt] || 'txt', home = WORK.split('/Library/')[0];
+      var name = String(info.name).replace(/[\\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, '') + ' transcript.' + ext;
+      if (!path) {
+        var dir = store('bulwark_txdir'); if (!dir || cep.fs.stat(dir).err) dir = home + '/Desktop';
+        var r = cep.fs.showSaveDialogEx('Save the transcript', dir, [ext], name);
+        if (r.err || !r.data) { say(st, (info.cached ? 'Transcript ready' : 'Transcribed ' + info.words.length + ' words') + '. Nothing was saved.'); return cb && cb('cancel'); }
+        path = r.data; if (!new RegExp('\\.' + ext + '$', 'i').test(path)) path += '.' + ext;
+        store('bulwark_txdir', path.split('/').slice(0, -1).join('/'));
+      }
+      var body = E.transcriptFile(info.words, fmt, info.name);
+      if (cep.fs.writeFile(path, body).err) { say(st, 'Could not save to ' + path + '.', 'err'); return cb && cb('write'); }
+      st.className = 'status ok'; st.textContent = 'Saved ' + path.split('/').pop() + ' (' + info.words.length + ' words, ' + E.clock(info.total) + ')  ';
+      var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
+      a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
+      if (cb) cb(null, path);
+    });
+  }
+  window.bulwarkExportTranscript = exportTranscript;
+  $('txfmt').value = store('bulwark_txfmt') || 'timed';
+  $('txfmt').addEventListener('change', function () { store('bulwark_txfmt', $('txfmt').value); });
+  $('txexport').addEventListener('click', function () { exportTranscript('', $('txfmt').value); });
+
   function findClips(fresh) {
     var st = $('fstat');
     busy(true); say($('cstat'), ''); found = null; showClips();

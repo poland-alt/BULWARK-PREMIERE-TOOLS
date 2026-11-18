@@ -17,6 +17,9 @@ WHAT'S NEW IN v2.5
    Auto (the default) uses one line, or two when one is too long.
  - Thumbnail tab: "Title size" slider makes the title smaller or bigger.
    Double-click the slider to put it back.
+ - Clips tab: "Export transcript" saves the open sequence's transcript
+   as text with times, plain text, a spreadsheet (.csv) or subtitles
+   (.srt). You choose where it is saved.
  - Reframe: each new vertical recut is filed in a bin called
    "SOCIAL CLIPS 9X16" (made at the top of the project if it is not
    there yet).

@@ -349,5 +349,52 @@
     return out;
   };
 
+  // ---- the transcript as a file ----
+  // fmt: "text" (paragraphs), "timed" (a time before each sentence), "srt" (subtitles), "csv" (start, end, text)
+  E.stamp = function (secs, sep) {               // 0:02:05 for reading; with sep, 00:02:05,250 for subtitles
+    var ms = Math.max(0, Math.round(secs * 1000)), h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000);
+    function two(n) { return (n < 10 ? '0' : '') + n; }
+    if (sep) { var f = ms % 1000; return two(h) + ':' + two(m) + ':' + two(s) + sep + (f < 100 ? '0' : '') + (f < 10 ? '0' : '') + f; }
+    return h + ':' + two(m) + ':' + two(s);
+  };
+  E.transcriptFile = function (words, fmt, title) {
+    var sents = E.sentences(words), out = [], i, k;
+    if (fmt === 'srt') {
+      // a subtitle: up to 12 words or 6 seconds, ending early where a sentence does
+      var a = 0, n = 0;
+      for (i = 0; i < words.length; i++) {
+        var last = i === words.length - 1, stop = /[.?!]["'”’)\]]*$/.test(words[i].w);
+        if (last || i - a >= 11 || (stop && i - a >= 3) || words[i + 1].e - words[a].s > 6 || words[i + 1].s - words[i].e > 1.5) {
+          var t = []; for (k = a; k <= i; k++) t.push(words[k].w);
+          var end = last ? words[i].e : Math.min(words[i].e + 0.4, words[i + 1].s);
+          out.push((++n) + '\n' + E.stamp(words[a].s, ',') + ' --> ' + E.stamp(Math.max(end, words[a].s + 0.3), ',') + '\n' + t.join(' ') + '\n');
+          a = i + 1;
+        }
+      }
+      return out.join('\n');
+    }
+    if (fmt === 'csv') {
+      function cell(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }
+      out.push('Start,End,Text');
+      for (i = 0; i < sents.length; i++) out.push([E.stamp(words[sents[i].a].s), E.stamp(words[sents[i].b].e), cell(sents[i].text)].join(','));
+      return '﻿' + out.join('\r\n') + '\r\n';        // the mark at the front makes Excel read accents and quotes correctly
+    }
+    if (fmt === 'timed') {
+      if (title) out.push(title, '');
+      for (i = 0; i < sents.length; i++) out.push(E.stamp(words[sents[i].a].s) + '  ' + sents[i].text);
+      return out.join('\n') + '\n';
+    }
+    // plain reading text: a new paragraph after a pause, or once one has run to five sentences
+    var para = [];
+    if (title) out.push(title, '');
+    for (i = 0; i < sents.length; i++) {
+      para.push(sents[i].text);
+      var gap = i < sents.length - 1 ? words[sents[i + 1].a].s - words[sents[i].b].e : 99;
+      if (gap > 1.2 || para.length >= 5) { out.push(para.join(' '), ''); para = []; }
+    }
+    if (para.length) out.push(para.join(' '), '');
+    return out.join('\n');
+  };
+
   root.BulwarkEngine = E;
 })(typeof window !== 'undefined' ? window : this);
