@@ -28,6 +28,7 @@ $.bulwark.vert = {
     blurAmount: 20,                   // Gaussian Blur on the copy that fills the frame behind a full-screen image
     blurEdge: 0,                      // Gaussian Blur "Edge Behavior": 0 keeps the blurred copy solid to its edges (1, the default, fades out)
     framesBin: "9x16 Frames",
+    vertBin: "SOCIAL CLIPS 9X16",      // where each new vertical recut is filed
     endCards169Bin: "16x9 END CARDS",
     endCards916Bin: "9x16 SOCIAL END CARDS",
     // show bin -> start of its 9x16 end card name (letters only), where the names don't line up on their own
@@ -905,6 +906,21 @@ $.bulwark.vert = {
             }
             if (!seq) return "ERR|Premiere did not create a copy of the sequence.";
             seq.name = src.name + " VERT";
+            // File the vertical copy in its own bin (made at the top of the project if it is not there yet; an
+            // existing bin of that name is used wherever it is, whatever its capitals). The edit goes on either way.
+            try {
+                var vbin = (function find(parent) {
+                    for (var b = 0; b < parent.children.numItems; b++) {
+                        var c = parent.children[b];
+                        if (c.type !== ProjectItemType.BIN) continue;
+                        if (String(c.name).toLowerCase() === CFG.vertBin.toLowerCase()) return c;
+                        var hit = find(c);
+                        if (hit) return hit;
+                    }
+                    return null;
+                })(app.project.rootItem) || app.project.rootItem.createBin(CFG.vertBin);
+                if (vbin && seq.projectItem) seq.projectItem.moveBin(vbin);
+            } catch (eBin) {}
             var st = seq.getSettings();
             st.videoFrameWidth = CFG.width;
             st.videoFrameHeight = CFG.height;

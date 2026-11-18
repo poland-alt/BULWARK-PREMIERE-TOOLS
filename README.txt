@@ -17,6 +17,9 @@ WHAT'S NEW IN v2.5
    Auto (the default) uses one line, or two when one is too long.
  - Thumbnail tab: "Title size" slider makes the title smaller or bigger.
    Double-click the slider to put it back.
+ - Reframe: each new vertical recut is filed in a bin called
+   "SOCIAL CLIPS 9X16" (made at the top of the project if it is not
+   there yet).
  - Buttons, chips and dropdowns no longer cut their words short in a
    narrow panel: the words wrap, and a row of buttons that does not fit
    goes onto a second line.
