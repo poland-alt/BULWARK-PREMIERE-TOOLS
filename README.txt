@@ -40,7 +40,7 @@ WHAT'S NEW IN v2.3
    layout: Breakdown, Bulwark Podcast, Bulwark Takes, Focus Group,
    Hollywood, Huddled Masses, Illegal News, Mona Charen, Morning Shots,
    Oppo, Overtime, Press Pass, Receipts, Sarah Matthews, Secret Show, TNL,
-   Triad, Trio + MAGA Monday. Pick the show in the "Show (frame)" list
+   Triad, Trio + MAGA Monday + Psycho. Pick the show in the "Show (frame)" list
    and the layout with the chips beside the preview. A show that is
    picked on the Reframe tab is listed first. More frames can be added:
    "Open my thumbnail templates folder" opens the place, with a how-to.
