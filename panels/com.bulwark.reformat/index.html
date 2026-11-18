@@ -4,263 +4,358 @@
 <meta charset="utf-8">
 <title>Bulwark Premiere Tools</title>
 <style>
-  :root { color-scheme: dark; }
-  html { background: #1e1e1e; }
-  body { margin: 0; padding: 10px; max-width: 620px; background: #1e1e1e; color: #e6e6e6; font: 12px/1.35 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
-  #uisize { float: right; display: flex; align-items: center; gap: 4px; color: #9a9a9a; font-size: 10.5px; user-select: none; }
-  #uisize span#uismaller, #uisize span#uibigger { padding: 1px 6px; border: 1px solid #444; border-radius: 4px; background: #2b2b2b; color: #e6e6e6; cursor: pointer; font-weight: 600; }
-  #uisize span#uismaller:hover, #uisize span#uibigger:hover { border-color: #3a6ff2; }
-  h1 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
-  label { display: block; margin: 0 0 3px; color: #b5b5b5; font-size: 11.5px; }
+  /* Adobe Spectrum's dark theme, as Premiere wears it: quiet greys, one blue for the thing to press, compact
+     label-and-control rows. The open show's own colour runs under the header. */
+  :root { color-scheme: dark;
+    --bg: #1d1d1d; --card: #252525; --raise: #2f2f2f; --line: #3a3a3a; --line2: #4d4d4d;
+    --text: #e6e6e6; --text2: #b0b0b0; --text3: #7d7d7d;
+    --blue: #378ef0; --blue2: #4b9cf5; --blue-bg: rgba(55,142,240,.16);
+    --green: #33ab84; --green-bg: rgba(51,171,132,.15); --red: #ec5b62; --red-bg: rgba(236,91,98,.14);
+    --gold: #ffba2e; --gold-bg: rgba(255,186,46,.13); --show: #378ef0; }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; padding: 0 12px 16px; max-width: 620px; background: var(--bg); color: var(--text); font: 12px/1.4 "Adobe Clean", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* header */
+  #top { display: flex; align-items: center; gap: 8px; padding: 10px 0 8px; }
+  #mark { flex: 0 0 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #ffba2e, #e8642a); color: #1d1d1d; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; letter-spacing: -.5px; }
+  h1 { flex: 1; font-size: 13px; font-weight: 700; margin: 0; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ver { color: var(--text3); font-weight: 400; font-size: 10.5px; margin-left: 5px; }
+  #uisize { display: flex; align-items: center; gap: 3px; color: var(--text3); font-size: 10px; user-select: none; }
+  #uisize span#uismaller, #uisize span#uibigger { padding: 2px 6px; border-radius: 4px; color: var(--text2); cursor: pointer; font-weight: 700; transition: background .12s; }
+  #uisize span#uismaller:hover, #uisize span#uibigger:hover { background: var(--raise); color: #fff; }
+  #seqbar { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; position: relative; overflow: hidden; }
+  #seqbar:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--show); transition: background .25s; }
+  #seqname { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 4px; }
+  #seqmeta { color: var(--text3); font-size: 11px; white-space: nowrap; }
+  .badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; background: var(--raise); color: var(--text2); }
+  .badge.wide { background: var(--gold-bg); color: var(--gold); } .badge.tall { background: var(--green-bg); color: var(--green); }
+
+  /* steps */
+  #tabs { display: flex; align-items: stretch; gap: 2px; margin: 10px 0 12px; border-bottom: 1px solid var(--line); }
+  #tabs span { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 4px 8px; font-size: 12px; font-weight: 600; color: var(--text3); cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s; white-space: nowrap; }
+  #tabs span i { font-style: normal; flex: 0 0 17px; height: 17px; border-radius: 9px; background: var(--raise); color: var(--text2); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; transition: background .12s, color .12s; }
+  #tabs span:hover { color: var(--text); }
+  #tabs span.on { color: #fff; border-bottom-color: var(--blue); }
+  #tabs span.on i { background: var(--blue); color: #fff; }
+  #tabs span[data-next]:not(.on) i { box-shadow: 0 0 0 2px var(--gold); color: var(--gold); }
+  #tabs span[data-tab=settings] { flex: 0 0 30px; }
+  #tabs span[data-tab=settings] svg { width: 15px; height: 15px; fill: currentColor; }
+  .tab { display: none; } .tab.on { display: block; animation: fade .16s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+  /* cards and text */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  h2 { font-size: 13px; font-weight: 700; margin: 0 0 3px; color: #fff; }
+  .sub { color: var(--text2); font-size: 11.5px; margin: 0 0 10px; }
+  .hint { color: var(--text3); font-size: 11px; margin-top: 6px; }
+  label { display: block; margin: 0 0 4px; color: var(--text2); font-size: 11.5px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+  a.link { color: var(--blue2); cursor: pointer; font-size: 11.5px; text-decoration: none; } a.link:hover { text-decoration: underline; }
+
+  /* label + control rows */
+  .field { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 8px; }
+  .field > label { margin: 0; }
+  .field.top { align-items: start; } .field.top > label { padding-top: 6px; }
+  .fields { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .fields label { margin: 0; } .fields input { display: block; margin-top: 3px; width: 76px; }
   .row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-  select { width: 100%; padding: 2px; outline: none; margin-bottom: 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12px; }
-  select option { padding: 2px 5px; border-radius: 3px; }
-  select option:checked { background: #3a6ff2 linear-gradient(0deg, #3a6ff2 0%, #3a6ff2 100%); color: #fff; }
-  label.check { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; color: #d0d0d0; }
-  .ver { color: #777; font-weight: 400; font-size: 11px; margin-left: 6px; }
-  button.small { padding: 4px 8px; font-size: 11px; font-weight: 500; margin: -2px 0 6px; }
-  hr { border: 0; border-top: 1px solid #383838; margin: 10px 0 8px; }
-  #rout { margin-top: 10px; color: #b5b5b5; white-space: pre-line; } #rout.ok { color: #7fd38a; } #rout.err { color: #ff7b7b; }
-  #review { margin-top: 8px; color: #f0c674; white-space: pre-line; } #bout, #cout { white-space: pre-line; }
-  #sections { margin: -2px 0 12px; }
-  #sections .sec { padding: 6px 0; border-top: 1px solid #333; }
-  #sections .what { color: #d0d0d0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* controls */
+  button { display: block; width: 100%; height: 30px; padding: 0 14px; margin: 0 0 6px; background: var(--blue); color: #fff; border: 1px solid transparent; border-radius: 15px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: background .12s, border-color .12s, transform .06s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  button:hover { background: var(--blue2); } button:active { transform: scale(.985); }
+  button.secondary { background: transparent; border-color: var(--line2); color: var(--text); font-weight: 600; }
+  button.secondary:hover { background: var(--raise); border-color: #6a6a6a; }
+  button.small { height: 24px; font-size: 11px; padding: 0 10px; width: auto; display: inline-block; }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+  button:focus-visible, input:focus-visible, .pk:focus-visible { outline: 2px solid var(--blue2); outline-offset: 1px; }
+  input[type=text], input[type=password], input[type=number] { width: 100%; height: 28px; padding: 0 8px; background: #1a1a1a; color: var(--text); border: 1px solid var(--line2); border-radius: 4px; font: inherit; transition: border-color .12s; }
+  input[type=number] { width: 76px; }
+  input[type=text]:hover, input[type=password]:hover, input[type=number]:hover { border-color: #6a6a6a; }
+  input[type=text]:focus, input[type=password]:focus, input[type=number]:focus { border-color: var(--blue); outline: none; }
+  input[type=checkbox], input[type=range] { accent-color: var(--blue); }
+  input[type=checkbox] { width: 14px; height: 14px; margin: 0; flex: 0 0 auto; }
+  label.check { display: flex; gap: 8px; align-items: center; margin: 0 0 7px; color: var(--text); cursor: pointer; }
+  select { display: none; }
+
+  /* dropdowns (drawn here: Premiere's panel engine paints the standard ones black) */
+  .picker { position: relative; min-width: 0; }
+  .pk { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; height: 28px; margin: 0; padding: 0 8px 0 10px; background: var(--raise); color: var(--text); border: 1px solid var(--line2); border-radius: 4px; font-weight: 400; font-size: 12px; text-align: left; }
+  .pk:hover { background: #383838; border-color: #6a6a6a; }
+  .pk span { overflow: hidden; text-overflow: ellipsis; }
+  .pk:after { content: ""; flex: 0 0 auto; width: 6px; height: 6px; border-right: 1.5px solid var(--text2); border-bottom: 1.5px solid var(--text2); transform: rotate(45deg) translateY(-2px); }
+  .pk-menu { position: absolute; z-index: 50; left: 0; right: 0; top: 31px; max-height: 232px; overflow-y: auto; background: #2a2a2a; border: 1px solid #5a5a5a; border-radius: 6px; padding: 4px; box-shadow: 0 8px 22px rgba(0,0,0,.55); animation: fade .1s ease-out; }
+  .pk-menu div { padding: 5px 8px 5px 24px; border-radius: 4px; cursor: pointer; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pk-menu div:hover { background: var(--blue-bg); }
+  .pk-menu div.sel { color: #fff; font-weight: 600; }
+  .pk-menu div.sel:before { content: ""; position: absolute; left: 9px; top: 7px; width: 4px; height: 8px; border-right: 2px solid var(--blue2); border-bottom: 2px solid var(--blue2); transform: rotate(45deg); }
+
+  /* options that most runs never touch */
+  details { margin: 2px 0 0; }
+  details > summary { list-style: none; cursor: pointer; color: var(--text2); font-size: 11.5px; font-weight: 600; padding: 6px 0 4px; display: flex; align-items: center; gap: 7px; user-select: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary:before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid var(--text2); border-bottom: 1.5px solid var(--text2); transform: rotate(-45deg); transition: transform .12s; }
+  details[open] > summary:before { transform: rotate(45deg); }
+  details > summary:hover { color: #fff; }
+  details > .in { padding: 6px 0 2px; }
+  details.card > summary { padding: 0; font-size: 13px; font-weight: 700; color: #fff; }
+  details.card[open] > summary { margin-bottom: 8px; }
+
+  /* what happened */
+  .status, #rout, #cout, #bout { margin: 6px 0 4px; color: var(--text2); white-space: pre-line; font-size: 11.5px; position: relative; }
+  .status:empty, #rout:empty, #review:empty, #cout:empty, #bout:empty, #camnote:empty, #style:empty { display: none; }
+  .status.ok, #rout.ok { color: #7fd3b3; background: var(--green-bg); border-radius: 6px; padding: 7px 9px; }
+  .status.err, #rout.err { color: #ff9a9f; background: var(--red-bg); border-radius: 6px; padding: 7px 9px; }
+  .status.busy { padding-bottom: 8px; }
+  .status.busy:after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 2px; background: var(--blue); width: var(--pct, 30%); transition: width .3s; }
+  .status.busy:before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 2px; background: var(--raise); }
+  .status.busy.spin:after { width: 30%; animation: slide 1.1s ease-in-out infinite; }
+  @keyframes slide { 0% { left: 0; } 50% { left: 70%; } 100% { left: 0; } }
+  #review { display: none; }
+  #reviewlist { margin: 8px 0 2px; }
+  #reviewlist .rvh { font-weight: 700; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  #reviewlist .rvh b { background: var(--gold-bg); color: var(--gold); font-size: 10.5px; padding: 1px 7px; border-radius: 9px; }
+  #reviewlist .rv { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--line); color: var(--text2); font-size: 11.5px; }
+  #reviewlist .rv:before { content: "!"; flex: 0 0 15px; height: 15px; border-radius: 8px; background: var(--gold-bg); color: var(--gold); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  #reviewlist .rv span { flex: 1; }
+  #reviewlist .rv a { flex: 0 0 auto; color: var(--blue2); cursor: pointer; font-weight: 600; white-space: nowrap; }
+  #reviewlist .rv a:hover { text-decoration: underline; }
+
+  /* chips */
+  .chips, #sections .chips, #people { display: flex; gap: 4px; margin: 0 0 8px; }
+  .chip, #sections .chip, #people .chip { flex: 1; text-align: center; padding: 4px 6px; font-size: 11px; background: transparent; border: 1px solid var(--line2); border-radius: 12px; color: var(--text2); cursor: pointer; user-select: none; transition: all .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip:hover { border-color: #6a6a6a; color: #fff; }
+  .chip.on, #sections .chip.on, #people .chip.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+  .chips .chip.filled:not(.on) { border-color: var(--green); color: #7fd3b3; }
+  #sections:empty, #people:empty { display: none; }
+  #sections { margin: 0 0 8px; }
+  #sections .sec { padding: 6px 0; border-top: 1px solid var(--line); }
+  #sections .what { color: var(--text2); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
   #sections .what b { color: #fff; font-weight: 600; margin-right: 6px; }
-  #sections .chips, #people { display: flex; gap: 4px; margin-top: 4px; }
-  #people { margin: 0 0 6px; }
-  #sections .chip, #people .chip { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
-  #sections .chip.on, #people .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
-  input[type=number] { width: 70px; padding: 3px 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12.5px; }
-  button { display: block; width: 100%; padding: 6px 8px; margin-bottom: 5px; background: #3a6ff2; color: #fff; border: 0; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
-  button.secondary { background: #3a3a3a; }
-  button:disabled { opacity: .5; cursor: default; }
-  #out { margin-top: 10px; min-height: 36px; color: #b5b5b5; white-space: pre-line; }
-  #out.ok { color: #7fd38a; } #out.err { color: #ff7b7b; }
-  .hint { color: #777; font-size: 10.5px; margin-top: 4px; }
-  #tabs { display: flex; gap: 2px; margin: 0 0 8px; border-bottom: 1px solid #383838; }
-  #tabs span { flex: 1 1 auto; text-align: center; padding: 4px 2px 4px; font-size: 11.5px; font-weight: 600; color: #9a9a9a; cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  #tabs span:hover { color: #e6e6e6; }
-  #tabs span.on { color: #fff; border-bottom-color: #3a6ff2; }
-  .tab { display: none; } .tab.on { display: block; }
-  h2 { font-size: 12.5px; font-weight: 600; margin: 0 0 3px; color: #fff; }
-  .sub { color: #999; font-size: 11px; margin: 0 0 6px; }
-  .fields { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-  .fields label { margin: 0; font-size: 11.5px; }
-  .fields input { display: block; margin-top: 3px; width: 64px; }
-  input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: 4px 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12px; }
-  .status { margin: 2px 0 6px; min-height: 0; font-size: 11.5px; color: #b5b5b5; white-space: pre-line; } .status.ok { color: #7fd38a; } .status.err { color: #ff7b7b; }
-  .clip { border: 1px solid #3a3a3a; border-radius: 5px; padding: 6px; margin-bottom: 5px; background: #252525; }
-  .clip .top { display: flex; gap: 8px; align-items: center; }
-  .clip .top input[type=text] { flex: 1; padding: 4px 6px; }
-  .clip .meta { color: #f0c674; font-size: 11.5px; margin: 6px 0 2px; }
-  .clip .head { color: #fff; font-weight: 600; margin: 2px 0; }
-  .clip .why, .clip .ends { color: #9a9a9a; font-size: 11.5px; }
-  .clip button { display: inline-block; width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
-  .manual { border: 1px solid #3a6ff2; border-radius: 6px; background: #22283a; padding: 10px; margin: 0 0 12px; }
-  .manual .mtitle { color: #fff; font-weight: 600; margin-bottom: 8px; }
-  .manual .mstep { color: #d0d0d0; font-size: 12px; margin: 2px 0 10px; }
+  #sections .chips { margin: 0; }
+
+  /* sliders */
+  .slider { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -2px 0 8px 22px; color: var(--text2); font-size: 11.5px; }
+  .slider input { flex: 1; } .slider b { flex: 0 0 26px; color: #fff; font-weight: 600; text-align: right; }
+
+  /* the copy-and-paste steps */
+  .manual { border: 1px solid var(--blue); border-radius: 8px; background: var(--blue-bg); padding: 10px; margin: 0 0 10px; }
+  .manual .mtitle { color: #fff; font-weight: 700; margin-bottom: 8px; }
+  .manual .mstep { color: var(--text); font-size: 11.5px; margin: 2px 0 8px; }
   .manual .mrow { display: flex; gap: 14px; }
-  #caplist { max-height: 60vh; overflow-y: auto; margin-bottom: 10px; }
-  #caplist .cap { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; }
-  #caplist .cap span { flex: 0 0 38px; color: #888; font-size: 11px; text-align: right; }
-  #caplist .cap input { flex: 1; padding: 2px 5px; font-size: 12px; }
-  #caplist .cap.now span { color: #ffba2e; font-weight: 600; } #caplist .cap.now input { border-color: #ffba2e; background: #3a3320; }
-  #caplist .cap input.saved { border-color: #4f9d5d; } #caplist .cap input.bad { border-color: #ff7b7b; }
-  .slider { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -3px 0 6px 22px; color: #b5b5b5; font-size: 11.5px; }
-  .slider input { flex: 1; }
-  .slider b { flex: 0 0 26px; color: #fff; font-weight: 600; text-align: right; }
-  #headlist .head { display: flex; gap: 6px; align-items: center; padding: 3px 6px; margin-bottom: 3px; border: 1px solid #3a3a3a; border-radius: 6px; background: #252525; }
+
+  /* suggested clips, headlines */
+  .clip { border: 1px solid var(--line); border-radius: 8px; padding: 9px; margin-bottom: 6px; background: #212121; transition: border-color .12s; }
+  .clip:hover { border-color: var(--line2); }
+  .clip .top { display: flex; gap: 8px; align-items: center; }
+  .clip .top input[type=text] { flex: 1; font-weight: 600; }
+  .clip .meta { color: var(--gold); font-size: 11px; margin: 6px 0 2px; font-weight: 600; }
+  .clip .head { color: #fff; font-weight: 600; margin: 2px 0; }
+  .clip .why, .clip .ends { color: var(--text3); font-size: 11px; }
+  .clip button { display: inline-block; width: auto; margin: 0; height: 24px; padding: 0 10px; font-size: 11px; }
+  #headlist .head { display: flex; gap: 6px; align-items: center; padding: 5px 5px 5px 10px; margin-bottom: 4px; border: 1px solid var(--line); border-radius: 8px; background: #212121; }
   #headlist .head span { flex: 1; color: #fff; font-weight: 600; }
-  #headlist .head button { width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
-  #tpreview { position: sticky; top: 0; z-index: 5; background: #1e1e1e; padding: 0 0 6px; margin: 0 0 6px; border-bottom: 1px solid #383838; display: flex; gap: 8px; align-items: flex-start; }
-  #tcanvas { cursor: pointer; height: 30vh; min-height: 170px; max-height: 280px; flex: 0 0 auto; border: 1px solid #383838; border-radius: 4px; display: block; }
-  #tside { flex: 1; min-width: 0; max-width: 240px; }
-  #tside .chips { flex-wrap: wrap; margin-bottom: 4px; }
-  #tside .chips .chip { flex: 1 1 auto; padding: 2px 4px; font-size: 10.5px; }
-  #tadj { color: #fff; font-weight: 600; font-size: 11px; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mini { color: #9a9a9a; font-size: 10.5px; line-height: 1.2; }
+  #headlist .head button { width: auto; margin: 0; height: 24px; padding: 0 10px; font-size: 11px; }
+
+  /* caption editor */
+  #caplist { max-height: 60vh; overflow-y: auto; margin: 6px 0 0; }
+  #caplist:empty { display: none; }
+  #caplist .cap { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; }
+  #caplist .cap span { flex: 0 0 36px; color: var(--text3); font-size: 10.5px; text-align: right; font-variant-numeric: tabular-nums; }
+  #caplist .cap input { flex: 1; height: 24px; }
+  #caplist .cap.now span { color: var(--gold); font-weight: 700; } #caplist .cap.now input { border-color: var(--gold); background: #2e2814; }
+  #caplist .cap input.saved { border-color: var(--green); } #caplist .cap input.bad { border-color: var(--red); }
+
+  /* thumbnail */
+  #tpreview { position: sticky; top: 0; z-index: 5; background: var(--card); padding: 0 0 8px; margin: 0 0 8px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: flex-start; }
+  #tcanvas { cursor: pointer; height: 30vh; min-height: 170px; max-height: 280px; flex: 0 0 auto; border: 1px solid var(--line2); border-radius: 6px; display: block; }
+  #tside { flex: 1; min-width: 0; max-width: 250px; }
+  #tside .chips { flex-wrap: wrap; margin-bottom: 5px; }
+  #tside .chips .chip { flex: 1 1 auto; padding: 2px 6px; font-size: 10.5px; }
+  #tadj { color: #fff; font-weight: 700; font-size: 11px; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini { color: var(--text2); font-size: 10.5px; line-height: 1.2; }
   .mini input { display: block; width: 100%; margin: 0 0 3px; height: 14px; }
-  #tside button { padding: 5px 6px; font-size: 11.5px; margin: 4px 0 0; }
-  .chips { display: flex; gap: 4px; margin: 0 0 10px; }
-  .chips .chip { flex: 1; text-align: center; padding: 4px 0; font-size: 11.5px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
-  .chips .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
-  .chips .chip.filled:not(.on) { border-color: #4f9d5d; color: #d0d0d0; }
-  #tpicks .who { color: #fff; font-weight: 600; font-size: 11px; margin: 5px 0 2px; }
-  #tpicks .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 3px; }
-  #tpicks canvas { width: 100%; border: 1px solid #383838; border-radius: 4px; cursor: pointer; display: block; }
-  #tpicks canvas:hover { border-color: #3a6ff2; }
+  #tside button { height: 26px; font-size: 11.5px; margin: 4px 0 0; padding: 0 8px; }
+  #tpicks .who { color: #fff; font-weight: 700; font-size: 11px; margin: 7px 0 3px; }
+  #tpicks .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 4px; }
+  #tpicks canvas { width: 100%; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; display: block; transition: border-color .1s, transform .1s; }
+  #tpicks canvas:hover { border-color: var(--blue2); transform: scale(1.03); }
   #tpicks .tm { display: none; }
   #tpicks .own { position: relative; }
   #tpicks .own .del { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; line-height: 14px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
-  #tpicks .own .del:hover { background: #d04343; }
-  a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
+  #tpicks .own .del:hover { background: var(--red); }
+  #update:empty { display: none; }
 </style>
 </head>
 <body>
+  <div id="top">
+    <div id="mark">B</div>
+    <h1>Bulwark Premiere Tools <span class="ver" id="ver"></span></h1>
+    <div id="uisize"><span id="uismaller" title="Make the panel's text and controls smaller">A&minus;</span><span id="uipct"></span><span id="uibigger" title="Make the panel's text and controls bigger">A+</span></div>
+  </div>
   <div id="update"></div>
-  <div id="uisize"><span id="uismaller" title="Make the panel's text and controls smaller">A&minus;</span><span id="uipct"></span><span id="uibigger" title="Make the panel's text and controls bigger">A+</span></div>
-  <h1>Bulwark Premiere Tools <span class="ver" id="ver"></span></h1>
-  <div id="tabs"><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="thumb">Thumbnail</span><span data-tab="settings">Settings</span></div>
+  <div id="seqbar" title="The sequence that is open in Premiere. Every step works on this one."><span id="seqname">No sequence open</span><span id="seqmeta"></span><span id="seqbadge" class="badge"></span></div>
+  <div id="tabs"><span data-tab="clips"><i>1</i>Clips</span><span data-tab="reframe"><i>2</i>Reframe</span><span data-tab="captions"><i>3</i>Captions</span><span data-tab="thumb"><i>4</i>Thumbnail</span><span data-tab="settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></span></div>
 
   <div class="tab" id="tab-reframe">
-  <h2>Reformat to 9x16</h2>
-  <div class="sub">Open the 16x9 sequence. A copy named "… VERT" is made at 1080x1920; the original is not changed.</div>
-  <label for="show">Show</label>
-  <select id="show" size="6"></select>
-  <label for="layout">When media is on screen</label>
-  <select id="layout" size="4">
-    <option value="2up" selected>2-up: speaker over media</option>
-    <option value="mid3">3-UP: two people, media in the middle</option>
-    <option value="pip">PIP: one on top, media, two below</option>
-    <option value="full">Full screen: media over a blurred copy</option>
-  </select>
-  <div id="sections"></div>
-  <label for="order">Wide shot: how many people, and who goes where (when the panel builds the vertical wide)</label>
-  <div id="people"></div>
-  <select id="order" size="7"></select>
-  <button id="refresh" class="secondary small">Refresh names from the open sequence</button>
-  <div id="camnote" class="hint" style="margin:-2px 0 10px;"></div>
-  <label class="check"><input type="checkbox" id="rebuild"> Build a new vertical wide even if one already exists</label>
-  <label class="check"><input type="checkbox" id="blur" checked> Full-screen images: add a blurred copy behind</label>
-  <label class="check"><input type="checkbox" id="centre" checked> Centre each person on their face (Mac)</label>
-  <button id="vert">Make vertical version of this sequence</button>
-  <div id="rout"></div>
-  <div id="review"></div>
-  <div class="hint" id="style"></div>
-  <hr>
-  <label>Re-centre people after a recut</label>
-  <button id="centrebtn" class="secondary">Centre people in the open vertical sequence</button>
-  <div id="cout" class="hint"></div>
-  <div class="hint">Finds each person's face and slides their camera sideways so they sit in the middle of their window. One measurement per camera, so framing does not jump between cuts. Run it again any time after you recut.</div>
-  <hr>
-  <label>Bring an image full screen</label>
-  <button id="blursel" class="secondary">Toggle full screen + blurred background (selected image)</button>
-  <div id="bout" class="hint"></div>
-  <div class="hint">Select an image in any sequence and click. A sharp copy is fitted to the frame over a blurred copy that fills it, above the cameras and frame but below titles. Click again with the image selected to switch it back.</div>
-  <div class="hint">Wide shots use the vertical version of the wide nest, which is built for you if it does not exist.</div>
+  <div class="card">
+    <h2>Make it vertical</h2>
+    <div class="sub">A copy named "… VERT" is made at 1080x1920. Your 16x9 edit is not changed.</div>
+    <div class="field"><label for="show">Show</label><select id="show" size="6"></select></div>
+    <div class="field"><label for="layout">Media on screen</label>
+      <select id="layout" size="4">
+        <option value="2up" selected>2-up: speaker over media</option>
+        <option value="mid3">3-UP: two people, media in the middle</option>
+        <option value="pip">PIP: one on top, media, two below</option>
+        <option value="full">Full screen: media over a blurred copy</option>
+      </select></div>
+    <div id="sections"></div>
+    <div class="field top"><label for="order">Wide shot</label>
+      <div><div id="people"></div><select id="order" size="7"></select></div></div>
+    <div id="camnote" class="hint" style="margin:-2px 0 8px;"></div>
+    <button id="vert">Make vertical version</button>
+    <div id="rout"></div>
+    <div id="review"></div>
+    <div id="reviewlist"></div>
+    <div class="hint" id="style"></div>
+    <details><summary>Options</summary><div class="in">
+      <label class="check"><input type="checkbox" id="centre" checked> Centre each person on their face (Mac)</label>
+      <label class="check"><input type="checkbox" id="blur" checked> Full-screen images: add a blurred copy behind</label>
+      <label class="check"><input type="checkbox" id="rebuild"> Build a new vertical wide even if one already exists</label>
+      <button id="refresh" class="secondary small">Refresh names from the open sequence</button>
+      <div class="hint">Wide shots use the vertical version of the wide nest, which is built for you if it does not exist.</div>
+    </div></details>
+  </div>
+  <details class="card"><summary>After a recut</summary><div class="in">
+    <button id="centrebtn" class="secondary">Centre people in the open vertical sequence</button>
+    <div id="cout" class="hint"></div>
+    <div class="hint">Finds each person's face and slides their camera sideways so they sit in the middle of their window. One measurement per camera, so framing does not jump between cuts.</div>
+    <hr>
+    <button id="blursel" class="secondary">Full screen + blurred background (selected image)</button>
+    <div id="bout" class="hint"></div>
+    <div class="hint">Select an image in any sequence and click. A sharp copy is fitted to the frame over a blurred copy that fills it. Click again to switch it back.</div>
+  </div></details>
   </div>
 
   <div class="tab" id="tab-clips">
-  <h2>Suggest clips from a full episode</h2>
-  <div class="sub">Open the finished 16x9 episode sequence. The panel transcribes it on this Mac, the AI assistant analyzes the transcript and suggests every moment worth clipping, and the ones you tick are cut into their own sequences in the bin "<span id="binname"></span>".</div>
-  <button id="find">Analyze transcript and suggest clips</button>
-  <div id="fstat" class="status"></div>
-  <div id="fmanual"></div>
-  <div id="clips"></div>
-  <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>
-  <div id="cstat" class="status"></div>
-  <div class="hint">Next: open a cut clip, make it vertical in Reframe, then caption it in Captions.</div>
-  <hr>
-  <h2>IG headlines for the open clip</h2>
-  <div class="sub">Open a cut clip (16x9 or vertical). The AI assistant reads what is said and suggests on-screen headlines of 4 to 8 words.</div>
-  <button id="heads">Suggest IG headlines</button>
-  <div id="hstat" class="status"></div>
-  <div id="hmanual"></div>
-  <div id="headlist"></div>
+  <div class="card">
+    <h2>Suggest clips from a full episode</h2>
+    <div class="sub">Open the finished 16x9 episode. The panel transcribes it on this Mac and the AI assistant suggests every moment worth clipping. The ones you tick are cut into the bin "<span id="binname"></span>".</div>
+    <button id="find">Analyze transcript and suggest clips</button>
+    <div id="fstat" class="status"></div>
+    <div id="fmanual"></div>
+    <div id="clips"></div>
+    <button id="cut" style="display:none">Cut ticked clips into their own sequences</button>
+    <div id="cstat" class="status"></div>
+  </div>
+  <div class="card">
+    <h2>IG headlines for the open clip</h2>
+    <div class="sub">Open a cut clip, 16x9 or vertical. Suggests on-screen headlines of 4 to 8 words.</div>
+    <button id="heads" class="secondary">Suggest IG headlines</button>
+    <div id="hstat" class="status"></div>
+    <div id="hmanual"></div>
+    <div id="headlist"></div>
+  </div>
   </div>
 
   <div class="tab" id="tab-captions">
-  <h2>Caption a vertical clip</h2>
-  <div class="sub">Open the 9x16 clip. Captions go on a new top track: Special Gothic Condensed SemiBold, white with a black stroke, the word being spoken in gold. <span id="capstyle"></span></div>
-  <label class="check"><input id="autopos" type="checkbox" checked> Auto reposition captions (solo shot 80%, 2-up 50%, 3-UP 67%)</label>
-  <label class="check"><input id="splitcuts" type="checkbox" checked> Split captions at picture cuts, so each shot's captions move on their own</label>
-  <label class="check"><input id="shadow" type="checkbox"> Drop shadow</label>
-  <div class="slider"><span>Shadow strength</span><input id="shadowamt" type="range" min="0" max="100" step="5" value="50"><b id="shadowval">50</b></div>
-  <label class="check"><input id="nofill" type="checkbox" checked> Leave out filler words (um, uh) and stutters (I, I, I think)</label>
-  <div class="fields"><label>Height on screen % (used when auto reposition is off)<input id="ypos" type="number" min="5" max="95" step="1" value="67"></label></div>
-  <input id="names" type="text" placeholder="Names to get right (optional): Tim Miller, JVL…" style="margin-bottom:10px">
-  <button id="caption">Caption this sequence</button>
-  <div id="kstat" class="status"></div>
-  <div id="kmanual"></div>
-  <hr>
-  <h2>Edit caption text</h2>
-  <div class="sub">Fix words here with a normal cursor (Premiere's own field re-renders the caption on every keystroke). Click in a caption to jump to it; a change is saved when you press Return or click away. The caption under the playhead is marked in gold and the list follows along as you play.</div>
-  <button id="loadcaps" class="secondary">Load the captions in this sequence</button>
-  <div id="estat" class="status"></div>
-  <div id="caplist"></div>
-  <hr>
-  <h2>Captions already placed</h2>
-  <div class="sub">Change the stroke on captions already in the sequence, or add the drop shadow.</div>
-  <label for="oW">Outline Width</label>
-  <div class="row"><input id="oW" type="number" min="0" max="100" step="0.5" value="7"></div>
-  <button id="oSel" class="secondary">Apply to selected clips</button>
-  <button id="oAll" class="secondary">Apply to every caption in the sequence</button>
-  <button id="oShadow" class="secondary">Apply the drop shadow (at the strength above) to every caption</button>
-  <div id="oOut" class="status"></div>
+  <div class="card">
+    <h2>Caption this clip</h2>
+    <div class="sub">Captions go on a new top track, with the word being spoken in gold. <span id="capstyle"></span></div>
+    <button id="caption">Caption this sequence</button>
+    <div id="kstat" class="status"></div>
+    <div id="kmanual"></div>
+    <details><summary>Options</summary><div class="in">
+      <label class="check"><input id="autopos" type="checkbox" checked> Auto reposition captions (solo shot 80%, 2-up 50%, 3-UP 67%)</label>
+      <label class="check"><input id="splitcuts" type="checkbox" checked> Split captions at picture cuts</label>
+      <label class="check"><input id="nofill" type="checkbox" checked> Leave out filler words (um, uh) and stutters</label>
+      <label class="check"><input id="shadow" type="checkbox"> Drop shadow</label>
+      <div class="slider"><span>Shadow strength</span><input id="shadowamt" type="range" min="0" max="100" step="5" value="50"><b id="shadowval">50</b></div>
+      <div class="field"><label for="ypos">Height %</label><div class="row" style="margin:0"><input id="ypos" type="number" min="5" max="95" step="1" value="67"><span class="hint" style="margin:0">used when auto reposition is off</span></div></div>
+      <div class="field"><label for="names">Names</label><input id="names" type="text" placeholder="Names to get right: Tim Miller, JVL…"></div>
+    </div></details>
+  </div>
+  <div class="card">
+    <h2>Edit caption text</h2>
+    <div class="sub">Fix words with a normal cursor. Click a caption to jump to it; Return or clicking away saves. The one under the playhead is marked in gold.</div>
+    <button id="loadcaps" class="secondary">Load the captions in this sequence</button>
+    <div id="estat" class="status"></div>
+    <div id="caplist"></div>
+  </div>
+  <details class="card"><summary>Captions already placed</summary><div class="in">
+    <div class="sub">Change the stroke on captions already in the sequence, or add the drop shadow.</div>
+    <div class="field"><label for="oW">Outline width</label><input id="oW" type="number" min="0" max="100" step="0.5" value="7"></div>
+    <button id="oSel" class="secondary">Apply to selected clips</button>
+    <button id="oAll" class="secondary">Apply to every caption in the sequence</button>
+    <button id="oShadow" class="secondary">Apply the drop shadow to every caption</button>
+    <div id="oOut" class="status"></div>
+  </div></details>
   </div>
 
   <div class="tab" id="tab-thumb">
-  <div id="tpreview">
-    <canvas id="tcanvas" width="1080" height="1920"></canvas>
-    <div id="tside">
-      <div id="tlayouts" class="chips"></div>
-      <div id="tslots" class="chips"></div>
-      <div id="tadj"></div>
-      <div class="mini"><span>Left / right</span><input id="tmx" type="range" min="-100" max="100" step="2" value="0"></div>
-      <div class="mini"><span>Up / down</span><input id="tmy" type="range" min="-100" max="100" step="2" value="0"></div>
-      <div class="mini"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
-      <div class="row" style="margin:4px 0 0;gap:4px"><button id="tundo" class="secondary" title="Undo (Cmd+Z)">Undo</button><button id="tredo" class="secondary" title="Redo (Shift+Cmd+Z)">Redo</button></div>
-      <button id="tsave">Save thumbnail</button>
-      <button id="tnew" class="secondary" title="Clear the pictures and headline and start a thumbnail for the clip that is open">New thumbnail</button>
+  <div class="card">
+    <div class="field"><label for="ttpl">Show frame</label><select id="ttpl" size="6"></select></div>
+    <div id="tpreview">
+      <canvas id="tcanvas" width="1080" height="1920"></canvas>
+      <div id="tside">
+        <div id="tlayouts" class="chips"></div>
+        <div id="tslots" class="chips"></div>
+        <div id="tadj"></div>
+        <div class="mini"><span>Left / right</span><input id="tmx" type="range" min="-100" max="100" step="2" value="0"></div>
+        <div class="mini"><span>Up / down</span><input id="tmy" type="range" min="-100" max="100" step="2" value="0"></div>
+        <div class="mini"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
+        <div class="row" style="margin:4px 0 0;gap:4px"><button id="tundo" class="secondary" title="Undo (Cmd+Z)">Undo</button><button id="tredo" class="secondary" title="Redo (Shift+Cmd+Z)">Redo</button></div>
+        <button id="tsave">Save thumbnail</button>
+        <button id="tnew" class="secondary" title="Clear the pictures and headline and start a thumbnail for the clip that is open">New thumbnail</button>
+      </div>
     </div>
+    <div class="row" style="margin:0 0 6px"><input id="thead" type="text" placeholder="Headline"><button id="tfill" class="secondary" style="width:auto;margin:0" title="Read the headline that is on the open vertical clip">From clip</button></div>
+    <div class="row" style="margin:0 0 4px"><button id="tpicksbtn" class="secondary" style="margin:0">Show picture options</button><button id="tgrab" class="secondary" style="margin:0">Use playhead frame</button><button id="tfile" class="secondary" style="margin:0" title="Use a picture from this Mac. You can also drop an image file onto the preview.">Add image file</button></div>
+    <div id="tstat" class="status"></div>
+    <div id="tpicks"></div>
+    <details><summary>How this works</summary><div class="in hint" style="margin:0">Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. Drag a picture in the preview to move it. "Add image file" puts in any picture from this Mac, or drop an image onto the preview. "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest. Double-click a picture option to jump the playhead there. Cmd+Z undoes the last change while this tab is showing.<br><br><a class="link" id="ttplfolder">Open my thumbnail templates folder</a></div></details>
   </div>
-  <div class="row" style="margin:0 0 2px"><input id="thead" type="text" placeholder="Headline"><button id="tfill" class="secondary" style="width:auto;margin:0;white-space:nowrap" title="Read the headline that is on the open vertical clip">From clip</button></div>
-  <div class="row" style="margin:6px 0"><button id="tpicksbtn" class="secondary" style="margin:0">Show picture options</button><button id="tgrab" class="secondary" style="margin:0">Use playhead frame</button><button id="tfile" class="secondary" style="margin:0" title="Use a picture from this Mac. You can also drop an image file onto the preview.">Add image file</button></div>
-  <div id="tstat" class="status"></div>
-  <div id="tpicks"></div>
-  <hr>
-  <label for="ttpl">Show (frame)</label>
-  <select id="ttpl" size="6"></select>
-  <a class="link" id="ttplfolder">Open my thumbnail templates folder</a>
-  <div class="hint">Cmd+Z undoes the last change to the thumbnail (Shift+Cmd+Z redoes it) while this tab is showing. Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. "Add image file" puts in any picture from this Mac (or drop an image onto the preview). "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest: park on the frame you want and press it. Drag a picture in the preview to move it. Double-click a picture option to jump the playhead there.</div>
   </div>
 
   <div class="tab" id="tab-settings">
-  <h2>AI assistant</h2>
-  <div class="sub">Suggests clips and proofreads captions. Only transcript text is sent to it; audio and video never leave the Mac. Keys are saved on this Mac only.</div>
-  <label for="provider">Use</label>
-  <select id="provider" size="5"></select>
-  <div id="keybox">
-    <label for="key">API key</label>
-    <div class="row"><input id="key" type="password" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button><button id="clearkey" class="secondary" style="width:auto;margin:0">Remove</button></div>
+  <div class="card">
+    <h2>AI assistant</h2>
+    <div class="sub">Suggests clips and proofreads captions. Only transcript text is sent; audio and video never leave the Mac. Keys are saved on this Mac only.</div>
+    <div class="field"><label for="provider">Use</label><select id="provider" size="5"></select></div>
+    <div id="keybox"><div class="field"><label for="key">API key</label>
+      <div class="row" style="margin:0"><input id="key" type="password" autocomplete="off"><button id="savekey" style="width:auto;margin:0">Save</button><button id="clearkey" class="secondary" style="width:auto;margin:0">Remove</button></div></div></div>
+    <div id="keystat" class="status"></div>
+    <div id="modelbox">
+      <div class="field"><label for="model">Model</label><select id="model" size="4"></select></div>
+      <div class="field"><label for="modelother">Other model</label><div class="row" style="margin:0"><input id="modelother" type="text" placeholder="Type a model ID"><button id="loadmodels" class="secondary" style="width:auto;margin:0">Refresh list</button></div></div>
+      <div id="modelstat" class="status"></div>
+    </div>
   </div>
-  <div id="keystat" class="status"></div>
-  <div id="modelbox">
-    <label for="model">Model</label>
-    <select id="model" size="4"></select>
-    <div class="row"><input id="modelother" type="text" placeholder="Or type a model ID"><button id="loadmodels" class="secondary" style="width:auto;margin:0;white-space:nowrap">Refresh list</button></div>
-    <div id="modelstat" class="status"></div>
+  <div class="card">
+    <h2>Caption style</h2>
+    <div class="fields">
+      <label>Font size<input id="size" type="number" min="10" max="200" step="1" value="54"></label>
+      <label>Stroke<input id="stroke" type="number" min="0" max="100" step="0.5" value="7"></label>
+    </div>
+    <label class="check"><input id="fix" type="checkbox" checked> Proofread misheard words and names with the AI assistant</label>
   </div>
-  <hr>
-  <h2>Caption style</h2>
-  <div class="fields">
-    <label>Font size<input id="size" type="number" min="10" max="200" step="1" value="54"></label>
-    <label>Stroke<input id="stroke" type="number" min="0" max="100" step="0.5" value="7"></label>
+  <div class="card">
+    <h2>Suggested clips</h2>
+    <div class="fields">
+      <label>Shortest (seconds)<input id="clipmin" type="number" min="15" max="600" step="5" value="90"></label>
+      <label>Longest (seconds)<input id="clipmax" type="number" min="30" max="900" step="5" value="150"></label>
+    </div>
+    <div class="field"><label for="bin">Bin for clips</label><input id="bin" type="text" value="SOCIAL CLIPS 16x9"></div>
   </div>
-  <label class="check"><input id="fix" type="checkbox" checked> Proofread misheard words and names with the AI assistant</label>
-  <hr>
-  <h2>Suggested clips</h2>
-  <div class="fields">
-    <label>Shortest (seconds)<input id="clipmin" type="number" min="15" max="600" step="5" value="90"></label>
-    <label>Longest (seconds)<input id="clipmax" type="number" min="30" max="900" step="5" value="150"></label>
+  <div class="card">
+    <h2>Panel</h2>
+    <div class="slider" style="margin-left:0"><span>Size</span><input id="uiscale" type="range" min="70" max="250" step="5" value="115"><b id="uiscaleval" style="flex:0 0 40px"></b></div>
+    <div class="row"><button id="checkupd" class="secondary" style="margin:0">Check for updates</button><button id="cleartx" class="secondary" style="margin:0">Clear saved transcripts</button></div>
+    <div id="updstat" class="status"></div>
+    <div id="txstat" class="status"></div>
+    <button id="resetall" class="secondary">Put settings back to the defaults</button>
+    <div class="hint">The API key is not removed by this. Transcripts are kept on this Mac so a second look at the same episode is instant.</div>
   </div>
-  <label for="bin">Bin for cut clips</label>
-  <input id="bin" type="text" value="SOCIAL CLIPS 16x9" style="margin-bottom:10px">
-  <hr>
-  <h2>Transcripts</h2>
-  <div class="sub">Episode transcripts are kept on this Mac so a second look at the same sequence is instant.</div>
-  <button id="cleartx" class="secondary">Clear saved transcripts</button>
-  <div id="txstat" class="status"></div>
-  <hr>
-  <h2>Panel size</h2>
-  <div class="sub">Makes everything in this panel bigger or smaller. The A&minus; and A+ buttons at the top right do the same.</div>
-  <div class="slider" style="margin-left:0"><span>Size</span><input id="uiscale" type="range" min="70" max="250" step="5" value="115"><b id="uiscaleval" style="flex:0 0 40px"></b></div>
-  <hr>
-  <h2>Updates</h2>
-  <button id="checkupd" class="secondary">Check for updates now</button>
-  <div id="updstat" class="status"></div>
-  <button id="resetall" class="secondary">Put settings back to the defaults</button>
-  <div class="hint">The API key is not removed by this.</div>
   </div>
 
   <script src="lib/CSInterface.js"></script>
@@ -530,5 +625,6 @@
   </script>
   <script src="lib/engine.js"></script>
   <script src="lib/app.js"></script>
+  <script src="lib/ui.js"></script>
 </body>
 </html>
