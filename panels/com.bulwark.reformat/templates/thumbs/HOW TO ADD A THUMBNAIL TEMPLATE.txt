@@ -1,0 +1,60 @@
+HOW TO ADD A THUMBNAIL TEMPLATE
+===============================
+
+Each thumbnail template is a folder holding two files:
+
+  template.json   what the template is called, which show it belongs to, where the
+                  picture windows are, and how the headline is drawn
+  overlay.png     the artwork, 1080x1920, with the picture windows TRANSPARENT
+                  (bands, dividers, logos: everything that sits on top of the pictures;
+                  leave the headline box out, the panel draws it to fit the words)
+
+WHERE TO PUT IT
+---------------
+On your own Mac (kept through updates, only you see it):
+  ~/Library/Application Support/Bulwark Tools/thumbnail templates/<any folder name>/
+  The Clips tab has a link, "Open my thumbnail templates folder", that takes you there.
+
+For the whole team (ships in the next update):
+  send the folder to Jared; it goes in the panel under templates/thumbs/.
+
+Templates appear in the Thumbnail section's "Template" list. A template whose "show"
+matches the show picked on the Reframe tab is offered first.
+
+template.json
+-------------
+{
+  "name": "TNL: 2 pictures",            what the list shows
+  "show": "9x16 TNL",                   the show's name exactly as on the Reframe tab; "" = every show
+  "size": [1080, 1920],
+  "overlay": "overlay.png",
+  "windows": [                          one entry per picture, in the order they are filled
+    { "name": "Top",    "x": 0, "y": 239, "w": 1080, "h": 706 },
+    { "name": "Bottom", "x": 0, "y": 975, "w": 1080, "h": 707 }
+  ],
+  "headline": {
+    "top": 860,                         y of the top edge of the headline box; the box grows downward
+    "box": "#D0461D",                   box colour ("" = no box, text only)
+    "text": "#FFFFFF",
+    "font": "Special Gothic Condensed", must be installed (Adobe Fonts)
+    "weight": 600,
+    "capHeight": 0.722,                 height of a capital letter as a share of the font size
+    "uppercase": true,
+    "radius": 7,                        corner rounding of the box
+    "oneLine":  { "size": 96, "maxWidth": 890, "padX": 45, "padTop": 50, "padBottom": 50 },
+    "twoLines": { "size": 84, "maxWidth": 928, "padX": 25, "padTop": 34, "padBottom": 36, "gap": 46 }
+  }
+}
+
+x, y, w, h are in pixels from the top left of the 1080x1920 thumbnail.
+"oneLine" is used when the headline fits within its maxWidth at that size; otherwise the
+headline goes on two lines, at "twoLines.size" or smaller so the wider line fits maxWidth.
+
+MAKING overlay.png
+------------------
+Export the frame from Photoshop / Illustrator as a PNG with transparency. The windows must
+be see-through, not white. If all you have is a version with white windows, send it over and
+it can be converted.
+
+The two templates that ship with the panel (bulwark-orange-2, bulwark-orange-3) are working
+examples: copy one, rename the folder, and change the numbers.

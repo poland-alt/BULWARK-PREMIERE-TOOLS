@@ -137,6 +137,97 @@ $.bulwark.setOutline = function (width, scope) {
             return "OK|" + t + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|" + how + "|" + clean(seq.name);
         } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
+    // Picture options for a thumbnail: several frames of every person in the open vertical clip, and of its media.
+    // People come from their own camera nests (the full 16x9 shot); media from the vertical frame as rendered.
+    // Writes <dir>/pick_N.png and returns "OK" then one line per picture:
+    //   file<TAB>who<TAB>seconds in the clip<TAB>source|render<TAB>shot kind<TAB>region (whole|top|middle|bottom)
+    function shotKindAt(seq, t) {
+        var kind = 1;
+        for (var v = 0; v < seq.videoTracks.numTracks; v++) {
+            var cl = seq.videoTracks[v].clips;
+            for (var c = 0; c < cl.numItems; c++) {
+                var k = cl[c];
+                if (k.disabled || !k.projectItem || k.start.seconds > t || k.end.seconds <= t) continue;
+                kind = Math.max(kind, layoutIn(k.name) || nestLayout(k.projectItem));
+            }
+        }
+        return kind;
+    }
+    // n moments spread across a list of stretches [{ s, e }], keeping clear of the cuts
+    function spread(spans, n) {
+        var usable = [], total = 0, i, out = [];
+        for (i = 0; i < spans.length; i++) {
+            var a = spans[i].s + 0.4, b = spans[i].e - 0.4;
+            if (b - a > 0.2) { usable.push({ a: a, b: b, src: spans[i] }); total += b - a; }
+        }
+        if (!usable.length) return out;
+        n = Math.max(1, Math.min(n, Math.floor(total / 0.7) + 1));
+        for (var k = 0; k < n; k++) {
+            var at = total * (k + 0.5) / n, acc = 0;
+            for (i = 0; i < usable.length; i++) {
+                var len = usable[i].b - usable[i].a;
+                if (at <= acc + len || i === usable.length - 1) { out.push({ t: usable[i].a + Math.min(len, at - acc), src: usable[i].src }); break; }
+                acc += len;
+            }
+        }
+        return out;
+    }
+    $.bulwark.subjectFrames = function (dir, per) {
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            if (seq.frameSizeVertical <= seq.frameSizeHorizontal) return "ERR|This sequence is 16x9. Open the vertical clip to make a thumbnail from it.";
+            nestLayouts = {};
+            var people = {}, order = [], media = [], t, c, pos = seq.getPlayerPosition();
+            for (t = 0; t < seq.videoTracks.numTracks; t++) {
+                var cl = seq.videoTracks[t].clips;
+                for (c = 0; c < cl.numItems; c++) {
+                    var k = cl[c], name = String(k.name);
+                    if (k.disabled || !k.projectItem || /adjustment layer/i.test(name)) continue;
+                    var mgt = null;
+                    try { mgt = k.getMGTComponent(); } catch (e0) {}
+                    if (mgt) continue;
+                    var ns = nestOf(k.projectItem);
+                    if (ns) {
+                        var pop = 0;
+                        for (var v = 0; v < ns.videoTracks.numTracks; v++) if (ns.videoTracks[v].clips.numItems) pop++;
+                        if (pop !== 1 || ns.frameSizeHorizontal <= ns.frameSizeVertical) continue;        // a wide or multicam nest is not one person
+                        if (!people[ns.sequenceID]) { people[ns.sequenceID] = { name: ns.name, seq: ns, spans: [] }; order.push(ns.sequenceID); }
+                        people[ns.sequenceID].spans.push({ s: k.start.seconds, e: k.end.seconds, inP: k.inPoint.seconds });
+                    } else if (!/frame|background|logo|overlay|watermark|divider|pip|[23]\s*-?\s*up|end.?card|next.?level|insta|reel|outro/i.test(name)) {
+                        media.push({ s: k.start.seconds, e: k.end.seconds });
+                    }
+                }
+            }
+            app.enableQE();
+            var lines = ["OK"], n = 0, i, j;
+            for (i = 0; i < order.length; i++) {
+                var who = people[order[i]], picks = spread(who.spans, per);
+                if (!picks.length) continue;
+                app.project.openSequence(who.seq.sequenceID);
+                var q = qe.project.getActiveSequence();
+                for (j = 0; j < picks.length; j++) {
+                    var base = dir + "/pick_" + (n++);
+                    var old = new File(base + ".png"); if (old.exists) old.remove();
+                    q.exportFramePNG(tcOf(who.seq, picks[j].src.inP + (picks[j].t - picks[j].src.s)), base);
+                    lines.push([base + ".png", clean(who.name), picks[j].t.toFixed(2), "source", 1, "whole"].join("\t"));
+                }
+            }
+            app.project.openSequence(seq.sequenceID);
+            if (media.length) {
+                var mq = qe.project.getActiveSequence(), mp = spread(media, Math.max(2, Math.round(per / 2)));
+                for (j = 0; j < mp.length; j++) {
+                    var kind = shotKindAt(seq, mp[j].t), mbase = dir + "/pick_" + (n++);
+                    var mold = new File(mbase + ".png"); if (mold.exists) mold.remove();
+                    mq.exportFramePNG(tcOf(seq, mp[j].t), mbase);
+                    lines.push([mbase + ".png", "Media", mp[j].t.toFixed(2), "render", kind, kind === 2 ? "bottom" : (kind === 3 ? "middle" : "whole")].join("\t"));
+                }
+            }
+            try { app.project.activeSequence.setPlayerPosition(pos.ticks); } catch (e1) {}
+            if (lines.length === 1) return "ERR|No people or media were found in this clip to take pictures from.";
+            return lines.join("\n");
+        } catch (e) { return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
+    };
     $.bulwark.jump = function (secs) {
         try { app.project.activeSequence.setPlayerPosition(String(Math.round(secs * TICKS))); return "OK"; } catch (e) { return "ERR|" + e; }
     };

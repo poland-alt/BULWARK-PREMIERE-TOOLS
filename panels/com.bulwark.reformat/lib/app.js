@@ -512,114 +512,245 @@
     });
   });
 
-  // ---- thumbnail: two pictures from the vertical clip, the orange frame, and the headline in its box ----
-  // Measured from the team's finished thumbnails (1080x1920): bands 0-239 and 1682-1920, windows 239-945 and 975-1682,
-  // divider 945-975, headline box from y 860, text in Special Gothic Condensed (cap height 0.722 of the size).
-  var TH = { W: 1080, H: 1920, top: [239, 706], bot: [975, 707], orange: '#D0461D', boxTop: 860, cap: 0.722 };
-  var thumb = { top: null, bot: null, bands: null, name: '' };       // top/bot: { img, kind }
+  // ---- thumbnail ----
+  // A template is a folder with template.json (windows, headline style) and overlay.png (artwork with see-through
+  // windows). Templates ship in the panel (templates/thumbs) and can be added on this Mac (Bulwark Tools/thumbnail
+  // templates). See "HOW TO ADD A THUMBNAIL TEMPLATE.txt".
+  var TPL_SHIPPED = EXT + '/templates/thumbs', TPL_LOCAL = WORK + '/thumbnail templates';
+  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '' };      // pics[i]: { img, source, kind, region }
+  function imageFrom(b64, cb) {
+    var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
+    img.src = 'data:image/png;base64,' + String(b64).replace(/\s+/g, '');
+  }
   function loadImage(path, cb) {
     var r = cep.fs.readFile(path, cep.encoding.Base64);
-    if (r.err) return cb(null);
-    var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
-    img.src = 'data:image/png;base64,' + r.data;
+    if (r.err || !r.data) return cb(null);
+    imageFrom(r.data, cb);
   }
-  function loadBands(cb) {
-    if (thumb.bands) return cb();
-    var a = cep.fs.readFile(EXT + '/templates/thumb-top.png.b64'), b = cep.fs.readFile(EXT + '/templates/thumb-bottom.png.b64'), n = 2, out = [];
-    if (a.err || b.err) return cb();
-    [a.data, b.data].forEach(function (d, i) {
-      var img = new Image(); img.onload = img.onerror = function () { out[i] = img; if (!--n) { thumb.bands = out; cb(); } };
-      img.src = 'data:image/png;base64,' + d.replace(/\s+/g, '');
+  function readTemplates() {
+    var out = [];
+    [TPL_SHIPPED, TPL_LOCAL].forEach(function (root, local) {
+      var d = cep.fs.readdir(root);
+      if (d.err) return;
+      d.data.slice().sort().forEach(function (id) {
+        var j = cep.fs.readFile(root + '/' + id + '/template.json');
+        if (j.err) return;
+        try {
+          var t = JSON.parse(j.data);
+          if (!t.windows || !t.windows.length) return;
+          t.id = (local ? 'mine/' : '') + id; t.dir = root + '/' + id; t.local = !!local;
+          t.name = String(t.name || id) + (local ? ' (mine)' : '');
+          out.push(t);
+        } catch (e) {}
+      });
     });
+    return out;
   }
-  // The part of a grabbed frame that belongs in a window: its own window on a 2-up / 3-UP shot, the person on a solo shot
-  function drawPicture(ctx, pic, which, win, shift, zoom) {
-    var img = pic.img, sx = 0, sy = 0, sw = img.width, sh = img.height, f = img.height / 1920, focusY = 0.5;
-    if (!pic.source) {
-      if (pic.kind === 2) { sy = (which === 'top' ? 0 : 977) * f; sh = (which === 'top' ? 944 : 943) * f; }
-      else if (pic.kind === 3) { sy = (which === 'top' ? 0 : 1295) * f; sh = (which === 'top' ? 607 : 625) * f; }
-      else focusY = 0.3;                                 // a solo shot as rendered: faces sit in the upper part of the frame
-    }
-    var scale = Math.max(TH.W / sw, win[1] / sh) * Math.max(1, zoom || 1), cw = TH.W / scale, ch = win[1] / scale;     // the crop, in source pixels
-    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = pic.source ? 0.35 : focusY;
+  function overlayOf(t, cb) {
+    if (t.overlayImg !== undefined) return cb(t.overlayImg);
+    var name = t.overlay || 'overlay.png', asText = cep.fs.readFile(t.dir + '/' + name + '.b64');
+    function done(img) { t.overlayImg = img; cb(img); }
+    if (!asText.err && asText.data) return imageFrom(asText.data, done);
+    loadImage(t.dir + '/' + name, done);
+  }
+  function showOnReframe() { try { return $('show').value || ''; } catch (e) { return ''; } }
+  function pickTemplate(id) {
+    var t = null;
+    for (var i = 0; i < thumb.tpls.length; i++) if (thumb.tpls[i].id === id) t = thumb.tpls[i];
+    if (!t) t = thumb.tpls[0] || null;
+    if (!t) return;
+    var same = thumb.tpl && thumb.tpl.windows.length === t.windows.length;
+    thumb.tpl = t; store('bulwark_thumbtpl', t.id);
+    if (!same) { thumb.pics = thumb.pics.slice(0, t.windows.length); thumb.slot = 0; }
+    // window chips and a move / zoom pair per window
+    var chips = $('tslots'), sl = $('tsliders'); chips.innerHTML = ''; sl.innerHTML = '';
+    t.windows.forEach(function (w, i) {
+      var c = document.createElement('span'); c.textContent = w.name || ('Window ' + (i + 1));
+      c.addEventListener('click', function () { thumb.slot = i; markSlots(); });
+      chips.appendChild(c);
+      var row = document.createElement('div'); row.className = 'slider'; row.style.marginLeft = '0';
+      row.innerHTML = '<span></span><input type="range" min="-100" max="100" step="2" value="0"><span>zoom</span><input type="range" min="100" max="250" step="5" value="100">';
+      row.firstChild.textContent = (w.name || ('Window ' + (i + 1))) + ': move';
+      var ins = row.getElementsByTagName('input');
+      ins[0].id = 'tmove' + i; ins[1].id = 'tzoom' + i;
+      ins[0].addEventListener('input', drawThumb); ins[1].addEventListener('input', drawThumb);
+      sl.appendChild(row);
+    });
+    markSlots();
+    overlayOf(t, function () { drawThumb(); });
+  }
+  function markSlots() {
+    var c = $('tslots').children;
+    for (var i = 0; i < c.length; i++) c[i].className = 'chip' + (i === thumb.slot ? ' on' : '') + (thumb.pics[i] ? ' filled' : '');
+  }
+  function listTemplates() {
+    thumb.tpls = readTemplates();
+    var show = showOnReframe(), saved = store('bulwark_thumbtpl'), first = null, items = [];
+    // the show picked on the Reframe tab comes first
+    thumb.tpls.sort(function (x, y) { return ((y.show === show && show ? 1 : 0) - (x.show === show && show ? 1 : 0)) || (x.local - y.local) || (x.name < y.name ? -1 : 1); });
+    thumb.tpls.forEach(function (t) { items.push([t.id, t.name + (t.show ? '  [' + t.show.replace(/^9x16\s+/i, '') + ']' : '')]); if (!first && (t.show === show || !t.show)) first = t.id; });
+    var want = saved, ok = false;
+    for (var i = 0; i < thumb.tpls.length; i++) if (thumb.tpls[i].id === want) ok = true;
+    if (!ok) want = first || (thumb.tpls[0] && thumb.tpls[0].id);
+    fillSelect($('ttpl'), items, want);
+    $('ttpl').size = Math.max(2, Math.min(6, items.length));
+    pickTemplate(want);
+  }
+  // Where in a picture the wanted part is: a person's own camera frame is used whole; a rendered vertical frame has
+  // the windows of whatever layout was on screen (2-up, 3-UP / PIP)
+  function regionOf(pic) {
+    var img = pic.img, f = img.height / 1920;
+    if (pic.source || pic.region === 'whole' || pic.kind === 1) return [0, img.height];
+    if (pic.kind === 2) return pic.region === 'top' ? [0, 944 * f] : [977 * f, 943 * f];
+    if (pic.region === 'top') return [0, 607 * f];
+    if (pic.region === 'middle') return [640 * f, 623 * f];
+    return [1295 * f, 625 * f];
+  }
+  function drawPicture(ctx, pic, win, shift, zoom) {
+    var img = pic.img, reg = regionOf(pic), sy = reg[0], sh = reg[1], sw = img.width;
+    var scale = Math.max(win.w / sw, win.h / sh) * Math.max(1, zoom || 1), cw = win.w / scale, ch = win.h / scale;     // the crop, in source pixels
+    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = pic.source ? 0.35 : (pic.kind === 1 && pic.region === 'whole' ? 0.3 : 0.5);
     // the slider moves the picture up and down when it has room to, otherwise side to side
     if (slackY > 4) fy = Math.max(0, Math.min(1, fy - shift / 200)); else fx = Math.max(0, Math.min(1, 0.5 - shift / 200));
-    ctx.drawImage(img, sx + slackX * fx, sy + slackY * fy, cw, ch, 0, win[0], TH.W, win[1]);
+    ctx.drawImage(img, slackX * fx, sy + slackY * fy, cw, ch, win.x, win.y, win.w, win.h);
   }
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
     ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
   }
-  function drawThumb() {
-    var cv = $('tcanvas'), ctx = cv.getContext('2d');
-    if (!thumb.top && !thumb.bot) return;
-    cv.style.display = ''; $('tsave').style.display = '';
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, TH.W, TH.H);
-    if (thumb.top) drawPicture(ctx, thumb.top, 'top', TH.top, +$('ttopy').value, +$('ttopz').value / 100);
-    if (thumb.bot) drawPicture(ctx, thumb.bot, 'bot', TH.bot, +$('tboty').value, +$('tbotz').value / 100);
-    ctx.fillStyle = TH.orange;
-    if (thumb.bands && thumb.bands[0].width) { ctx.drawImage(thumb.bands[0], 0, 0); ctx.drawImage(thumb.bands[1], 0, 1682); }
-    else { ctx.fillRect(0, 0, TH.W, 239); ctx.fillRect(0, 1682, TH.W, 238); }
-    ctx.fillStyle = TH.orange; ctx.fillRect(0, 945, TH.W, 30);
-    // headline: one line when it fits, otherwise two balanced lines, shrunk to fit the frame
-    var text = $('thead').value.replace(/\s+/g, ' ').replace(/^ | $/g, '').toUpperCase();
+  function drawHeadline(ctx, t, W) {
+    var H = t.headline || {}, text = $('thead').value.replace(/\s+/g, ' ').replace(/^ | $/g, '');
+    if (H.uppercase !== false) text = text.toUpperCase();
     if (!text) return;
-    function font(px) { ctx.font = '600 ' + px + 'px "Special Gothic Condensed", "SpecialGothicCondensed-SemiBold", "Arial Narrow", sans-serif'; }
-    function width(t, px) { font(px); return ctx.measureText(t).width; }
-    var lines = [text], size = 96;
-    if (width(text, 96) > 890) {
+    var one = H.oneLine || { size: 96, maxWidth: 890, padX: 45, padTop: 50, padBottom: 50 }, two = H.twoLines || { size: 84, maxWidth: 928, padX: 25, padTop: 34, padBottom: 36, gap: 46 };
+    function font(px) { ctx.font = (H.weight || 600) + ' ' + px + 'px "' + (H.font || 'Special Gothic Condensed') + '", "Arial Narrow", sans-serif'; }
+    function width(s2, px) { font(px); return ctx.measureText(s2).width; }
+    var lines = [text], size = one.size, L = one;
+    if (width(text, one.size) > one.maxWidth) {
       var w = text.split(' '), best = null;
       for (var i = 1; i < w.length; i++) {
         var a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), wide = Math.max(width(a, 100), width(b, 100));
         // a colon or dash is where a headline wants to break, as long as neither line gets too long for a readable size
-        if (/[:\u2014\u2013-]$/.test(w[i - 1]) && wide <= 928 / 60 * 100) { best = { a: a, b: b, wide: wide }; break; }
+        if (/[:—–-]$/.test(w[i - 1]) && wide <= two.maxWidth / 60 * 100) { best = { a: a, b: b, wide: wide }; break; }
         if (!best || wide < best.wide) best = { a: a, b: b, wide: wide };
       }
-      if (best) { lines = [best.a, best.b]; size = Math.min(84, 928 / best.wide * 100); }
-      else size = 890 / width(text, 100) * 100;
+      if (best) { lines = [best.a, best.b]; size = Math.min(two.size, two.maxWidth / best.wide * 100); L = two; }
+      else size = one.maxWidth / width(text, 100) * 100;
     }
     size = Math.round(size);
-    var cap = TH.cap * size, widest = 0;
-    for (var k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
-    var one = lines.length === 1, padX = one ? 45 : 25, padTop = one ? 50 : 34, gap = 46, padBot = one ? 50 : 36;
-    var bw = Math.min(TH.W - 40, widest + 2 * padX), bh = padTop + cap * lines.length + gap * (lines.length - 1) + padBot;
-    ctx.fillStyle = TH.orange; roundRect(ctx, (TH.W - bw) / 2, TH.boxTop, bw, bh, 7); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; font(size);
-    for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], TH.W / 2, TH.boxTop + padTop + cap * (k + 1) + gap * k);
+    var cap = (H.capHeight || 0.722) * size, widest = 0, k, gap = L.gap || 0, top = H.top === undefined ? 860 : H.top;
+    for (k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
+    var bw = Math.min(W - 40, widest + 2 * L.padX), bh = L.padTop + cap * lines.length + gap * (lines.length - 1) + L.padBottom;
+    if (H.box) { ctx.fillStyle = H.box; roundRect(ctx, (W - bw) / 2, top, bw, bh, H.radius || 0); ctx.fill(); }
+    ctx.fillStyle = H.text || '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; font(size);
+    for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], W / 2, top + L.padTop + cap * (k + 1) + gap * k);
   }
-  function grab(which) {
-    var st = $('tstat'), base = WORK + '/thumb-' + which;
-    cep.fs.makedir(WORK);
-    say(st, 'Grabbing the frame…');
-    // what kind of shot is under the playhead decides where the picture comes from
+  function drawThumb() {
+    var t = thumb.tpl, cv = $('tcanvas');
+    if (!t) return;
+    var W = (t.size && t.size[0]) || 1080, Hh = (t.size && t.size[1]) || 1920, any = false, ctx = cv.getContext('2d');
+    for (var i = 0; i < t.windows.length; i++) if (thumb.pics[i]) any = true;
+    if (!any) return;
+    if (cv.width !== W) cv.width = W; if (cv.height !== Hh) cv.height = Hh;
+    cv.style.display = ''; $('tsave').style.display = '';
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, Hh);
+    for (i = 0; i < t.windows.length; i++) {
+      if (!thumb.pics[i]) continue;
+      ctx.save(); ctx.beginPath(); ctx.rect(t.windows[i].x, t.windows[i].y, t.windows[i].w, t.windows[i].h); ctx.clip();
+      drawPicture(ctx, thumb.pics[i], t.windows[i], +$('tmove' + i).value, +$('tzoom' + i).value / 100);
+      ctx.restore();
+    }
+    if (t.overlayImg) ctx.drawImage(t.overlayImg, 0, 0, W, Hh);
+    drawHeadline(ctx, t, W);
+  }
+  function setPicture(pic) {
+    if (!thumb.tpl) return;
+    var i = thumb.slot, n = thumb.tpl.windows.length;
+    thumb.pics[i] = pic;
+    $('tmove' + i).value = 0; $('tzoom' + i).value = pic.source ? 115 : 100;
+    // move on to the next empty window, if there is one
+    for (var k = 1; k <= n; k++) if (!thumb.pics[(i + k) % n]) { thumb.slot = (i + k) % n; break; }
+    markSlots(); drawThumb();
+  }
+  function waitImage(path, cb) {                       // Premiere writes the file a moment after it answers
+    var tries = 0;
+    (function again() { loadImage(path, function (img) { if (img) return cb(img); if (++tries > 30) return cb(null); setTimeout(again, 200); }); })();
+  }
+  // -- one frame, from the playhead --
+  $('tgrab').addEventListener('click', function () {
+    var st = $('tstat'), slot = thumb.slot, base = WORK + '/thumb-grab-' + slot;
+    if (!thumb.tpl) return say(st, 'No thumbnail template was found. Reinstall the panel.', 'err');
+    cep.fs.makedir(WORK); say(st, 'Grabbing the frame…');
     jsx('$.bulwark.playhead()', function (rp) {
       var t = +rp.split('|')[2] || 0;
       jsx('$.bulwark.shotMap()', function (rm) {
         var pm = rm.split('|'), kind = pm[0] === 'OK' ? E.kindAt(E.shots(pm[1], pm[2]).segs, t) : 1;
         jsx('$.bulwark.grabFrame(' + q(base) + ',' + (kind === 1) + ')', function (r) {
-          var p = r.split('|'), tries = 0;
+          var p = r.split('|');
           if (p[0] !== 'OK') return say(st, p.slice(1).join('|') || 'Premiere did not answer.', 'err');
           if (+p[2] > +p[3]) return say(st, 'This sequence is 16x9. Open the vertical clip to make a thumbnail from it.', 'err');
           thumb.name = p.slice(5).join('|');
-          (function wait() {                               // Premiere writes the file a moment after it answers
-            loadImage(base + '.png', function (img) {
-              if (!img) { if (++tries > 25) return say(st, 'Premiere did not save the frame. Try again.', 'err'); return setTimeout(wait, 200); }
-              thumb[which === 'top' ? 'top' : 'bot'] = { img: img, kind: kind, source: p[4] === 'source' };
-              $(which === 'top' ? 'ttopy' : 'tboty').value = 0; $(which === 'top' ? 'ttopz' : 'tbotz').value = p[4] === 'source' ? 115 : 100;
-              loadBands(function () {
-                drawThumb();
-                var what = p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? ' (solo shot)' : ' (' + (kind === 2 ? '2-up' : '3-UP') + ': its ' + (which === 'top' ? 'top' : 'bottom') + ' window)';
-                say(st, (which === 'top' ? 'Top' : 'Bottom') + ' picture set from ' + E.clock(t) + what + '.', 'ok');
-              });
-            });
-          })();
+          waitImage(base + '.png', function (img) {
+            if (!img) return say(st, 'Premiere did not save the frame. Try again.', 'err');
+            // on a 2-up / 3-UP shot the first window takes the top picture and the last window the bottom one
+            var region = kind === 1 ? 'whole' : (slot === thumb.tpl.windows.length - 1 ? 'bottom' : 'top');
+            thumb.slot = slot; setPicture({ img: img, source: p[4] === 'source', kind: kind, region: region });
+            say(st, 'Picture set from ' + E.clock(t) + (p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? '' : ' (the ' + region + ' window of that shot)') + '.', 'ok');
+          });
         });
       });
     });
-  }
-  $('ttop').addEventListener('click', function () { grab('top'); });
-  $('tbot').addEventListener('click', function () { grab('bot'); });
-  ['thead', 'ttopy', 'tboty', 'ttopz', 'tbotz'].forEach(function (id) { $(id).addEventListener('input', drawThumb); });
+  });
+  // -- several frames of everyone in the clip, to choose from --
+  $('tpicksbtn').addEventListener('click', function () {
+    var st = $('tstat'), box = $('tpicks'), dir = WORK + '/picks';
+    if (!thumb.tpl) return say(st, 'No thumbnail template was found. Reinstall the panel.', 'err');
+    cep.fs.makedir(WORK); cep.fs.makedir(dir);
+    $('tpicksbtn').disabled = true; box.innerHTML = '';
+    say(st, 'Pulling pictures of everyone in this clip (Premiere flips through its sequences for a moment)…');
+    jsx('$.bulwark.seqInfo()', function (ri) { thumb.name = ri.split('|').slice(6).join('|') || thumb.name; });
+    setTimeout(function () {
+      jsx('$.bulwark.subjectFrames(' + q(dir) + ',8)', function (r) {
+        $('tpicksbtn').disabled = false;
+        var lines = r.split('\n');
+        if (lines[0] !== 'OK') return say(st, r.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err');
+        lines.shift();
+        var groups = {}, order = [], left = lines.length, shown = 0;
+        lines.forEach(function (line) {
+          var f = line.split('\t'), who = f[1] || 'Picture';
+          if (!groups[who]) {
+            var title = document.createElement('div'); title.className = 'who'; title.textContent = who;
+            var grid = document.createElement('div'); grid.className = 'grid';
+            box.appendChild(title); box.appendChild(grid); groups[who] = grid; order.push(who);
+          }
+          var cell = document.createElement('div'); groups[who].appendChild(cell);
+          waitImage(f[0], function (img) {
+            if (img) {
+              var pic = { img: img, source: f[3] === 'source', kind: +f[4] || 1, region: f[5] || 'whole' }, reg = regionOf(pic);
+              var cv = document.createElement('canvas'), tm = document.createElement('div');
+              cv.width = 320; cv.height = Math.round(320 * reg[1] / img.width);
+              cv.getContext('2d').drawImage(img, 0, reg[0], img.width, reg[1], 0, 0, cv.width, cv.height);
+              cv.title = 'Click to put this in the marked window';
+              cv.addEventListener('click', function () { setPicture(pic); say(st, who + ' at ' + E.clock(+f[2]) + ' is in the thumbnail.', 'ok'); });
+              cv.addEventListener('dblclick', function () { jsx('$.bulwark.jump(' + (+f[2]) + ')', function () {}); });
+              tm.className = 'tm'; tm.textContent = E.clock(+f[2]);
+              cell.appendChild(cv); cell.appendChild(tm); shown++;
+            }
+            if (!--left) say(st, shown + ' pictures of ' + order.join(', ') + '. Click one to put it in the marked window.', shown ? 'ok' : 'err');
+          });
+        });
+      });
+    }, 60);
+  });
+  $('ttpl').addEventListener('change', function () { pickTemplate($('ttpl').value); });
+  $('thead').addEventListener('input', drawThumb);
+  $('ttplfolder').addEventListener('click', function () {
+    cep.fs.makedir(WORK); cep.fs.makedir(TPL_LOCAL);
+    var how = cep.fs.readFile(TPL_SHIPPED + '/HOW TO ADD A THUMBNAIL TEMPLATE.txt');
+    if (!how.err) cep.fs.writeFile(TPL_LOCAL + '/HOW TO ADD A THUMBNAIL TEMPLATE.txt', how.data);
+    cep.process.createProcess('/usr/bin/open', TPL_LOCAL);
+    say($('tstat'), 'Put a template folder in there, then reopen the panel (or switch tabs and back) to see it in the list.');
+  });
   $('tsave').addEventListener('click', function () {
     var st = $('tstat'), dir = WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails';
     cep.fs.makedir(dir);
@@ -630,6 +761,9 @@
     var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
     a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
   });
+  listTemplates();
+  // templates may have been added, or the show changed on the Reframe tab, since the panel opened
+  document.querySelector('#tabs span[data-tab=clips]').addEventListener('click', listTemplates);
 
   // ---- 2. captions ----
   function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }

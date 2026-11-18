@@ -28,8 +28,11 @@
         "lib/update-source.js",
         "lib/updater.js",
         "templates/Bulwark Word Fill Vertical.mogrt.b64",
-        "templates/thumb-bottom.png.b64",
-        "templates/thumb-top.png.b64"
+        "templates/thumbs/HOW TO ADD A THUMBNAIL TEMPLATE.txt",
+        "templates/thumbs/bulwark-orange-2/overlay.png.b64",
+        "templates/thumbs/bulwark-orange-2/template.json",
+        "templates/thumbs/bulwark-orange-3/overlay.png.b64",
+        "templates/thumbs/bulwark-orange-3/template.json"
       ]
     },
     "com.bulwark.captiontools": {
