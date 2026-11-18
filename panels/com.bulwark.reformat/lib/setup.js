@@ -145,7 +145,14 @@
       var sel = $(cfg[0]), l = layoutNamed(cfg[1], cfg[2]), keep = store('bulwark_setupframe_' + cfg[1] + '_' + (l ? l.name : '')), has = false;
       sel.innerHTML = '';
       function add(value, text) { var o = document.createElement('option'); o.value = value; o.textContent = text; sel.appendChild(o); if (value === keep) has = true; }
-      add('*', l ? (l.frame ? 'The layout\'s own: ' + l.frame.replace(/\.[a-z]+$/i, '') : 'The layout\'s own: none') : 'None');
+      var own = l && l.frame ? l.frame : '';
+      if (l && l.frame && projectFrames.length) {      // the layout's frame under whichever of its names this project has
+        var names = [l.frame].concat(l.frameAlt || []), have = null;
+        function lz(x) { return String(x).toLowerCase().replace(/\.[a-z0-9]{2,4}$/, '').replace(/[^a-z0-9]/g, ''); }
+        names.forEach(function (nm) { if (!have) projectFrames.forEach(function (f) { if (!have && lz(f.name) === lz(nm)) have = f.name; }); });
+        own = have || l.frame + ' (not in this project)';
+      }
+      add('*', l ? (l.frame ? 'The layout\'s own: ' + own.replace(/\.[a-z]+$/i, '') : 'The layout\'s own: none') : 'None');
       if (l) {
         projectFrames.forEach(function (f) { if (f.name !== l.frame) add(f.name, f.name.replace(/\.[a-z]+$/i, '') + '  (' + f.bin + ')'); });
         if (l.frame) add('', 'No frame');

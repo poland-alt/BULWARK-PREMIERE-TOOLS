@@ -31,7 +31,11 @@
     }
    ],
    "frame": "TNL - Three Person Frame - Standard.png",
-   "frameScale": 50
+   "frameScale": 50,
+   "frameAlt": [
+    "Generic Three Person Frame.png",
+    "16x9 SIMPLE 3-UP.png"
+   ]
   },
   {
    "name": "Two-up with divider",
@@ -55,7 +59,12 @@
     }
    ],
    "frame": "divider.png",
-   "frameScale": 100
+   "frameScale": 100,
+   "frameAlt": [
+    "16x9 2-UP.png",
+    "2-UP.png",
+    "16x9 2-up frame.png"
+   ]
   },
   {
    "name": "Two side by side (no frame)",
@@ -188,7 +197,11 @@
      0.5
     ],
     "scale": 65
-   }
+   },
+   "frameAlt": [
+    "Three Frame Media.png",
+    "Three Frame Media - 16x9.png"
+   ]
   },
   {
    "name": "Two Frame Media",
@@ -218,7 +231,11 @@
      0.5
     ],
     "scale": 65
-   }
+   },
+   "frameAlt": [
+    "TWO Frame Media.png",
+    "Two Frame Media - 16x9.png"
+   ]
   }
  ]
 }

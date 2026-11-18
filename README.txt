@@ -68,6 +68,10 @@ WHAT'S NEW IN v2.6
    sub-bins), so any of them can go on top in place of the layout's own
    frame. The people keep the layout's positions, so pick a frame whose
    windows match it, or save a layout made for that frame.
+   A layout's frame is found even when a project calls it something
+   else: the two-up takes "divider.png" or, failing that,
+   "16x9 2-UP.png", and names are matched whatever their capitals,
+   spacing or file type.
    Frames are looked up by name in the project, so import the frame
    assets before running Setup, or drop the frame in afterwards.
 

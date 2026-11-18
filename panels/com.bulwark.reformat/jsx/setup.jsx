@@ -44,6 +44,12 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
         eachItem(app.project.rootItem, function (c) { if (String(c.name).toLowerCase() === want) { hit = c; return true; } return false; });
         return hit;
     }
+    function loose(s) { return String(s).toLowerCase().replace(/\.[a-z0-9]{2,4}$/, "").replace(/[^a-z0-9]/g, ""); }
+    function stillLike(name) {                         // a still whose name matches but for capitals, spacing or extension
+        var hit = null, want = loose(name);
+        eachItem(app.project.rootItem, function (c) { if (/\.(png|psd|tiff?|jpe?g|webp)$/i.test(String(c.name)) && loose(c.name) === want) { hit = c; return true; } return false; });
+        return hit;
+    }
     function seqNamed(name) { var S = app.project.sequences; for (var i = 0; i < S.numSequences; i++) if (S[i].name === name) return S[i]; return null; }
     function freeName(name) { if (!seqNamed(name)) return name; var n = 2; while (seqNamed(name + " " + n)) n++; return name + " " + n; }
     function prop(clip, comp, name) {
@@ -388,13 +394,17 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                         } catch (eM) {}
                     }
                 }
-                var frame = layout.frame ? itemByName(layout.frame) : null;
+                // The layout's frame, by name. Projects differ in what the same frame is called, so the name is read
+                // loosely (capitals, spaces, extension), and a layout can list other names it goes by.
+                var frame = null, wanted = layout.frame ? [layout.frame].concat(layout.frameAlt || []) : [], usedAlt = false;
+                for (k = 0; k < wanted.length && !frame; k++) { frame = itemByName(wanted[k]) || stillLike(wanted[k]); usedAlt = k > 0; }
+                if (frame && usedAlt) notes.push("\"" + name + "\": this project has no \"" + layout.frame + "\", so \"" + frame.name + "\" was used as the frame.");
                 if (layout.frame && !frame) notes.push("\"" + name + "\": the frame \"" + layout.frame + "\" is not in this project, so none was added. Import it and drop it on V" + (frameTrack + 1) + ".");
                 if (frame) {
                     var fc = place(s, frameTrack, frame, 0);
                     try { fc.end = secs(longest); } catch (eEnd) { notes.push("\"" + name + "\": stretch the frame to the full length by hand."); }
                     // a frame picked from the project's own list is sized to fill the picture; the layout's own frame keeps its saved size
-                    setMotion(fc, { scale: (layout.frameFit ? fitScale(frame) : null) || layout.frameScale || 100 });
+                    setMotion(fc, { scale: (layout.frameFit || usedAlt ? fitScale(frame) : null) || layout.frameScale || 100 });
                     dropAudio(s, frameTrack);
                 }
                 return s;
