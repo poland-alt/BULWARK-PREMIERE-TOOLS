@@ -582,6 +582,7 @@
   function markSlots() {
     var c = $('tslots').children;
     for (var i = 0; i < c.length; i++) c[i].className = 'chip' + (i === thumb.slot ? ' on' : '') + (thumb.pics[i] ? ' filled' : '');
+    drawThumb();
   }
   function listTemplates() {
     thumb.tpls = readTemplates();
@@ -648,14 +649,19 @@
   function drawThumb() {
     var t = thumb.tpl, cv = $('tcanvas');
     if (!t) return;
-    var W = (t.size && t.size[0]) || 1080, Hh = (t.size && t.size[1]) || 1920, any = false, ctx = cv.getContext('2d');
-    for (var i = 0; i < t.windows.length; i++) if (thumb.pics[i]) any = true;
-    if (!any) return;
+    var W = (t.size && t.size[0]) || 1080, Hh = (t.size && t.size[1]) || 1920, any = false, ctx = cv.getContext('2d'), i;
+    for (i = 0; i < t.windows.length; i++) if (thumb.pics[i]) any = true;
     if (cv.width !== W) cv.width = W; if (cv.height !== Hh) cv.height = Hh;
-    cv.style.display = 'block'; $('tsave').style.display = '';
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, Hh);
+    $('tsave').disabled = !any;
+    ctx.fillStyle = '#2b2b2b'; ctx.fillRect(0, 0, W, Hh);
     for (i = 0; i < t.windows.length; i++) {
-      if (!thumb.pics[i]) continue;
+      if (!thumb.pics[i]) {              // an empty window: its name, so it is clear what goes where
+        var ew = t.windows[i];
+        ctx.fillStyle = i === thumb.slot ? '#3d4a6b' : '#333'; ctx.fillRect(ew.x, ew.y, ew.w, ew.h);
+        ctx.fillStyle = '#9a9a9a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '48px -apple-system, Helvetica, Arial, sans-serif';
+        ctx.fillText(ew.name || ('Window ' + (i + 1)), ew.x + ew.w / 2, ew.y + ew.h / 2);
+        continue;
+      }
       ctx.save(); ctx.beginPath(); ctx.rect(t.windows[i].x, t.windows[i].y, t.windows[i].w, t.windows[i].h); ctx.clip();
       drawPicture(ctx, thumb.pics[i], t.windows[i], +$('tmove' + i).value, +$('tzoom' + i).value / 100);
       ctx.restore();
