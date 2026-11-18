@@ -848,6 +848,7 @@
     if (proc.err) return say(st, 'Could not convert ' + name + '.', 'err');
     cep.process.onquit(proc.data, function () { setTimeout(fin, 200); }); setTimeout(fin, 20000);
   }
+  window.bulwarkThumbFile = fromFile;            // also lets a path be handed in directly
   $('tfile').addEventListener('click', function () {
     if (!thumb.tpl) return say($('tstat'), 'No thumbnail template was found. Reinstall the panel.', 'err');
     var r = cep.fs.showOpenDialogEx(false, false, 'Choose a picture for the thumbnail', '', ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'heic', 'heif', 'tif', 'tiff', 'psd', 'avif']);
