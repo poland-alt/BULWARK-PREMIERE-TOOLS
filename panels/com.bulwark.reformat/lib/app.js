@@ -778,13 +778,15 @@
       var i = at(ev); if (i < 0) return;
       thumb.slot = i; markSlots();
       var pic = thumb.pics[i], zoom = parseFloat(document.body.style.zoom) || 1;
-      // screen pixels per canvas pixel: the canvas's own width, times the panel's size setting
-      drag = pic ? { x: ev.screenX, y: ev.screenY, mx: pic.mx, my: pic.my, pic: pic, win: thumb.tpl.windows[i], k: cv.width / (cv.clientWidth * zoom) } : null;
+      // pixels moved on screen per canvas pixel: the canvas's own width, times the panel's size setting.
+      // The pointer's position in the panel is used, not its position on the screen: the host reports screen
+      // positions with the vertical axis (and on some setups both axes) running the other way.
+      drag = pic ? { x: ev.clientX, y: ev.clientY, mx: pic.mx, my: pic.my, pic: pic, win: thumb.tpl.windows[i], k: cv.width / (cv.clientWidth * zoom) } : null;
       ev.preventDefault();
     });
     window.addEventListener('mousemove', function (ev) {
       if (!drag) return;
-      var c = cropOf(drag.pic, drag.win), dx = (ev.screenX - drag.x) * drag.k / c.scale, dy = (ev.screenY - drag.y) * drag.k / c.scale;
+      var c = cropOf(drag.pic, drag.win), dx = (ev.clientX - drag.x) * drag.k / c.scale, dy = (ev.clientY - drag.y) * drag.k / c.scale;
       // a picture dragged right shows more of its left side, and so on; 200 slider units span the room there is
       if (c.slackX > 1) drag.pic.mx = Math.max(-100, Math.min(100, drag.mx + dx / c.slackX * 200));
       if (c.slackY > 1) drag.pic.my = Math.max(-100, Math.min(100, drag.my + dy / c.slackY * 200));
