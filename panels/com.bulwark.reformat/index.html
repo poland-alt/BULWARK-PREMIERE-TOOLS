@@ -34,7 +34,7 @@
   #out.ok { color: #7fd38a; } #out.err { color: #ff7b7b; }
   .hint { color: #777; font-size: 11px; margin-top: 8px; }
   #tabs { display: flex; gap: 2px; margin: 0 0 14px; border-bottom: 1px solid #383838; }
-  #tabs span { flex: 1; text-align: center; padding: 7px 0 6px; font-size: 12px; font-weight: 600; color: #9a9a9a; cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  #tabs span { flex: 1 1 auto; text-align: center; padding: 7px 2px 6px; font-size: 11.5px; font-weight: 600; color: #9a9a9a; cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   #tabs span:hover { color: #e6e6e6; }
   #tabs span.on { color: #fff; border-bottom-color: #3a6ff2; }
   .tab { display: none; } .tab.on { display: block; }
@@ -83,7 +83,7 @@
 <body>
   <div id="update"></div>
   <h1>Bulwark Premiere Tools <span class="ver" id="ver"></span></h1>
-  <div id="tabs"><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="settings">Settings</span></div>
+  <div id="tabs"><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="thumb">Thumbnail</span><span data-tab="settings">Settings</span></div>
 
   <div class="tab" id="tab-reframe">
   <h2>Reformat to 9x16</h2>
@@ -140,22 +140,6 @@
   <div id="hstat" class="status"></div>
   <div id="hmanual"></div>
   <div id="headlist"></div>
-  <hr>
-  <h2>Thumbnail</h2>
-  <div class="sub">Open the vertical clip. Pick a template, load picture options, then click a picture to put it in the window that is marked.</div>
-  <label for="ttpl">Template</label>
-  <select id="ttpl" size="3"></select>
-  <a class="link" id="ttplfolder">Open my thumbnail templates folder</a>
-  <input id="thead" type="text" placeholder="Headline (pick one above, or type it)" style="margin:10px 0 8px">
-  <label>Window to fill next</label>
-  <div id="tslots" class="chips"></div>
-  <button id="tpicksbtn" class="secondary">Show picture options from this clip</button>
-  <button id="tgrab" class="secondary">Use the frame under the playhead</button>
-  <div id="tpicks"></div>
-  <div id="tsliders"></div>
-  <canvas id="tcanvas" width="1080" height="1920" style="height:58vh;max-width:100%;border:1px solid #383838;border-radius:6px;display:none;margin:0 auto 8px"></canvas>
-  <button id="tsave" style="display:none">Save thumbnail</button>
-  <div id="tstat" class="status"></div>
   </div>
 
   <div class="tab" id="tab-captions">
@@ -186,6 +170,24 @@
   <button id="oAll" class="secondary">Apply to every caption in the sequence</button>
   <button id="oShadow" class="secondary">Apply the drop shadow (at the strength above) to every caption</button>
   <div id="oOut" class="status"></div>
+  </div>
+
+  <div class="tab" id="tab-thumb">
+  <h2>Thumbnail</h2>
+  <div class="sub">Open the vertical clip. Pick a template, load picture options, then click a picture to put it in the window that is marked.</div>
+  <label for="ttpl">Template</label>
+  <select id="ttpl" size="3"></select>
+  <a class="link" id="ttplfolder">Open my thumbnail templates folder</a>
+  <input id="thead" type="text" placeholder="Headline (type it, or press Thumbnail next to a suggested one on the Clips tab)" style="margin:10px 0 8px">
+  <label>Window to fill next</label>
+  <div id="tslots" class="chips"></div>
+  <button id="tpicksbtn" class="secondary">Show picture options from this clip</button>
+  <button id="tgrab" class="secondary">Use the frame under the playhead</button>
+  <div id="tpicks"></div>
+  <div id="tsliders"></div>
+  <canvas id="tcanvas" width="1080" height="1920" style="height:58vh;max-width:100%;border:1px solid #383838;border-radius:6px;display:none;margin:0 auto 8px"></canvas>
+  <button id="tsave" style="display:none">Save thumbnail</button>
+  <div id="tstat" class="status"></div>
   </div>
 
   <div class="tab" id="tab-settings">

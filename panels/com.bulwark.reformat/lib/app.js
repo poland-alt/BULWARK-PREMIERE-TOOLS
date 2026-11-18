@@ -504,7 +504,7 @@
             clip(true, h, function (e3) { b.textContent = e3 ? 'Failed' : 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
           });
           var tb = document.createElement('button'); tb.className = 'secondary'; tb.textContent = 'Thumbnail';
-          tb.addEventListener('click', function () { $('thead').value = h; drawThumb(); $('thead').scrollIntoView(); });
+          tb.addEventListener('click', function () { $('thead').value = h; window.bulwarkShowTab('thumb'); listTemplates(); drawThumb(); });
           row.appendChild(sp); row.appendChild(b); row.appendChild(tb); list.appendChild(row);
         });
         say(st, heads.length + ' headlines for "' + info.name + '".' + (more ? ' ' + more : ''), 'ok');
@@ -763,7 +763,7 @@
   });
   listTemplates();
   // templates may have been added, or the show changed on the Reframe tab, since the panel opened
-  document.querySelector('#tabs span[data-tab=clips]').addEventListener('click', listTemplates);
+  document.querySelector('#tabs span[data-tab=thumb]').addEventListener('click', listTemplates);
 
   // ---- 2. captions ----
   function shadowLabel() { $('shadowval').textContent = num('shadowamt', 0, 100, 50); }

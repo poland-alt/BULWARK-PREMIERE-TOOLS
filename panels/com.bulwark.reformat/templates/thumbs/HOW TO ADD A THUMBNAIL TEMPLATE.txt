@@ -13,12 +13,12 @@ WHERE TO PUT IT
 ---------------
 On your own Mac (kept through updates, only you see it):
   ~/Library/Application Support/Bulwark Tools/thumbnail templates/<any folder name>/
-  The Clips tab has a link, "Open my thumbnail templates folder", that takes you there.
+  The Thumbnail tab has a link, "Open my thumbnail templates folder", that takes you there.
 
 For the whole team (ships in the next update):
   send the folder to Jared; it goes in the panel under templates/thumbs/.
 
-Templates appear in the Thumbnail section's "Template" list. A template whose "show"
+Templates appear in the Thumbnail tab's "Template" list. A template whose "show"
 matches the show picked on the Reframe tab is offered first.
 
 template.json
