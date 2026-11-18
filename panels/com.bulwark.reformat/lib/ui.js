@@ -111,11 +111,15 @@
   function dress(el) {
     var text = el.textContent, busy = /…\s*(\d+:\d\d)?\s*$/.test(text) && !/\b(ok|err)\b/.test(el.className);
     var pct = /(\d{1,3})%/.exec(text);
-    if (busy) {
-      el.classList.add('busy');
-      if (pct) { el.classList.remove('spin'); el.style.setProperty('--pct', Math.min(100, +pct[1]) + '%'); }
-      else el.classList.add('spin');
-    } else { el.classList.remove('busy'); el.classList.remove('spin'); }
+    // Only ever write a class that is actually changing: the panel's older engine reports every classList call as a
+    // change, even one that changes nothing, and this function runs on changes, so an unguarded write loops forever.
+    function set(name, on) { if (el.classList.contains(name) !== on) { if (on) el.classList.add(name); else el.classList.remove(name); } }
+    set('busy', busy);
+    set('spin', busy && !pct);
+    if (busy && pct) {
+      var w = Math.min(100, +pct[1]) + '%';
+      if (el.style.getPropertyValue('--pct') !== w) el.style.setProperty('--pct', w);
+    }
   }
   var statusWatch = new MutationObserver(function (list) {
     var seen = [];
