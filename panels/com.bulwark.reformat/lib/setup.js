@@ -159,7 +159,7 @@
       try { cep.process.stdout(proc.data, function (text) {
         String(text).split('\n').forEach(function (line) {
           var p = line.split('|');
-          if (p[0] === 'read') say('Sync: reading the sound of ' + p.slice(1).join('|') + '…');
+          if (p[0] === 'read') say('Sync: lining up the recordings by their sound (about 15 seconds for a long show)…');
           else if (p[0] === 'match') say('Sync: lining up ' + p.slice(3).join('|') + ' (' + p[1] + ' of ' + p[2] + '): ' + Math.round((+p[1] - 0.5) / +p[2] * 100) + '%…');
         });
       }); } catch (e) {}

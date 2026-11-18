@@ -335,20 +335,28 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 dropAudio(main, wt);                    // its sound is the same voices again
             }
             if (masterItem) {
-                var mt = main.videoTracks.numTracks - 1, mc;
-                // the master's own clock runs from its first frame; person k starts at P[k].offset on it
-                if (base >= 0) {
-                    mc = place(main, mt, masterItem, 0);
-                    var a = main.audioTracks[Math.min(mt, main.audioTracks.numTracks - 1)], ac = lastClip(a);
-                    var len = mc.end.seconds - base;
-                    if (base > 0.0005 && len > 1) {
-                        mc.inPoint = secs(base); mc.end = secs(len);
+                // The master's own clock runs from its first frame; the earliest person starts at `base` on it. It goes
+                // on the top track, trimmed (or pushed later) so it lines up, and switched off. A sound-only master
+                // has no picture to place, so it goes straight onto the audio track.
+                var mt = main.videoTracks.numTracks - 1, at8 = Math.min(mt, main.audioTracks.numTracks - 1), aTrack = main.audioTracks[at8];
+                var startAt = base >= 0 ? 0 : -base, mc = null, hadA = aTrack.clips.numItems, ip0 = null, op0 = null;
+                try { mc = place(main, mt, masterItem, startAt); } catch (eNoPic) { mc = null; }
+                if (!mc) {
+                    try { ip0 = masterItem.getInPoint().seconds; op0 = masterItem.getOutPoint().seconds; masterItem.clearInPoint(); masterItem.clearOutPoint(); } catch (eMk) {}
+                    aTrack.overwriteClip(masterItem, startAt);
+                    if (aTrack.clips.numItems <= hadA) throw new Error("Premiere would not place the master recording \"" + masterItem.name + "\" in \"" + main.name + "\".");
+                }
+                var ac = aTrack.clips.numItems > hadA ? lastClip(aTrack) : null, ref = mc || ac;
+                if (base > 0.0005) {
+                    var len = ref.end.seconds - base;
+                    if (len > 1) {
+                        if (mc) { mc.inPoint = secs(base); mc.end = secs(len); }
                         if (ac) { ac.inPoint = secs(base); ac.end = secs(len); }
-                    } else if (base > 0.0005) notes.push("The master recording is shorter than the sync point, so it was left untrimmed: check its position by hand.");
-                } else mc = place(main, mt, masterItem, -base);
+                    } else notes.push("The master recording is shorter than the sync point, so it was left untrimmed: check its position by hand.");
+                }
                 try { main.videoTracks[mt].setMute(1); } catch (eM) {}
-                try { main.audioTracks[Math.min(mt, main.audioTracks.numTracks - 1)].setMute(1); } catch (eM2) {}
-                notes.push("The master recording is on V" + (mt + 1) + ", switched off, as a reference to check sync against.");
+                try { aTrack.setMute(1); } catch (eM2) {}
+                notes.push("The master recording is on " + (mc ? "V" + (mt + 1) + " / " : "") + "A" + (at8 + 1) + ", switched off, as a reference to check sync against.");
             }
 
             // 5. the voice tracks' effects, on any voice track the template did not already cover

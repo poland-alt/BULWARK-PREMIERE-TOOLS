@@ -187,32 +187,12 @@
        "1.00"
       ],
       [
-       "EQ Band 1 Bandwidth",
-       "0.00263276"
-      ],
-      [
-       "EQ Band 2 Bandwidth",
-       "0.010796637"
-      ],
-      [
-       "EQ Band 3 Bandwidth",
-       "0.021033887"
-      ],
-      [
-       "EQ Band 4 Bandwidth",
-       "0.174074635"
-      ],
-      [
-       "EQ Band 5 Bandwidth",
-       "0.696561396"
-      ],
-      [
        "High-Pass Filter Enable",
        "1.00"
       ],
       [
        "High-Pass Cutoff Frequency",
-       "0.002502085"
+       "0.003336113"
       ],
       [
        "High-Pass Slope",
