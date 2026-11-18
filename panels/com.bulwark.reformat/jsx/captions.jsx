@@ -83,6 +83,20 @@ $.bulwark.setOutline = function (width, scope) {
     $.bulwark.playhead = function () {
         try { var seq = app.project.activeSequence; return seq ? "OK|" + seq.sequenceID + "|" + (Number(seq.getPlayerPosition().ticks) / TICKS) : "ERR|"; } catch (e) { return "ERR|" + e; }
     };
+    // Saves the frame under the playhead as <basePath>.png (the whole 1080x1920 picture, graphics included)
+    $.bulwark.grabFrame = function (basePath) {
+        try {
+            var seq = app.project.activeSequence;
+            if (!seq) return "ERR|No sequence is open.";
+            app.enableQE();
+            var q = qe.project.getActiveSequence();
+            var old = new File(basePath + ".png");
+            if (old.exists) old.remove();
+            q.exportFramePNG(q.CTI.timecode, basePath);
+            var st = seq.getSettings();
+            return "OK|" + (Number(seq.getPlayerPosition().ticks) / TICKS) + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|" + clean(seq.name);
+        } catch (e) { return "ERR|" + e; }
+    };
     $.bulwark.jump = function (secs) {
         try { app.project.activeSequence.setPlayerPosition(String(Math.round(secs * TICKS))); return "OK"; } catch (e) { return "ERR|" + e; }
     };

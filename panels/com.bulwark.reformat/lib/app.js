@@ -503,11 +503,122 @@
           b.addEventListener('click', function () {
             clip(true, h, function (e3) { b.textContent = e3 ? 'Failed' : 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); });
           });
-          row.appendChild(sp); row.appendChild(b); list.appendChild(row);
+          var tb = document.createElement('button'); tb.className = 'secondary'; tb.textContent = 'Thumbnail';
+          tb.addEventListener('click', function () { $('thead').value = h; drawThumb(); $('thead').scrollIntoView(); });
+          row.appendChild(sp); row.appendChild(b); row.appendChild(tb); list.appendChild(row);
         });
         say(st, heads.length + ' headlines for "' + info.name + '".' + (more ? ' ' + more : ''), 'ok');
       });
     });
+  });
+
+  // ---- thumbnail: two pictures from the vertical clip, the orange frame, and the headline in its box ----
+  // Measured from the team's finished thumbnails (1080x1920): bands 0-239 and 1682-1920, windows 239-945 and 975-1682,
+  // divider 945-975, headline box from y 860, text in Special Gothic Condensed (cap height 0.722 of the size).
+  var TH = { W: 1080, H: 1920, top: [239, 706], bot: [975, 707], orange: '#D0461D', boxTop: 860, cap: 0.722 };
+  var thumb = { top: null, bot: null, bands: null, name: '' };       // top/bot: { img, kind }
+  function loadImage(path, cb) {
+    var r = cep.fs.readFile(path, cep.encoding.Base64);
+    if (r.err) return cb(null);
+    var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
+    img.src = 'data:image/png;base64,' + r.data;
+  }
+  function loadBands(cb) {
+    if (thumb.bands) return cb();
+    var a = cep.fs.readFile(EXT + '/templates/thumb-top.png.b64'), b = cep.fs.readFile(EXT + '/templates/thumb-bottom.png.b64'), n = 2, out = [];
+    if (a.err || b.err) return cb();
+    [a.data, b.data].forEach(function (d, i) {
+      var img = new Image(); img.onload = img.onerror = function () { out[i] = img; if (!--n) { thumb.bands = out; cb(); } };
+      img.src = 'data:image/png;base64,' + d.replace(/\s+/g, '');
+    });
+  }
+  // The part of a grabbed frame that belongs in a window: its own window on a 2-up / 3-UP shot, the person on a solo shot
+  function drawPicture(ctx, pic, which, win, shift) {
+    var img = pic.img, sx = 0, sy = 0, sw = img.width, sh = img.height, f = img.height / 1920, focus = 0.5;
+    if (pic.kind === 2) { sy = (which === 'top' ? 0 : 977) * f; sh = (which === 'top' ? 944 : 943) * f; }
+    else if (pic.kind === 3) { sy = (which === 'top' ? 0 : 1295) * f; sh = (which === 'top' ? 607 : 625) * f; }
+    else focus = 0.3;                                    // a solo shot: faces sit in the upper part of the frame
+    var scale = Math.max(TH.W / sw, win[1] / sh), cw = TH.W / scale, ch = win[1] / scale;     // the crop, in source pixels
+    var slackX = sw - cw, slackY = sh - ch;
+    var cy = sy + Math.max(0, Math.min(slackY, slackY * focus - shift / 100 * slackY * 0.5));
+    ctx.drawImage(img, sx + slackX / 2, cy, cw, ch, 0, win[0], TH.W, win[1]);
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+  }
+  function drawThumb() {
+    var cv = $('tcanvas'), ctx = cv.getContext('2d');
+    if (!thumb.top && !thumb.bot) return;
+    cv.style.display = ''; $('tsave').style.display = '';
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, TH.W, TH.H);
+    if (thumb.top) drawPicture(ctx, thumb.top, 'top', TH.top, +$('ttopy').value);
+    if (thumb.bot) drawPicture(ctx, thumb.bot, 'bot', TH.bot, +$('tboty').value);
+    ctx.fillStyle = TH.orange;
+    if (thumb.bands && thumb.bands[0].width) { ctx.drawImage(thumb.bands[0], 0, 0); ctx.drawImage(thumb.bands[1], 0, 1682); }
+    else { ctx.fillRect(0, 0, TH.W, 239); ctx.fillRect(0, 1682, TH.W, 238); }
+    ctx.fillStyle = TH.orange; ctx.fillRect(0, 945, TH.W, 30);
+    // headline: one line when it fits, otherwise two balanced lines, shrunk to fit the frame
+    var text = $('thead').value.replace(/\s+/g, ' ').replace(/^ | $/g, '').toUpperCase();
+    if (!text) return;
+    function font(px) { ctx.font = '600 ' + px + 'px "Special Gothic Condensed", "SpecialGothicCondensed-SemiBold", "Arial Narrow", sans-serif'; }
+    function width(t, px) { font(px); return ctx.measureText(t).width; }
+    var lines = [text], size = 96;
+    if (width(text, 96) > 890) {
+      var w = text.split(' '), best = null;
+      for (var i = 1; i < w.length; i++) {
+        var a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), wide = Math.max(width(a, 100), width(b, 100));
+        if (!best || wide < best.wide) best = { a: a, b: b, wide: wide };
+      }
+      if (best) { lines = [best.a, best.b]; size = Math.min(84, 928 / best.wide * 100); }
+      else size = 890 / width(text, 100) * 100;
+    }
+    size = Math.round(size);
+    var cap = TH.cap * size, widest = 0;
+    for (var k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
+    var one = lines.length === 1, padX = one ? 45 : 25, padTop = one ? 50 : 34, gap = 46, padBot = one ? 50 : 36;
+    var bw = Math.min(TH.W - 40, widest + 2 * padX), bh = padTop + cap * lines.length + gap * (lines.length - 1) + padBot;
+    ctx.fillStyle = TH.orange; roundRect(ctx, (TH.W - bw) / 2, TH.boxTop, bw, bh, 7); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; font(size);
+    for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], TH.W / 2, TH.boxTop + padTop + cap * (k + 1) + gap * k);
+  }
+  function grab(which) {
+    var st = $('tstat'), base = WORK + '/thumb-' + which;
+    cep.fs.makedir(WORK);
+    say(st, 'Grabbing the frame…');
+    jsx('$.bulwark.grabFrame(' + q(base) + ')', function (r) {
+      var p = r.split('|');
+      if (p[0] !== 'OK') return say(st, p.slice(1).join('|') || 'Premiere did not answer.', 'err');
+      if (+p[2] > +p[3]) return say(st, 'This sequence is 16x9. Open the vertical clip to make a thumbnail from it.', 'err');
+      var t = +p[1]; thumb.name = p.slice(4).join('|');
+      jsx('$.bulwark.shotMap()', function (rm) {
+        var pm = rm.split('|'), kind = pm[0] === 'OK' ? E.kindAt(E.shots(pm[1], pm[2]).segs, t) : 1, tries = 0;
+        (function wait() {                               // Premiere writes the file a moment after it answers
+          loadImage(base + '.png', function (img) {
+            if (!img) { if (++tries > 25) return say(st, 'Premiere did not save the frame. Try again.', 'err'); return setTimeout(wait, 200); }
+            thumb[which === 'top' ? 'top' : 'bot'] = { img: img, kind: kind };
+            $(which === 'top' ? 'ttopy' : 'tboty').value = 0;
+            loadBands(function () {
+              drawThumb();
+              say(st, (which === 'top' ? 'Top' : 'Bottom') + ' picture set from ' + E.clock(t) + (kind === 1 ? ' (solo shot)' : kind === 2 ? ' (2-up: its ' + (which === 'top' ? 'top' : 'bottom') + ' window)' : ' (3-UP: its ' + (which === 'top' ? 'top' : 'bottom') + ' window)') + '.', 'ok');
+            });
+          });
+        })();
+      });
+    });
+  }
+  $('ttop').addEventListener('click', function () { grab('top'); });
+  $('tbot').addEventListener('click', function () { grab('bot'); });
+  ['thead', 'ttopy', 'tboty'].forEach(function (id) { $(id).addEventListener('input', drawThumb); });
+  $('tsave').addEventListener('click', function () {
+    var st = $('tstat'), dir = WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails';
+    cep.fs.makedir(dir);
+    var name = (thumb.name || 'thumbnail').replace(/[\\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, ''), path = dir + '/' + name + ' thumbnail.png';
+    var data = $('tcanvas').toDataURL('image/png').split(',')[1];
+    if (cep.fs.writeFile(path, data, cep.encoding.Base64).err) return say(st, 'Could not save to ' + dir + '.', 'err');
+    st.className = 'status ok'; st.textContent = 'Saved to Desktop > Bulwark Thumbnails > ' + name + ' thumbnail.png  ';
+    var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
+    a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
   });
 
   // ---- 2. captions ----

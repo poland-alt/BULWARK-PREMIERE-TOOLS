@@ -27,7 +27,9 @@
         "lib/faces.js",
         "lib/update-source.js",
         "lib/updater.js",
-        "templates/Bulwark Word Fill Vertical.mogrt.b64"
+        "templates/Bulwark Word Fill Vertical.mogrt.b64",
+        "templates/thumb-bottom.png.b64",
+        "templates/thumb-top.png.b64"
       ]
     },
     "com.bulwark.captiontools": {
