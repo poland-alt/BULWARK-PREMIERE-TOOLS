@@ -821,7 +821,15 @@
     cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
     cv.title = label + ': click to use';
     cv.addEventListener('click', function () { setPicture({ img: img, source: true, own: true, kind: 1, region: 'whole' }); say($('tstat'), label + ' is in the thumbnail.', 'ok'); });
-    cell.appendChild(cv); grid.appendChild(cell);
+    // a small x in the corner takes it out of the list (a thumbnail already using it keeps it)
+    var x = document.createElement('span'); x.className = 'del'; x.textContent = '\u00d7'; x.title = 'Remove ' + label + ' from this list';
+    x.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      grid.removeChild(cell);
+      if (!grid.children.length) { var title = grid.previousSibling; if (title) box.removeChild(title); box.removeChild(grid); }
+      say($('tstat'), label + ' removed from Your images.');
+    });
+    cell.className = 'own'; cell.appendChild(cv); cell.appendChild(x); grid.appendChild(cell);
   }
   function useOwn(img, label) {
     if (!img || !img.width) return say($('tstat'), 'That file could not be opened as a picture.', 'err');
