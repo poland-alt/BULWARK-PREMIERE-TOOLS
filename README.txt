@@ -15,6 +15,8 @@ WHAT'S NEW IN v2.5
    layout. Double-click the slider to put the title back.
  - Thumbnail tab: "Title lines" sets the title to 1, 2 or 3 lines.
    Auto (the default) uses one line, or two when one is too long.
+ - Thumbnail tab: "Title size" slider makes the title smaller or bigger.
+   Double-click the slider to put it back.
  - Thumbnail tab: "Change folder..." picks where thumbnails and exported
    pictures are saved (any folder or drive). "Back to Desktop" returns
    to Desktop > Bulwark Thumbnails.

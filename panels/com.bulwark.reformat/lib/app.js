@@ -517,7 +517,7 @@
   // windows). Templates ship in the panel (templates/thumbs) and can be added on this Mac (Bulwark Tools/thumbnail
   // templates). See "HOW TO ADD A THUMBNAIL TEMPLATE.txt".
   var TPL_SHIPPED = EXT + '/templates/thumbs', TPL_LOCAL = WORK + '/thumbnail templates';
-  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0, headY: 0, headLines: 0 };      // headY: how far the title is moved down (up if negative), in thumbnail pixels
+  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0, headY: 0, headLines: 0, headScale: 1 };      // headY: how far the title is moved down (up if negative), in thumbnail pixels
        // pics[i]: { img, source, kind, region }
   function imageFrom(b64, cb) {
     var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
@@ -686,17 +686,22 @@
       if (best) { lines = [best.a, best.b]; size = Math.min(two.size, two.maxWidth / best.wide * 100); L = two; }
       else size = one.maxWidth / width(text, 100) * 100;
     } else if (width(text, one.size) > one.maxWidth) size = one.maxWidth / width(text, 100) * 100;      // kept to one line: shrink to fit
-    size = Math.round(size);
-    var cap = (H.capHeight || 0.722) * size, widest = 0, k, gap = L.gap || 0, top = H.top === undefined ? 860 : H.top;
+    // the Title size slider scales the text and the box around it together, up to the width of the picture
+    var widest = 0, k, zs = thumb.headScale || 1;
     for (k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
-    var bw = Math.min(W - 40, widest + 2 * L.padX), bh = L.padTop + cap * lines.length + gap * (lines.length - 1) + L.padBottom;
+    zs = Math.min(zs, (W - 40) / (widest + 2 * L.padX));
+    size = Math.round(size * zs); widest = 0;
+    for (k = 0; k < lines.length; k++) widest = Math.max(widest, width(lines[k], size));
+    var padX = L.padX * zs, padTop = L.padTop * zs, padBottom = L.padBottom * zs;
+    var cap = (H.capHeight || 0.722) * size, gap = (L.gap || 0) * zs, top = H.top === undefined ? 860 : H.top;
+    var bw = Math.min(W - 40, widest + 2 * padX), bh = padTop + cap * lines.length + gap * (lines.length - 1) + padBottom;
     // a layout can say where the title's middle goes (the one-picture layout: lower down, with no bar to sit on);
     // the Title up / down slider moves it from there, and it never leaves the picture
     if (t.headCentre !== undefined) top = t.headCentre - bh / 2;
     top = Math.max(0, Math.min(((t.size && t.size[1]) || 1920) - bh, top + (thumb.headY || 0)));
     if (H.box) { ctx.fillStyle = H.box; roundRect(ctx, (W - bw) / 2, top, bw, bh, H.radius || 0); ctx.fill(); }
     ctx.fillStyle = H.text || '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; font(size);
-    for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], W / 2, top + L.padTop + cap * (k + 1) + gap * k);
+    for (k = 0; k < lines.length; k++) ctx.fillText(lines[k], W / 2, top + padTop + cap * (k + 1) + gap * k);
   }
   function drawThumb() {
     var t = thumb.tpl, cv = $('tcanvas');
@@ -727,7 +732,7 @@
   // -- undo / redo: what is in each window, how each picture is placed, the template and the headline --
   var undoStack = [], redoStack = [];
   function snap() {
-    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value, headY: thumb.headY, headLines: thumb.headLines,
+    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value, headY: thumb.headY, headLines: thumb.headLines, headScale: thumb.headScale,
       pics: thumb.pics.map(function (p) { return p ? { p: p, mx: p.mx, my: p.my, zoom: p.zoom } : null; }) };
   }
   function undoButtons() { $('tundo').disabled = !undoStack.length; $('tredo').disabled = !redoStack.length; }
@@ -735,7 +740,7 @@
   function restore(st) {
     if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) pickTemplate(st.tpl);
     thumb.pics = st.pics.map(function (x) { if (!x) return undefined; x.p.mx = x.mx; x.p.my = x.my; x.p.zoom = x.zoom; return x.p; });
-    thumb.slot = st.slot; $('thead').value = st.head; thumb.headY = st.headY || 0; $('thy').value = thumb.headY; thumb.headLines = st.headLines || 0; markLines();
+    thumb.slot = st.slot; $('thead').value = st.head; thumb.headY = st.headY || 0; $('thy').value = thumb.headY; thumb.headLines = st.headLines || 0; markLines(); thumb.headScale = st.headScale || 1; $('thz').value = Math.round(thumb.headScale * 100);
     markSlots(); undoButtons();
   }
   function undo() { if (!undoStack.length) return; redoStack.push(snap()); restore(undoStack.pop()); say($('tstat'), 'Undone.'); }
@@ -851,7 +856,7 @@
   $('tfill').addEventListener('click', function () { autofillHeadline(true); });
   $('tnew').addEventListener('click', function () {
     remember();                                   // Cmd+Z brings the old one back
-    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0; thumb.headY = 0; $('thy').value = 0; thumb.headLines = 0; markLines();
+    thumb.pics = []; thumb.slot = 0; thumb.name = ''; thumb.pulls = 0; thumb.headY = 0; $('thy').value = 0; thumb.headLines = 0; markLines(); thumb.headScale = 1; $('thz').value = 100;
     $('thead').value = ''; $('tpicks').innerHTML = ''; $('tpicksbtn').textContent = 'Show picture options'; shownPicks = []; $('texport').style.display = 'none';
     markSlots();
     say($('tstat'), 'Cleared. Starting a thumbnail for the open clip…');
@@ -1076,6 +1081,10 @@
     c.addEventListener('click', function () { var n = +c.getAttribute('data-n'); if (n === thumb.headLines) return; remember(); thumb.headLines = n; markLines(); drawThumb(); });
   });
   markLines();
+  // the title's size, as a percentage of the size it would normally be
+  $('thz').addEventListener('mousedown', remember);
+  $('thz').addEventListener('input', function () { thumb.headScale = +$('thz').value / 100; drawThumb(); });
+  $('thz').addEventListener('dblclick', function () { remember(); thumb.headScale = 1; $('thz').value = 100; drawThumb(); });
   // the title's own slider: down to the right, up to the left
   $('thy').addEventListener('mousedown', remember);
   $('thy').addEventListener('input', function () { thumb.headY = +$('thy').value; drawThumb(); });
