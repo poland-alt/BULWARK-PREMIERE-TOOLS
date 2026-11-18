@@ -5,17 +5,17 @@
 <title>Bulwark Premiere Tools</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; padding: 16px; background: #1e1e1e; color: #e6e6e6; font: 13px/1.45 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
-  h1 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
-  label { display: block; margin: 0 0 6px; color: #b5b5b5; }
-  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
-  select { width: 100%; padding: 4px; outline: none; margin-bottom: 10px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 13px; }
-  select option { padding: 4px 6px; border-radius: 4px; }
+  body { margin: 0; padding: 10px; background: #1e1e1e; color: #e6e6e6; font: 12px/1.35 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  h1 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  label { display: block; margin: 0 0 3px; color: #b5b5b5; font-size: 11.5px; }
+  .row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+  select { width: 100%; padding: 2px; outline: none; margin-bottom: 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12px; }
+  select option { padding: 2px 5px; border-radius: 3px; }
   select option:checked { background: #3a6ff2 linear-gradient(0deg, #3a6ff2 0%, #3a6ff2 100%); color: #fff; }
-  label.check { display: flex; gap: 6px; align-items: center; margin: 0 0 12px; color: #d0d0d0; }
+  label.check { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; color: #d0d0d0; }
   .ver { color: #777; font-weight: 400; font-size: 11px; margin-left: 6px; }
-  button.small { padding: 5px 8px; font-size: 11px; font-weight: 500; margin: -4px 0 12px; }
-  hr { border: 0; border-top: 1px solid #383838; margin: 18px 0 14px; }
+  button.small { padding: 4px 8px; font-size: 11px; font-weight: 500; margin: -2px 0 6px; }
+  hr { border: 0; border-top: 1px solid #383838; margin: 10px 0 8px; }
   #rout { margin-top: 10px; color: #b5b5b5; white-space: pre-line; } #rout.ok { color: #7fd38a; } #rout.err { color: #ff7b7b; }
   #review { margin-top: 8px; color: #f0c674; white-space: pre-line; } #bout, #cout { white-space: pre-line; }
   #sections { margin: -2px 0 12px; }
@@ -26,26 +26,26 @@
   #people { margin: 0 0 6px; }
   #sections .chip, #people .chip { flex: 1; text-align: center; padding: 3px 0; font-size: 11px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
   #sections .chip.on, #people .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
-  input[type=number] { width: 80px; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; }
-  button { display: block; width: 100%; padding: 9px 10px; margin-bottom: 8px; background: #3a6ff2; color: #fff; border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  input[type=number] { width: 70px; padding: 3px 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12.5px; }
+  button { display: block; width: 100%; padding: 6px 8px; margin-bottom: 5px; background: #3a6ff2; color: #fff; border: 0; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
   button.secondary { background: #3a3a3a; }
   button:disabled { opacity: .5; cursor: default; }
   #out { margin-top: 10px; min-height: 36px; color: #b5b5b5; white-space: pre-line; }
   #out.ok { color: #7fd38a; } #out.err { color: #ff7b7b; }
-  .hint { color: #777; font-size: 11px; margin-top: 8px; }
-  #tabs { display: flex; gap: 2px; margin: 0 0 14px; border-bottom: 1px solid #383838; }
-  #tabs span { flex: 1 1 auto; text-align: center; padding: 7px 2px 6px; font-size: 11.5px; font-weight: 600; color: #9a9a9a; cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .hint { color: #777; font-size: 10.5px; margin-top: 4px; }
+  #tabs { display: flex; gap: 2px; margin: 0 0 8px; border-bottom: 1px solid #383838; }
+  #tabs span { flex: 1 1 auto; text-align: center; padding: 4px 2px 4px; font-size: 11.5px; font-weight: 600; color: #9a9a9a; cursor: pointer; user-select: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   #tabs span:hover { color: #e6e6e6; }
   #tabs span.on { color: #fff; border-bottom-color: #3a6ff2; }
   .tab { display: none; } .tab.on { display: block; }
-  h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: #fff; }
-  .sub { color: #999; font-size: 11.5px; margin: 0 0 10px; }
-  .fields { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  h2 { font-size: 12.5px; font-weight: 600; margin: 0 0 3px; color: #fff; }
+  .sub { color: #999; font-size: 11px; margin: 0 0 6px; }
+  .fields { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
   .fields label { margin: 0; font-size: 11.5px; }
   .fields input { display: block; margin-top: 3px; width: 64px; }
-  input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: 6px 8px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 13px; }
-  .status { margin: 2px 0 10px; min-height: 16px; color: #b5b5b5; white-space: pre-line; } .status.ok { color: #7fd38a; } .status.err { color: #ff7b7b; }
-  .clip { border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; margin-bottom: 8px; background: #252525; }
+  input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: 4px 6px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 12px; }
+  .status { margin: 2px 0 6px; min-height: 0; font-size: 11.5px; color: #b5b5b5; white-space: pre-line; } .status.ok { color: #7fd38a; } .status.err { color: #ff7b7b; }
+  .clip { border: 1px solid #3a3a3a; border-radius: 5px; padding: 6px; margin-bottom: 5px; background: #252525; }
   .clip .top { display: flex; gap: 8px; align-items: center; }
   .clip .top input[type=text] { flex: 1; padding: 4px 6px; }
   .clip .meta { color: #f0c674; font-size: 11.5px; margin: 6px 0 2px; }
@@ -57,28 +57,35 @@
   .manual .mstep { color: #d0d0d0; font-size: 12px; margin: 2px 0 10px; }
   .manual .mrow { display: flex; gap: 14px; }
   #caplist { max-height: 60vh; overflow-y: auto; margin-bottom: 10px; }
-  #caplist .cap { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+  #caplist .cap { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; }
   #caplist .cap span { flex: 0 0 38px; color: #888; font-size: 11px; text-align: right; }
-  #caplist .cap input { flex: 1; padding: 4px 6px; font-size: 12.5px; }
+  #caplist .cap input { flex: 1; padding: 2px 5px; font-size: 12px; }
   #caplist .cap.now span { color: #ffba2e; font-weight: 600; } #caplist .cap.now input { border-color: #ffba2e; background: #3a3320; }
   #caplist .cap input.saved { border-color: #4f9d5d; } #caplist .cap input.bad { border-color: #ff7b7b; }
-  .slider { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -6px 0 12px 22px; color: #b5b5b5; font-size: 11.5px; }
+  .slider { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -3px 0 6px 22px; color: #b5b5b5; font-size: 11.5px; }
   .slider input { flex: 1; }
   .slider b { flex: 0 0 26px; color: #fff; font-weight: 600; text-align: right; }
-  #headlist .head { display: flex; gap: 8px; align-items: center; padding: 6px 8px; margin-bottom: 4px; border: 1px solid #3a3a3a; border-radius: 6px; background: #252525; }
+  #headlist .head { display: flex; gap: 6px; align-items: center; padding: 3px 6px; margin-bottom: 3px; border: 1px solid #3a3a3a; border-radius: 6px; background: #252525; }
   #headlist .head span { flex: 1; color: #fff; font-weight: 600; }
   #headlist .head button { width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
-  #tpreview { position: sticky; top: 0; z-index: 5; background: #1e1e1e; padding: 0 0 8px; margin: 0 0 8px; border-bottom: 1px solid #383838; text-align: center; }
-  #tcanvas { cursor: pointer; height: 46vh; max-width: 100%; border: 1px solid #383838; border-radius: 6px; display: block; margin: 0 auto; }
+  #tpreview { position: sticky; top: 0; z-index: 5; background: #1e1e1e; padding: 0 0 6px; margin: 0 0 6px; border-bottom: 1px solid #383838; display: flex; gap: 8px; align-items: flex-start; }
+  #tcanvas { cursor: pointer; height: 30vh; min-height: 170px; flex: 0 0 auto; border: 1px solid #383838; border-radius: 4px; display: block; }
+  #tside { flex: 1; min-width: 0; }
+  #tside .chips { flex-wrap: wrap; margin-bottom: 4px; }
+  #tside .chips .chip { flex: 1 1 auto; padding: 2px 4px; font-size: 10.5px; }
+  #tadj { color: #fff; font-weight: 600; font-size: 11px; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini { color: #9a9a9a; font-size: 10.5px; line-height: 1.2; }
+  .mini input { display: block; width: 100%; margin: 0 0 3px; height: 14px; }
+  #tside button { padding: 5px 6px; font-size: 11.5px; margin: 4px 0 0; }
   .chips { display: flex; gap: 4px; margin: 0 0 10px; }
   .chips .chip { flex: 1; text-align: center; padding: 4px 0; font-size: 11.5px; background: #2b2b2b; border: 1px solid #444; border-radius: 5px; color: #b5b5b5; cursor: pointer; user-select: none; }
   .chips .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
   .chips .chip.filled:not(.on) { border-color: #4f9d5d; color: #d0d0d0; }
-  #tpicks .who { color: #fff; font-weight: 600; font-size: 12px; margin: 8px 0 4px; }
-  #tpicks .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  #tpicks .who { color: #fff; font-weight: 600; font-size: 11px; margin: 5px 0 2px; }
+  #tpicks .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 3px; }
   #tpicks canvas { width: 100%; border: 1px solid #383838; border-radius: 4px; cursor: pointer; display: block; }
   #tpicks canvas:hover { border-color: #3a6ff2; }
-  #tpicks .tm { color: #888; font-size: 10.5px; text-align: center; margin-top: 1px; }
+  #tpicks .tm { display: none; }
   a.link { color: #8fb0ff; cursor: pointer; font-size: 11.5px; text-decoration: underline; }
 </style>
 </head>
@@ -177,27 +184,24 @@
   <div class="tab" id="tab-thumb">
   <div id="tpreview">
     <canvas id="tcanvas" width="1080" height="1920"></canvas>
+    <div id="tside">
+      <div id="tslots" class="chips"></div>
+      <div id="tadj"></div>
+      <div class="mini"><span>Left / right</span><input id="tmx" type="range" min="-100" max="100" step="2" value="0"></div>
+      <div class="mini"><span>Up / down</span><input id="tmy" type="range" min="-100" max="100" step="2" value="0"></div>
+      <div class="mini"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
+      <button id="tsave">Save thumbnail</button>
+    </div>
   </div>
-  <input id="thead" type="text" placeholder="Headline (type it, or press Thumbnail next to a suggested one on the Clips tab)" style="margin:0 0 8px">
-  <label>Window to fill next (or click it in the preview)</label>
-  <div id="tslots" class="chips"></div>
-  <div id="tsliders">
-    <div class="slider" style="margin-left:0"><span id="tadj" style="flex:0 0 100%;color:#fff;font-weight:600"></span></div>
-    <div class="slider" style="margin-left:0"><span>Left / right</span><input id="tmx" type="range" min="-100" max="100" step="2" value="0"></div>
-    <div class="slider" style="margin-left:0"><span>Up / down</span><input id="tmy" type="range" min="-100" max="100" step="2" value="0"></div>
-    <div class="slider" style="margin-left:0"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
-    <div class="hint" style="margin:-6px 0 10px">You can also drag a picture in the preview to move it.</div>
-  </div>
-  <button id="tsave">Save thumbnail</button>
+  <input id="thead" type="text" placeholder="Headline">
+  <div class="row" style="margin:6px 0"><button id="tpicksbtn" class="secondary" style="margin:0">Show picture options</button><button id="tgrab" class="secondary" style="margin:0">Use playhead frame</button></div>
   <div id="tstat" class="status"></div>
-  <button id="tpicksbtn" class="secondary">Show picture options from this clip</button>
-  <button id="tgrab" class="secondary">Use the frame under the playhead</button>
   <div id="tpicks"></div>
   <hr>
   <label for="ttpl">Template</label>
   <select id="ttpl" size="3"></select>
   <a class="link" id="ttplfolder">Open my thumbnail templates folder</a>
-  <div class="hint">Open the vertical clip. Load picture options, then click a picture to put it in the window that is marked. Double-click a picture to jump the playhead to it.</div>
+  <div class="hint">Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. Drag a picture in the preview to move it. Double-click a picture option to jump the playhead there.</div>
   </div>
 
   <div class="tab" id="tab-settings">

@@ -577,7 +577,7 @@
     for (var i = 0; i < c.length; i++) c[i].className = 'chip' + (i === thumb.slot ? ' on' : '') + (thumb.pics[i] ? ' filled' : '');
     // the sliders belong to the marked window's picture
     var pic = thumb.pics[thumb.slot], w = thumb.tpl && thumb.tpl.windows[thumb.slot];
-    $('tadj').textContent = 'Adjust: ' + (w ? (w.name || 'Window ' + (thumb.slot + 1)) : '') + (pic ? '' : ' (no picture yet)');
+    $('tadj').textContent = (w ? (w.name || 'Window ' + (thumb.slot + 1)) : '') + (pic ? '' : ': empty');
     $('tmx').value = pic ? pic.mx : 0; $('tmy').value = pic ? pic.my : 0; $('tz').value = pic ? Math.round(pic.zoom * 100) : 100;
     $('tmx').disabled = $('tmy').disabled = $('tz').disabled = !pic;
     drawThumb();
@@ -727,7 +727,7 @@
         var lines = r.split('\n');
         if (lines[0] !== 'OK') return say(st, r.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err');
         lines.shift();
-        thumb.pulls++; $('tpicksbtn').textContent = 'Give me more options';
+        thumb.pulls++; $('tpicksbtn').textContent = 'More options';
         var groups = {}, order = [], left = lines.length, shown = 0;
         lines.forEach(function (line) {
           var f = line.split('\t'), who = f[1] || 'Picture';
@@ -743,7 +743,7 @@
               var cv = document.createElement('canvas'), tm = document.createElement('div');
               cv.width = 320; cv.height = Math.round(320 * reg[1] / img.width);
               cv.getContext('2d').drawImage(img, 0, reg[0], img.width, reg[1], 0, 0, cv.width, cv.height);
-              cv.title = 'Click to put this in the marked window';
+              cv.title = who + ' at ' + E.clock(+f[2]) + ': click to use, double-click to go there';
               cv.addEventListener('click', function () { setPicture(pic); say(st, who + ' at ' + E.clock(+f[2]) + ' is in the thumbnail.', 'ok'); });
               cv.addEventListener('dblclick', function () { jsx('$.bulwark.jump(' + (+f[2]) + ')', function () {}); });
               tm.className = 'tm'; tm.textContent = E.clock(+f[2]);
