@@ -8,6 +8,9 @@ WHAT'S NEW IN v2.5
    option as a full-size PNG, or point at one picture and click the
    arrow in its corner to save just that one. They go to
    Desktop > Bulwark Thumbnails > "<clip name> pictures".
+ - Thumbnail tab: "Change folder..." picks where thumbnails and exported
+   pictures are saved (any folder or drive). "Back to Desktop" returns
+   to Desktop > Bulwark Thumbnails.
 
 WHAT'S NEW IN v2.4
 ------------------

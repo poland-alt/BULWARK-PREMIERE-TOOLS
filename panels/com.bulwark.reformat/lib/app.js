@@ -946,7 +946,32 @@
   // -- the picture options as files: each at full size, into Desktop > Bulwark Thumbnails > "<clip> pictures" --
   var shownPicks = [];
   function cleanName(n) { return String(n || '').replace(/[\\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^ | $/g, ''); }
-  function picksDir() { return WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails/' + (cleanName(thumb.name) || 'Clip') + ' pictures'; }
+  // where thumbnails and exported pictures are saved: Desktop > Bulwark Thumbnails, or a folder the user chose
+  var HOME = WORK.split('/Library/')[0], SAVE_DEFAULT = HOME + '/Desktop/Bulwark Thumbnails';
+  function saveRoot() {
+    var d = store('bulwark_thumbdir');
+    if (d && !cep.fs.stat(d).err) return d;      // a chosen folder that has since gone (a drive unplugged) falls back to the Desktop one
+    cep.fs.makedir(SAVE_DEFAULT); return SAVE_DEFAULT;
+  }
+  function showPath(p) { return (p.indexOf(HOME + '/') === 0 ? p.slice(HOME.length + 1) : p.replace(/^\/Volumes\//, '').replace(/^\//, '')).split('/').join(' > '); }
+  function showDest() {
+    var d = saveRoot(), custom = d !== SAVE_DEFAULT;
+    $('tdestpath').textContent = showPath(d); $('tdestpath').title = d;
+    $('tdestreset').style.display = custom ? '' : 'none';
+  }
+  $('tdestpick').addEventListener('click', function () {
+    var r = cep.fs.showOpenDialogEx(false, true, 'Choose where thumbnails and exported pictures are saved', saveRoot());
+    if (r.err || !r.data || !r.data.length) return;
+    store('bulwark_thumbdir', r.data[0]); showDest();
+    say($('tstat'), 'Thumbnails and exported pictures now save to ' + showPath(r.data[0]) + '.', 'ok');
+  });
+  $('tdestreset').addEventListener('click', function () {
+    try { localStorage.removeItem('bulwark_thumbdir'); } catch (e) {}
+    showDest(); say($('tstat'), 'Back to saving in ' + showPath(SAVE_DEFAULT) + '.', 'ok');
+  });
+  $('tdestpath').addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', saveRoot()); });
+  showDest();
+  function picksDir() { return saveRoot() + '/' + (cleanName(thumb.name) || 'Clip') + ' pictures'; }
   function savePick(p, dir) {                    // p: { pic, who, t }; returns the path, or '' if it could not be written
     var img = p.pic.img, reg = regionOf(p.pic), cv = document.createElement('canvas');
     cv.width = img.width; cv.height = Math.round(reg[1]);
@@ -959,7 +984,7 @@
     a.addEventListener('click', function () { if (reveal) cep.process.createProcess('/usr/bin/open', '-R', path); else cep.process.createProcess('/usr/bin/open', path); });
     st.appendChild(a);
   }
-  function makePicksDir() { var d = picksDir(); cep.fs.makedir(d.split('/').slice(0, -1).join('/')); cep.fs.makedir(d); return d; }
+  function makePicksDir() { var d = picksDir(); cep.fs.makedir(d); return d; }
   $('texport').addEventListener('click', function () {
     var st = $('tstat'), list = shownPicks.slice(), dir, i = 0, ok = 0;
     if (!list.length) return say(st, 'Press "Show picture options" first.', 'err');
@@ -968,7 +993,7 @@
       if (i >= list.length) {
         $('texport').disabled = false;
         if (!ok) return say(st, 'Could not save to ' + dir + '.', 'err');
-        st.className = 'status ok'; st.textContent = ok + ' pictures saved to Desktop > Bulwark Thumbnails > ' + dir.split('/').pop() + '  ';
+        st.className = 'status ok'; st.textContent = ok + ' pictures saved to ' + showPath(dir) + '  ';
         return finderLink(st, dir, false);
       }
       say(st, 'Saving the pictures: ' + Math.round(i / list.length * 100) + '%…');
@@ -1019,7 +1044,7 @@
                 ev.stopPropagation();
                 var path = savePick(entry, makePicksDir());
                 if (!path) return say(st, 'Could not save that picture.', 'err');
-                st.className = 'status ok'; st.textContent = 'Saved ' + path.split('/').pop() + ' to Desktop > Bulwark Thumbnails > ' + path.split('/').slice(-2)[0] + '  ';
+                st.className = 'status ok'; st.textContent = 'Saved ' + path.split('/').pop() + ' to ' + showPath(path.split('/').slice(0, -1).join('/')) + '  ';
                 finderLink(st, path, true);
               });
               cell.className = 'pick'; cell.appendChild(cv); cell.appendChild(tm); cell.appendChild(dl); shown++;
@@ -1083,12 +1108,11 @@
     say($('tstat'), 'Put a template folder in there, then reopen the panel (or switch tabs and back) to see it in the list.');
   });
   $('tsave').addEventListener('click', function () {
-    var st = $('tstat'), dir = WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails';
-    cep.fs.makedir(dir);
+    var st = $('tstat'), dir = saveRoot();
     var name = cleanName(thumb.name) || 'thumbnail', path = dir + '/' + name + ' thumbnail.png';
     var data = $('tcanvas').toDataURL('image/png').split(',')[1];
     if (cep.fs.writeFile(path, data, cep.encoding.Base64).err) return say(st, 'Could not save to ' + dir + '.', 'err');
-    st.className = 'status ok'; st.textContent = 'Saved to Desktop > Bulwark Thumbnails > ' + name + ' thumbnail.png  ';
+    st.className = 'status ok'; st.textContent = 'Saved to ' + showPath(dir) + ' > ' + name + ' thumbnail.png  ';
     var a = document.createElement('a'); a.className = 'link'; a.textContent = 'Show in Finder';
     a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
   });
@@ -1115,6 +1139,8 @@
   $('shadowamt').addEventListener('input', shadowLabel);
   $('resetall').addEventListener('click', function () {
     for (var id in DEFAULTS) try { localStorage.removeItem('bulwark_' + id); } catch (e) {}
+    try { localStorage.removeItem('bulwark_thumbdir'); } catch (e) {}
+    showDest();
     loadSettings(); say($('updstat'), 'Settings are back to the defaults.', 'ok');
   });
   $('cleartx').addEventListener('click', function () {
