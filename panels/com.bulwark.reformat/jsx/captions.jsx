@@ -259,7 +259,8 @@ $.bulwark.setOutline = function (width, scope) {
     // The headline already on a vertical clip is a text graphic whose words Premiere will not hand to a script.
     // So two frames are saved for the panel to read: one with only that graphic's text showing (<base>_a.png), one
     // with no text at all (<base>_b.png). The words on the first and not the second are the headline.
-    // Returns "OK|a|b|sequence name", or "NONE|sequence name" when the clip has no headline graphic.
+    // Returns "OK|a|b|how far down the frame the text sits (0-1, or -1)|sequence name", or "NONE|sequence name"
+    // when the clip has no headline graphic.
     $.bulwark.headlineFrames = function (base) {
         var changed = [];
         try {
@@ -278,7 +279,13 @@ $.bulwark.setOutline = function (width, scope) {
                 }
             }
             if (!best) return "NONE|" + clean(seq.name);
-            var t = Math.min(best.start.seconds + (best.end.seconds - best.start.seconds) / 2, best.start.seconds + 2);
+            var t = Math.min(best.start.seconds + (best.end.seconds - best.start.seconds) / 2, best.start.seconds + 2), posY = -1;
+            for (var a2 = 0; a2 < best.components.numItems; a2++) {
+                if (best.components[a2].displayName !== "Text") continue;
+                var tp = best.components[a2].properties;
+                for (var p2 = 0; p2 < tp.numItems; p2++) if (tp[p2].displayName === "Position") { try { var pv = tp[p2].getValue(); if (pv && pv.length === 2) posY = Number(pv[1]); } catch (e5) {} break; }
+                break;
+            }
             app.enableQE();
             var q = qe.project.getActiveSequence(), tc = tcOf(seq, t), i;
             for (i = 0; i < 2; i++) { var f = new File(base + (i ? "_b" : "_a") + ".png"); if (f.exists) f.remove(); }
@@ -289,7 +296,7 @@ $.bulwark.setOutline = function (width, scope) {
             best.disabled = true;
             q.exportFramePNG(tc, base + "_b");
             textOn(others); changed = [];
-            return "OK|" + base + "_a.png|" + base + "_b.png|" + clean(seq.name);
+            return "OK|" + base + "_a.png|" + base + "_b.png|" + posY + "|" + clean(seq.name);
         } catch (e) { textOn(changed); return "ERR|" + e + (e.line ? " (line " + e.line + ")" : ""); }
     };
     $.bulwark.jump = function (secs) {

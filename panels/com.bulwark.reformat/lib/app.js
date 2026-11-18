@@ -744,19 +744,38 @@
         function fin() {
           if (done) return; done = true;
           cep.fs.deleteFile(p[1]); cep.fs.deleteFile(p[2]);
-          var withHead = [], without = {}, lines = buf.split('\n');
+          var withHead = [], without = [], lines = buf.split('\n'), posY = +p[3];
           function key(t) { return String(t).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+          // the same words, allowing for a letter read differently between the two frames
+          function same(x, y) {
+            if (!x || !y) return false;
+            if (x === y) return true;
+            var best = 0, prev = [], i, j;
+            for (i = 0; i <= y.length; i++) prev.push(0);
+            for (i = 1; i <= x.length; i++) {
+              var cur = [0];
+              for (j = 1; j <= y.length; j++) { cur.push(x.charAt(i - 1) === y.charAt(j - 1) ? prev[j - 1] + 1 : 0); if (cur[j] > best) best = cur[j]; }
+              prev = cur;
+            }
+            return best >= 4 && best >= 0.6 * Math.min(x.length, y.length);
+          }
           lines.forEach(function (l) {
             var f = l.split('|');
             if (f.length < 5 || f[1] === 'ERR') return;
-            if (f[0] === p[2]) without[key(f.slice(4).join('|'))] = 1; else withHead.push({ y: +f[1], h: +f[2], t: f.slice(4).join('|') });
+            var o = { y: +f[1], h: +f[2], x: +f[3], t: f.slice(4).join('|') };
+            if (f[0] === p[2]) without.push(key(o.t)); else withHead.push(o);
           });
-          var own = withHead.filter(function (x) { return key(x.t).length > 1 && !without[key(x.t)]; });
+          var own = withHead.filter(function (o) {
+            var k = key(o.t);
+            if (k.length < 2) return false;
+            for (var i = 0; i < without.length; i++) if (same(k, without[i])) return false;      // it is there without the headline too: background
+            if (Math.abs(o.x - 0.5) > 0.12) return false;                                          // headlines sit across the middle
+            return posY < 0 || Math.abs(o.y - posY) < 0.14;                                        // and where the graphic's text is placed
+          });
           if (!own.length) return cb(fromName(name), 'name', name);
-          // the headline is the big text; stray small words that flicker between the two frames are not it
-          var big = Math.max.apply(null, own.map(function (x) { return x.h; }));
-          own = own.filter(function (x) { return x.h > big * 0.6; }).sort(function (a, b) { return a.y - b.y; });
-          cb(own.map(function (x) { return x.t; }).join(' ').replace(/\s+/g, ' '), 'clip', name);
+          var big = Math.max.apply(null, own.map(function (o) { return o.h; }));
+          own = own.filter(function (o) { return o.h > big * 0.55; }).sort(function (a, b) { return a.y - b.y; });
+          cb(own.map(function (o) { return o.t; }).join(' ').replace(/\s+/g, ' '), 'clip', name);
         }
         if (proc.err) return cb(fromName(name), 'name', name);
         cep.process.stdout(proc.data, function (d) { buf += d; });
