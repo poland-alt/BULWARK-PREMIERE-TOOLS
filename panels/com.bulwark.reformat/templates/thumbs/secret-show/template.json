@@ -1,0 +1,117 @@
+{
+  "name": "Secret Show",
+  "show": "",
+  "size": [
+    1080,
+    1920
+  ],
+  "bands": [
+    {
+      "file": "top.jpg",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "file": "bottom.jpg",
+      "x": 0,
+      "y": 1681
+    }
+  ],
+  "layouts": [
+    {
+      "name": "2 pictures",
+      "windows": [
+        {
+          "name": "Top",
+          "x": 0,
+          "y": 243,
+          "w": 1080,
+          "h": 702
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 706
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#1A1A1B"
+        }
+      ]
+    },
+    {
+      "name": "3 pictures",
+      "windows": [
+        {
+          "name": "Top left",
+          "x": 0,
+          "y": 243,
+          "w": 525,
+          "h": 702
+        },
+        {
+          "name": "Top right",
+          "x": 556,
+          "y": 243,
+          "w": 524,
+          "h": 702
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 706
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#1A1A1B"
+        },
+        {
+          "x": 525,
+          "y": 243,
+          "w": 31,
+          "h": 702,
+          "color": "#1A1A1B"
+        }
+      ]
+    }
+  ],
+  "headline": {
+    "top": 860,
+    "box": "#1A1A1B",
+    "text": "#FFFFFF",
+    "font": "Special Gothic Condensed",
+    "weight": 600,
+    "capHeight": 0.722,
+    "uppercase": true,
+    "radius": 7,
+    "oneLine": {
+      "size": 96,
+      "maxWidth": 890,
+      "padX": 45,
+      "padTop": 50,
+      "padBottom": 50
+    },
+    "twoLines": {
+      "size": 84,
+      "maxWidth": 928,
+      "padX": 25,
+      "padTop": 34,
+      "padBottom": 36,
+      "gap": 46
+    }
+  }
+}

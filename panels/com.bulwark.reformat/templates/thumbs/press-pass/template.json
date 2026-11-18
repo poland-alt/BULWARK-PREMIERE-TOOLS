@@ -1,0 +1,117 @@
+{
+  "name": "Press Pass",
+  "show": "9x16 Press Pass",
+  "size": [
+    1080,
+    1920
+  ],
+  "bands": [
+    {
+      "file": "top.jpg",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "file": "bottom.jpg",
+      "x": 0,
+      "y": 1679
+    }
+  ],
+  "layouts": [
+    {
+      "name": "2 pictures",
+      "windows": [
+        {
+          "name": "Top",
+          "x": 0,
+          "y": 242,
+          "w": 1080,
+          "h": 703
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 704
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#56493F"
+        }
+      ]
+    },
+    {
+      "name": "3 pictures",
+      "windows": [
+        {
+          "name": "Top left",
+          "x": 0,
+          "y": 242,
+          "w": 540,
+          "h": 703
+        },
+        {
+          "name": "Top right",
+          "x": 570,
+          "y": 242,
+          "w": 510,
+          "h": 703
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 704
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#56493F"
+        },
+        {
+          "x": 540,
+          "y": 242,
+          "w": 30,
+          "h": 703,
+          "color": "#56493F"
+        }
+      ]
+    }
+  ],
+  "headline": {
+    "top": 860,
+    "box": "#56493F",
+    "text": "#FFFFFF",
+    "font": "Special Gothic Condensed",
+    "weight": 600,
+    "capHeight": 0.722,
+    "uppercase": true,
+    "radius": 7,
+    "oneLine": {
+      "size": 96,
+      "maxWidth": 890,
+      "padX": 45,
+      "padTop": 50,
+      "padBottom": 50
+    },
+    "twoLines": {
+      "size": 84,
+      "maxWidth": 928,
+      "padX": 25,
+      "padTop": 34,
+      "padBottom": 36,
+      "gap": 46
+    }
+  }
+}

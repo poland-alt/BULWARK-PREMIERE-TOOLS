@@ -1,0 +1,117 @@
+{
+  "name": "Illegal News",
+  "show": "9x16 Illegal News",
+  "size": [
+    1080,
+    1920
+  ],
+  "bands": [
+    {
+      "file": "top.jpg",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "file": "bottom.jpg",
+      "x": 0,
+      "y": 1682
+    }
+  ],
+  "layouts": [
+    {
+      "name": "2 pictures",
+      "windows": [
+        {
+          "name": "Top",
+          "x": 0,
+          "y": 239,
+          "w": 1080,
+          "h": 706
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 707
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#061366"
+        }
+      ]
+    },
+    {
+      "name": "3 pictures",
+      "windows": [
+        {
+          "name": "Top left",
+          "x": 0,
+          "y": 239,
+          "w": 525,
+          "h": 706
+        },
+        {
+          "name": "Top right",
+          "x": 556,
+          "y": 239,
+          "w": 524,
+          "h": 706
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 707
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#061366"
+        },
+        {
+          "x": 525,
+          "y": 239,
+          "w": 31,
+          "h": 706,
+          "color": "#061366"
+        }
+      ]
+    }
+  ],
+  "headline": {
+    "top": 860,
+    "box": "#061366",
+    "text": "#FFFFFF",
+    "font": "Special Gothic Condensed",
+    "weight": 600,
+    "capHeight": 0.722,
+    "uppercase": true,
+    "radius": 7,
+    "oneLine": {
+      "size": 96,
+      "maxWidth": 890,
+      "padX": 45,
+      "padTop": 50,
+      "padBottom": 50
+    },
+    "twoLines": {
+      "size": 84,
+      "maxWidth": 928,
+      "padX": 25,
+      "padTop": 34,
+      "padBottom": 36,
+      "gap": 46
+    }
+  }
+}

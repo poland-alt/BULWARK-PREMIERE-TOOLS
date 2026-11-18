@@ -527,6 +527,7 @@
     if (r.err || !r.data) return cb(null);
     imageFrom(r.data, cb);
   }
+  // One folder can hold several layouts of the same show's frame (2 pictures, 3 pictures): each becomes an entry.
   function readTemplates() {
     var out = [];
     [TPL_SHIPPED, TPL_LOCAL].forEach(function (root, local) {
@@ -536,22 +537,41 @@
         var j = cep.fs.readFile(root + '/' + id + '/template.json');
         if (j.err) return;
         try {
-          var t = JSON.parse(j.data);
-          if (!t.windows || !t.windows.length) return;
-          t.id = (local ? 'mine/' : '') + id; t.dir = root + '/' + id; t.local = !!local;
-          t.name = String(t.name || id) + (local ? ' (mine)' : '');
-          out.push(t);
+          var t = JSON.parse(j.data), group = String(t.name || id) + (local ? ' (mine)' : '');
+          var layouts = t.layouts && t.layouts.length ? t.layouts : [{ name: '', windows: t.windows, dividers: t.dividers }];
+          layouts.forEach(function (L, i) {
+            if (!L.windows || !L.windows.length) return;
+            out.push({ id: (local ? 'mine/' : '') + id + (t.layouts ? '#' + i : ''), dir: root + '/' + id, local: !!local, group: group, layout: L.name || (L.windows.length + ' pictures'),
+              name: group + (L.name ? ': ' + L.name : ''), show: t.show || '', size: t.size, windows: L.windows, dividers: L.dividers || [], headline: t.headline, overlay: t.overlay, bands: t.bands || [] });
+          });
         } catch (e) {}
       });
     });
     return out;
   }
+  // The artwork of a template folder, loaded once: an overlay with see-through windows, and / or bands placed by position.
+  var artCache = {};
+  function fileImage(dir, name, cb) {
+    var asText = cep.fs.readFile(dir + '/' + name + '.b64');
+    if (!asText.err && asText.data) {
+      var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
+      img.src = 'data:image/' + (/\.jpe?g$/i.test(name) ? 'jpeg' : 'png') + ';base64,' + asText.data.replace(/\s+/g, '');
+      return;
+    }
+    var r = cep.fs.readFile(dir + '/' + name, cep.encoding.Base64);
+    if (r.err || !r.data) return cb(null);
+    var im2 = new Image(); im2.onload = function () { cb(im2); }; im2.onerror = function () { cb(null); };
+    im2.src = 'data:image/' + (/\.jpe?g$/i.test(name) ? 'jpeg' : 'png') + ';base64,' + r.data;
+  }
   function overlayOf(t, cb) {
-    if (t.overlayImg !== undefined) return cb(t.overlayImg);
-    var name = t.overlay || 'overlay.png', asText = cep.fs.readFile(t.dir + '/' + name + '.b64');
-    function done(img) { t.overlayImg = img; cb(img); }
-    if (!asText.err && asText.data) return imageFrom(asText.data, done);
-    loadImage(t.dir + '/' + name, done);
+    if (artCache[t.dir]) { t.art = artCache[t.dir]; return cb(); }
+    var art = { overlay: null, bands: [] }, jobs = [];
+    if (t.overlay) jobs.push(function (done) { fileImage(t.dir, t.overlay, function (img) { art.overlay = img; done(); }); });
+    (t.bands || []).forEach(function (b) { jobs.push(function (done) { fileImage(t.dir, b.file, function (img) { if (img) art.bands.push({ img: img, x: b.x || 0, y: b.y || 0 }); done(); }); }); });
+    if (!t.overlay && !(t.bands || []).length) jobs.push(function (done) { fileImage(t.dir, 'overlay.png', function (img) { art.overlay = img; done(); }); });
+    var left = jobs.length;
+    if (!left) { artCache[t.dir] = t.art = art; return cb(); }
+    jobs.forEach(function (j) { j(function () { if (!--left) { artCache[t.dir] = t.art = art; cb(); } }); });
   }
   function showOnReframe() { try { return $('show').value || ''; } catch (e) { return ''; } }
   function pickTemplate(id) {
@@ -561,6 +581,14 @@
     if (!t) return;
     var same = thumb.tpl && thumb.tpl.windows.length === t.windows.length;
     thumb.tpl = t; store('bulwark_thumbtpl', t.id);
+    // the show's other layouts, as chips
+    var lc = $('tlayouts'); lc.innerHTML = '';
+    thumb.tpls.filter(function (x) { return x.group === t.group; }).forEach(function (x) {
+      var c = document.createElement('span'); c.className = 'chip' + (x.id === t.id ? ' on' : ''); c.textContent = x.layout;
+      c.addEventListener('click', function () { if (x.id !== thumb.tpl.id) { remember(); pickTemplate(x.id); } });
+      lc.appendChild(c);
+    });
+    $('ttpl').value = t.group;
     if (!same) { thumb.pics = thumb.pics.slice(0, t.windows.length); thumb.slot = 0; }
     // a chip per window
     var chips = $('tslots'); chips.innerHTML = '';
@@ -584,16 +612,22 @@
   }
   function listTemplates() {
     thumb.tpls = readTemplates();
-    var show = showOnReframe(), saved = store('bulwark_thumbtpl'), first = null, items = [];
-    // the show picked on the Reframe tab comes first
-    thumb.tpls.sort(function (x, y) { return ((y.show === show && show ? 1 : 0) - (x.show === show && show ? 1 : 0)) || (x.local - y.local) || (x.name < y.name ? -1 : 1); });
-    thumb.tpls.forEach(function (t) { items.push([t.id, t.name + (t.show ? '  [' + t.show.replace(/^9x16\s+/i, '') + ']' : '')]); if (!first && (t.show === show || !t.show)) first = t.id; });
-    var want = saved, ok = false;
-    for (var i = 0; i < thumb.tpls.length; i++) if (thumb.tpls[i].id === want) ok = true;
-    if (!ok) want = first || (thumb.tpls[0] && thumb.tpls[0].id);
-    fillSelect($('ttpl'), items, want);
-    $('ttpl').size = Math.max(2, Math.min(6, items.length));
+    var show = showOnReframe(), saved = store('bulwark_thumbtpl'), groups = [], seen = {}, first = null;
+    // the show picked on the Reframe tab comes first, then the rest by name
+    thumb.tpls.sort(function (x, y) { return ((y.show === show && show ? 1 : 0) - (x.show === show && show ? 1 : 0)) || (x.local - y.local) || (x.group < y.group ? -1 : x.group > y.group ? 1 : 0) || (x.windows.length - y.windows.length); });
+    thumb.tpls.forEach(function (t) { if (!seen[t.group]) { seen[t.group] = 1; groups.push([t.group, t.group]); } if (!first && t.show === show && show) first = t.id; });
+    var want = null;
+    for (var i = 0; i < thumb.tpls.length; i++) if (thumb.tpls[i].id === saved) want = saved;
+    if (!want) want = first || (thumb.tpls[0] && thumb.tpls[0].id);
+    fillSelect($('ttpl'), groups, '');
+    $('ttpl').size = Math.max(2, Math.min(7, groups.length));
     pickTemplate(want);
+  }
+  // choosing a show keeps the number of pictures you were on, when that show has it
+  function pickGroup(group) {
+    var n = thumb.tpl ? thumb.tpl.windows.length : 2, best = null;
+    thumb.tpls.forEach(function (t) { if (t.group === group && (!best || t.windows.length === n)) best = best && best.windows.length === n ? best : t; });
+    if (best) pickTemplate(best.id);
   }
   // Where in a picture the wanted part is: a person's own camera frame is used whole; a rendered vertical frame has
   // the windows of whatever layout was on screen (2-up, 3-UP / PIP)
@@ -670,7 +704,10 @@
       drawPicture(ctx, thumb.pics[i], t.windows[i]);
       ctx.restore();
     }
-    if (t.overlayImg) ctx.drawImage(t.overlayImg, 0, 0, W, Hh);
+    var art = t.art || { bands: [] };
+    if (art.overlay) ctx.drawImage(art.overlay, 0, 0, W, Hh);
+    for (i = 0; i < art.bands.length; i++) ctx.drawImage(art.bands[i].img, art.bands[i].x, art.bands[i].y);
+    for (i = 0; i < (t.dividers || []).length; i++) { var dv = t.dividers[i]; ctx.fillStyle = dv.color || (t.headline && t.headline.box) || '#000'; ctx.fillRect(dv.x, dv.y, dv.w, dv.h); }
     drawHeadline(ctx, t, W);
   }
   // -- undo / redo: what is in each window, how each picture is placed, the template and the headline --
@@ -682,7 +719,7 @@
   function undoButtons() { $('tundo').disabled = !undoStack.length; $('tredo').disabled = !redoStack.length; }
   function remember() { undoStack.push(snap()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; undoButtons(); }
   function restore(st) {
-    if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) { $('ttpl').value = st.tpl; pickTemplate(st.tpl); }
+    if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) pickTemplate(st.tpl);
     thumb.pics = st.pics.map(function (x) { if (!x) return undefined; x.p.mx = x.mx; x.p.my = x.my; x.p.zoom = x.zoom; return x.p; });
     thumb.slot = st.slot; $('thead').value = st.head;
     markSlots(); undoButtons();
@@ -992,7 +1029,7 @@
     });
     window.addEventListener('mouseup', function () { drag = null; });
   })();
-  $('ttpl').addEventListener('change', function () { remember(); pickTemplate($('ttpl').value); });
+  $('ttpl').addEventListener('change', function () { remember(); pickGroup($('ttpl').value); });
   $('thead').addEventListener('focus', function () { remember(); });
   $('thead').addEventListener('input', drawThumb);
   $('ttplfolder').addEventListener('click', function () {

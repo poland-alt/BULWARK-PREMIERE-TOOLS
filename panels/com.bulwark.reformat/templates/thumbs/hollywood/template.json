@@ -1,0 +1,117 @@
+{
+  "name": "Hollywood",
+  "show": "",
+  "size": [
+    1080,
+    1920
+  ],
+  "bands": [
+    {
+      "file": "top.jpg",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "file": "bottom.jpg",
+      "x": 0,
+      "y": 1679
+    }
+  ],
+  "layouts": [
+    {
+      "name": "2 pictures",
+      "windows": [
+        {
+          "name": "Top",
+          "x": 0,
+          "y": 240,
+          "w": 1080,
+          "h": 705
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 704
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#AB001C"
+        }
+      ]
+    },
+    {
+      "name": "3 pictures",
+      "windows": [
+        {
+          "name": "Top left",
+          "x": 0,
+          "y": 240,
+          "w": 524,
+          "h": 705
+        },
+        {
+          "name": "Top right",
+          "x": 554,
+          "y": 240,
+          "w": 526,
+          "h": 705
+        },
+        {
+          "name": "Bottom",
+          "x": 0,
+          "y": 975,
+          "w": 1080,
+          "h": 704
+        }
+      ],
+      "dividers": [
+        {
+          "x": 0,
+          "y": 945,
+          "w": 1080,
+          "h": 30,
+          "color": "#AB001C"
+        },
+        {
+          "x": 524,
+          "y": 240,
+          "w": 30,
+          "h": 705,
+          "color": "#AB001C"
+        }
+      ]
+    }
+  ],
+  "headline": {
+    "top": 860,
+    "box": "#AB001C",
+    "text": "#FFFFFF",
+    "font": "Special Gothic Condensed",
+    "weight": 600,
+    "capHeight": 0.722,
+    "uppercase": true,
+    "radius": 7,
+    "oneLine": {
+      "size": 96,
+      "maxWidth": 890,
+      "padX": 45,
+      "padTop": 50,
+      "padBottom": 50
+    },
+    "twoLines": {
+      "size": 84,
+      "maxWidth": 928,
+      "padX": 25,
+      "padTop": 34,
+      "padBottom": 36,
+      "gap": 46
+    }
+  }
+}
