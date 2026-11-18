@@ -18,6 +18,14 @@ WHAT'S NEW IN v2.3
         headline on the Clips tab. It goes on one line or two to fit.
      5. Move and zoom each picture, then "Save thumbnail"
         (Desktop > Bulwark Thumbnails).
+     Click a window in the preview to mark it as the next one to fill,
+     drag a picture in the preview to move it, and use Left / right,
+     Up / down and Zoom for the marked window. "Use playhead frame" also
+     works inside any 16x9 sequence (a person's camera nest, for
+     example): park on the frame you want and press it.
+ - Panel size: A- and A+ at the top right (and a slider in Settings)
+   make everything in the panel bigger or smaller. The layout is tighter
+   overall and no longer stretches across a wide panel.
  - Thumbnail templates per show: each template is a folder with a
    settings file and the artwork. "Open my thumbnail templates folder"
    on the Thumbnail tab opens the place to add your own, with a how-to
