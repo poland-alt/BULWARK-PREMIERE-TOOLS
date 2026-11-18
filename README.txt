@@ -23,6 +23,10 @@ WHAT'S NEW IN v2.3
      Up / down and Zoom for the marked window. "Use playhead frame" also
      works inside any 16x9 sequence (a person's camera nest, for
      example): park on the frame you want and press it.
+     The headline fills in by itself from the open vertical clip: the
+     panel reads the title that is on the clip (or, if there is none,
+     starts from the sequence name). "From clip" reads it again. "New
+     thumbnail" clears the pictures and headline to start the next one.
      Cmd+Z undoes the last change to the thumbnail and Shift+Cmd+Z
      redoes it, while the Thumbnail tab is showing (there are Undo and
      Redo buttons too). On the other tabs Cmd+Z is still Premiere's undo.
