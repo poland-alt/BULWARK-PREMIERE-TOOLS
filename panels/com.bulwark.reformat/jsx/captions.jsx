@@ -386,7 +386,16 @@ $.bulwark.setOutline = function (width, scope) {
         for (k in v) if (v.hasOwnProperty(k)) parts.push(toJSON(k) + ":" + toJSON(v[k]));
         return "{" + parts.join(",") + "}";
     }
-    function fromJSON(s) { return eval("(" + s + ")"); }
+    // ExtendScript has no JSON.parse. The text comes from a template clip in the project, so it is checked to be
+    // nothing but JSON (the test from json2.js) before it is evaluated; anything else is refused, not run.
+    function fromJSON(s) {
+        s = String(s);
+        var bare = s.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, "@")
+                    .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, "]")
+                    .replace(/(?:^|:|,)(?:\s*\[)+/g, "");
+        if (!/^[\],:{}\s]*$/.test(bare)) throw new Error("That clip's text settings are not in a form this panel can read.");
+        return eval("(" + s + ")");
+    }
 
     // data: one caption per line, "start<TAB>end<TAB>TEXT<TAB>word timings<TAB>height share (optional; else yShare)". track: -1 on the first batch (a new top track
     // is made if the top one is in use), afterwards the track the first batch reported.
