@@ -5,7 +5,8 @@
 <title>Bulwark Premiere Tools</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; padding: 10px; background: #1e1e1e; color: #e6e6e6; font: 12px/1.35 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  html { background: #1e1e1e; }
+  body { margin: 0; padding: 10px; max-width: 620px; background: #1e1e1e; color: #e6e6e6; font: 12px/1.35 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
   h1 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
   label { display: block; margin: 0 0 3px; color: #b5b5b5; font-size: 11.5px; }
   .row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
@@ -69,8 +70,8 @@
   #headlist .head span { flex: 1; color: #fff; font-weight: 600; }
   #headlist .head button { width: auto; margin: 0; padding: 4px 10px; font-size: 11.5px; }
   #tpreview { position: sticky; top: 0; z-index: 5; background: #1e1e1e; padding: 0 0 6px; margin: 0 0 6px; border-bottom: 1px solid #383838; display: flex; gap: 8px; align-items: flex-start; }
-  #tcanvas { cursor: pointer; height: 30vh; min-height: 170px; flex: 0 0 auto; border: 1px solid #383838; border-radius: 4px; display: block; }
-  #tside { flex: 1; min-width: 0; }
+  #tcanvas { cursor: pointer; height: 30vh; min-height: 170px; max-height: 280px; flex: 0 0 auto; border: 1px solid #383838; border-radius: 4px; display: block; }
+  #tside { flex: 1; min-width: 0; max-width: 240px; }
   #tside .chips { flex-wrap: wrap; margin-bottom: 4px; }
   #tside .chips .chip { flex: 1 1 auto; padding: 2px 4px; font-size: 10.5px; }
   #tadj { color: #fff; font-weight: 600; font-size: 11px; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -82,7 +83,7 @@
   .chips .chip.on { background: #3a6ff2; border-color: #3a6ff2; color: #fff; }
   .chips .chip.filled:not(.on) { border-color: #4f9d5d; color: #d0d0d0; }
   #tpicks .who { color: #fff; font-weight: 600; font-size: 11px; margin: 5px 0 2px; }
-  #tpicks .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 3px; }
+  #tpicks .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 3px; }
   #tpicks canvas { width: 100%; border: 1px solid #383838; border-radius: 4px; cursor: pointer; display: block; }
   #tpicks canvas:hover { border-color: #3a6ff2; }
   #tpicks .tm { display: none; }
