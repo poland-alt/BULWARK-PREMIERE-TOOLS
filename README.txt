@@ -1,8 +1,16 @@
-BULWARK PREMIERE TOOLS - v2.2.2 test build
-==========================================
+BULWARK PREMIERE TOOLS - v2.3 test build
+========================================
 
-WHAT'S NEW IN v2.2.2
---------------------
+WHAT'S NEW IN v2.3
+------------------
+ - Clips tab, "Thumbnail": makes the 1080x1920 thumbnail (orange bands,
+   two pictures, headline in its box) from the vertical clip. Park the
+   playhead on a good frame and press "Top picture from playhead", then
+   another frame and "Bottom picture from playhead". On a solo shot it
+   takes the full camera picture; on a 2-up or 3-UP it takes that window.
+   Type the headline or press "Thumbnail" next to a suggested one; it
+   goes on one line or two to fit. Move and zoom each picture with the
+   sliders, then "Save thumbnail" (Desktop > Bulwark Thumbnails).
  - Clips tab, "Suggest IG headlines": open a cut clip (16x9 or vertical)
    and the AI assistant suggests eight on-screen headlines of 4 to 8
    words, each with a Copy button. Works with whichever assistant is

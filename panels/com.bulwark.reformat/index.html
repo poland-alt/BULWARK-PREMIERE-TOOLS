@@ -136,8 +136,8 @@
   <div class="sub">Open the vertical clip. Park the playhead on a good frame and grab it for the top window, then grab another for the bottom. On a 2-up or 3-UP shot each button takes its own window; on a solo shot it takes the person.</div>
   <input id="thead" type="text" placeholder="Headline (pick one above, or type it)" style="margin-bottom:8px">
   <div class="row" style="margin-bottom:8px"><button id="ttop" class="secondary" style="margin:0">Top picture from playhead</button><button id="tbot" class="secondary" style="margin:0">Bottom picture from playhead</button></div>
-  <div class="slider" style="margin-left:0"><span>Move top picture</span><input id="ttopy" type="range" min="-100" max="100" step="2" value="0"></div>
-  <div class="slider" style="margin-left:0"><span>Move bottom picture</span><input id="tboty" type="range" min="-100" max="100" step="2" value="0"></div>
+  <div class="slider" style="margin-left:0"><span>Top: move</span><input id="ttopy" type="range" min="-100" max="100" step="2" value="0"><span>zoom</span><input id="ttopz" type="range" min="100" max="200" step="5" value="100"></div>
+  <div class="slider" style="margin-left:0"><span>Bottom: move</span><input id="tboty" type="range" min="-100" max="100" step="2" value="0"><span>zoom</span><input id="tbotz" type="range" min="100" max="200" step="5" value="100"></div>
   <canvas id="tcanvas" width="1080" height="1920" style="width:100%;border:1px solid #383838;border-radius:6px;display:none;margin-bottom:8px"></canvas>
   <button id="tsave" style="display:none">Save thumbnail</button>
   <div id="tstat" class="status"></div>

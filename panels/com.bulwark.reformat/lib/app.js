@@ -533,17 +533,17 @@
     });
   }
   // The part of a grabbed frame that belongs in a window: its own window on a 2-up / 3-UP shot, the person on a solo shot
-  function drawPicture(ctx, pic, which, win, shift) {
+  function drawPicture(ctx, pic, which, win, shift, zoom) {
     var img = pic.img, sx = 0, sy = 0, sw = img.width, sh = img.height, f = img.height / 1920, focusY = 0.5;
     if (!pic.source) {
       if (pic.kind === 2) { sy = (which === 'top' ? 0 : 977) * f; sh = (which === 'top' ? 944 : 943) * f; }
       else if (pic.kind === 3) { sy = (which === 'top' ? 0 : 1295) * f; sh = (which === 'top' ? 607 : 625) * f; }
       else focusY = 0.3;                                 // a solo shot as rendered: faces sit in the upper part of the frame
     }
-    var scale = Math.max(TH.W / sw, win[1] / sh), cw = TH.W / scale, ch = win[1] / scale;     // the crop, in source pixels
-    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = focusY;
-    // the slider moves the picture along whichever way it has room to move
-    if (slackY > 1) fy = Math.max(0, Math.min(1, focusY - shift / 200)); else fx = Math.max(0, Math.min(1, 0.5 - shift / 200));
+    var scale = Math.max(TH.W / sw, win[1] / sh) * Math.max(1, zoom || 1), cw = TH.W / scale, ch = win[1] / scale;     // the crop, in source pixels
+    var slackX = sw - cw, slackY = sh - ch, fx = 0.5, fy = pic.source ? 0.35 : focusY;
+    // the slider moves the picture up and down when it has room to, otherwise side to side
+    if (slackY > 4) fy = Math.max(0, Math.min(1, fy - shift / 200)); else fx = Math.max(0, Math.min(1, 0.5 - shift / 200));
     ctx.drawImage(img, sx + slackX * fx, sy + slackY * fy, cw, ch, 0, win[0], TH.W, win[1]);
   }
   function roundRect(ctx, x, y, w, h, r) {
@@ -555,8 +555,8 @@
     if (!thumb.top && !thumb.bot) return;
     cv.style.display = ''; $('tsave').style.display = '';
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, TH.W, TH.H);
-    if (thumb.top) drawPicture(ctx, thumb.top, 'top', TH.top, +$('ttopy').value);
-    if (thumb.bot) drawPicture(ctx, thumb.bot, 'bot', TH.bot, +$('tboty').value);
+    if (thumb.top) drawPicture(ctx, thumb.top, 'top', TH.top, +$('ttopy').value, +$('ttopz').value / 100);
+    if (thumb.bot) drawPicture(ctx, thumb.bot, 'bot', TH.bot, +$('tboty').value, +$('tbotz').value / 100);
     ctx.fillStyle = TH.orange;
     if (thumb.bands && thumb.bands[0].width) { ctx.drawImage(thumb.bands[0], 0, 0); ctx.drawImage(thumb.bands[1], 0, 1682); }
     else { ctx.fillRect(0, 0, TH.W, 239); ctx.fillRect(0, 1682, TH.W, 238); }
@@ -605,7 +605,7 @@
             loadImage(base + '.png', function (img) {
               if (!img) { if (++tries > 25) return say(st, 'Premiere did not save the frame. Try again.', 'err'); return setTimeout(wait, 200); }
               thumb[which === 'top' ? 'top' : 'bot'] = { img: img, kind: kind, source: p[4] === 'source' };
-              $(which === 'top' ? 'ttopy' : 'tboty').value = 0;
+              $(which === 'top' ? 'ttopy' : 'tboty').value = 0; $(which === 'top' ? 'ttopz' : 'tbotz').value = p[4] === 'source' ? 115 : 100;
               loadBands(function () {
                 drawThumb();
                 var what = p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? ' (solo shot)' : ' (' + (kind === 2 ? '2-up' : '3-UP') + ': its ' + (which === 'top' ? 'top' : 'bottom') + ' window)';
@@ -619,7 +619,7 @@
   }
   $('ttop').addEventListener('click', function () { grab('top'); });
   $('tbot').addEventListener('click', function () { grab('bot'); });
-  ['thead', 'ttopy', 'tboty'].forEach(function (id) { $(id).addEventListener('input', drawThumb); });
+  ['thead', 'ttopy', 'tboty', 'ttopz', 'tbotz'].forEach(function (id) { $(id).addEventListener('input', drawThumb); });
   $('tsave').addEventListener('click', function () {
     var st = $('tstat'), dir = WORK.split('/Library/')[0] + '/Desktop/Bulwark Thumbnails';
     cep.fs.makedir(dir);

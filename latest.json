@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.2.2",
-      "notes": "New on the Clips tab: Suggest IG headlines. Open a cut clip and get eight on-screen headline options of 4 to 8 words, each with a Copy button.",
+      "version": "2.3.0",
+      "notes": "New on the Clips tab: Suggest IG headlines (eight options of 4 to 8 words for the open clip) and Thumbnail (builds the orange 1080x1920 thumbnail from two frames of the vertical clip and a headline).",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
