@@ -247,6 +247,38 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
         } catch (err) { return "ERR|" + String(err); }
     };
 
+    // ---- the project's 16x9 frames, to choose from ----
+    // Every still inside a bin named for 16x9 frames ("16x9 Frames", "16x9 Simple Frames", ...), sub-bins included.
+    // Returns "OK|<bin>\t<name>|..." in the order they sit in the project.
+    function squash(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+    $.bulwark.setupFrames = function () {
+        try {
+            if (!app.project) return "ERR|No project is open.";
+            var out = [], seen = {};
+            function take(bin, label) {
+                for (var j = 0; j < bin.children.numItems; j++) {
+                    var x = bin.children[j];
+                    if (x.type === ProjectItemType.BIN) take(x, x.name);
+                    else if (/\.(png|psd|tiff?|jpe?g|webp)$/i.test(String(x.name)) && !seen[x.name]) { seen[x.name] = true; out.push(label + "\t" + x.name); }
+                }
+            }
+            (function walk(parent) {
+                for (var i = 0; i < parent.children.numItems; i++) {
+                    var c = parent.children[i];
+                    if (c.type !== ProjectItemType.BIN) continue;
+                    var k = squash(c.name);
+                    if (/frame/.test(k) && /16x9|169/.test(k) && !/9x16/.test(k.replace(/16x9/g, ""))) take(c, c.name); else walk(c);
+                }
+            })(app.project.rootItem);
+            return "OK|" + out.join("|");
+        } catch (err) { return "ERR|" + String(err); }
+    };
+    // The scale that makes a still as wide as a 1920 sequence (a 3840 frame comes out at 50), if its size can be read.
+    function fitScale(item) {
+        try { var m = /VideoInfo>\s*(\d+)\s*x\s*(\d+)/.exec(item.getProjectMetadata()); if (m && +m[1] > 0) return Math.round(1920 / +m[1] * 10000) / 100; } catch (e) {}
+        return null;
+    }
+
     // ---- the setup itself ----
     // cfg (JSON file): { fps, mainName, bins: { main, nests, footage, media }, people: [{ name, path, offset }] left to
     //   right, master: { path, offset } | null, media: [path], wide: layout | null, mediaLayout: layout | null,
@@ -308,7 +340,8 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 if (frame) {
                     var fc = place(s, frameTrack, frame, 0);
                     try { fc.end = secs(longest); } catch (eEnd) { notes.push("\"" + name + "\": stretch the frame to the full length by hand."); }
-                    setMotion(fc, { scale: layout.frameScale || 100 });
+                    // a frame picked from the project's own list is sized to fill the picture; the layout's own frame keeps its saved size
+                    setMotion(fc, { scale: (layout.frameFit ? fitScale(frame) : null) || layout.frameScale || 100 });
                     dropAudio(s, frameTrack);
                 }
                 return s;

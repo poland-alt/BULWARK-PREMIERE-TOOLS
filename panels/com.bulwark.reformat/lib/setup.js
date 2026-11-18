@@ -118,8 +118,46 @@
       if (!pick && last !== '' && list.length) pick = (list.filter(function (l) { return l.mine; })[0] || list[0]).name;
       sel.value = pick;
     });
+    fillFrames();
   }
-  ['swide', 'smedia'].forEach(function (id) { $(id).addEventListener('change', function () { store('bulwark_setup_' + (id === 'swide' ? 'wide' : 'media') + people().length, $(id).value); }); });
+  ['swide', 'smedia'].forEach(function (id) { $(id).addEventListener('change', function () { store('bulwark_setup_' + (id === 'swide' ? 'wide' : 'media') + people().length, $(id).value); fillFrames(); }); });
+
+  // ---- which frame goes on top: the layout's own, or any still in the project's 16x9 frame bins ----
+  var projectFrames = [];                          // [{ bin, name }]
+  function layoutNamed(kind, id) { var name = $(id).value, n = people().length; return name ? layouts(kind).filter(function (l) { return l.name === name && l.people.length === n; })[0] || null : null; }
+  function fillFrames() {
+    [['swframe', 'wide', 'swide'], ['smframe', 'media', 'smedia']].forEach(function (cfg) {
+      var sel = $(cfg[0]), l = layoutNamed(cfg[1], cfg[2]), keep = store('bulwark_setupframe_' + cfg[1] + '_' + (l ? l.name : '')), has = false;
+      sel.innerHTML = '';
+      function add(value, text) { var o = document.createElement('option'); o.value = value; o.textContent = text; sel.appendChild(o); if (value === keep) has = true; }
+      add('*', l ? (l.frame ? 'The layout\'s own: ' + l.frame.replace(/\.[a-z]+$/i, '') : 'The layout\'s own: none') : 'None');
+      if (l) {
+        projectFrames.forEach(function (f) { if (f.name !== l.frame) add(f.name, f.name.replace(/\.[a-z]+$/i, '') + '  (' + f.bin + ')'); });
+        if (l.frame) add('', 'No frame');
+      }
+      sel.value = has ? keep : '*'; sel.disabled = !l;
+    });
+    $('sframehint').textContent = projectFrames.length ? '' : 'No "16x9 Frames" bin was found in this project, so only each layout\'s own frame is offered. Import the frame assets to choose from them.';
+  }
+  function loadFrames() {
+    jsx('typeof $.bulwark.setupFrames === "function" ? $.bulwark.setupFrames() : "WAIT"', function (r) {
+      if (r === 'WAIT') return setTimeout(loadFrames, 700);
+      var p = r.split('|'), list = [];
+      if (p[0] === 'OK') p.slice(1).forEach(function (x) { var f = x.split('\t'); if (f[1]) list.push({ bin: f[0], name: f[1] }); });
+      if (JSON.stringify(list) !== JSON.stringify(projectFrames)) { projectFrames = list; fillFrames(); }
+    });
+  }
+  ['swframe', 'smframe'].forEach(function (id) { $(id).addEventListener('change', function () { var kind = id === 'swframe' ? 'wide' : 'media', l = layoutNamed(kind, id === 'swframe' ? 'swide' : 'smedia'); store('bulwark_setupframe_' + kind + '_' + (l ? l.name : ''), $(id).value); }); });
+  window.addEventListener('focus', loadFrames);
+  document.querySelector('#tabs span[data-tab=setup]').addEventListener('click', loadFrames);
+  // a layout with the chosen frame put in place of its own
+  function withFrame(l, id) {
+    if (!l) return null;
+    var v = $(id).value;
+    if (v === '*') return l;
+    var copy = JSON.parse(JSON.stringify(l)); copy.frame = v; copy.frameFit = !!v;
+    return copy;
+  }
   function drawMode() {
     [].forEach.call($('smode').children, function (c) { c.className = 'chip' + (c.getAttribute('data-mode') === mode ? ' on' : ''); });
     $('smodehint').textContent = mode === 'live'
@@ -211,7 +249,7 @@
         people: P.map(function (f) { return { name: f.name.replace(/^\s+|\s+$/g, ''), path: f.path, offset: mode === 'live' ? (f.offset || 0) : 0 }; }),
         master: mode === 'live' && master ? { path: master.path } : null,
         media: files.filter(function (f) { return f.role === 'media'; }).map(function (f) { return f.path; }),
-        wide: P.length > 1 ? pick('wide', 'swide') : null, mediaLayout: P.length > 1 ? pick('media', 'smedia') : null,
+        wide: P.length > 1 ? withFrame(pick('wide', 'swide'), 'swframe') : null, mediaLayout: P.length > 1 ? withFrame(pick('media', 'smedia'), 'smframe') : null,
         template: tpl ? { path: tpl.path, id: tpl.id, from: tpl.from } : null, mixer: $('smixer').checked ? mixer : null
       };
       var path = DIR + '/config.json';
@@ -313,5 +351,5 @@
   $('smixer').checked = store('bulwark_setupmixer') !== 'off';
   $('smixer').addEventListener('change', function () { store('bulwark_setupmixer', $('smixer').checked ? 'on' : 'off'); });
 
-  drawMode(); drawSaved();
+  drawMode(); drawSaved(); loadFrames();
 })();

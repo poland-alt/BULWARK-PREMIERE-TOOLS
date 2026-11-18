@@ -49,6 +49,11 @@ WHAT'S NEW IN v2.6
      - "Save open sequence's track mixer as the template": open a main
        sequence whose Audio Track Mixer is the way you want it; new
        main sequences then start from it (takes up to a minute).
+   "Wide shot frame" and "Media frame" list every still in the
+   project's 16x9 frame bins (16x9 Frames, 16x9 Simple Frames and their
+   sub-bins), so any of them can go on top in place of the layout's own
+   frame. The people keep the layout's positions, so pick a frame whose
+   windows match it, or save a layout made for that frame.
    Frames are looked up by name in the project, so import the frame
    assets before running Setup, or drop the frame in afterwards.
 
