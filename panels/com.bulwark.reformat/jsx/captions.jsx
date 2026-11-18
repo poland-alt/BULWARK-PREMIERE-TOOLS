@@ -172,8 +172,10 @@ $.bulwark.setOutline = function (width, scope) {
         }
         return kind;
     }
-    // n moments spread across a list of stretches [{ s, e }], keeping clear of the cuts
-    function spread(spans, n) {
+    // n moments spread across a list of stretches [{ s, e }], keeping clear of the cuts.
+    // phase (0 to 1) slides every moment along, so asking again gives different frames.
+    function spread(spans, n, phase) {
+        phase = phase === undefined ? 0.5 : phase;
         var usable = [], total = 0, i, out = [];
         for (i = 0; i < spans.length; i++) {
             var a = spans[i].s + 0.4, b = spans[i].e - 0.4;
@@ -182,7 +184,7 @@ $.bulwark.setOutline = function (width, scope) {
         if (!usable.length) return out;
         n = Math.max(1, Math.min(n, Math.floor(total / 0.7) + 1));
         for (var k = 0; k < n; k++) {
-            var at = total * (k + 0.5) / n, acc = 0;
+            var at = total * (k + phase) / n, acc = 0;
             for (i = 0; i < usable.length; i++) {
                 var len = usable[i].b - usable[i].a;
                 if (at <= acc + len || i === usable.length - 1) { out.push({ t: usable[i].a + Math.min(len, at - acc), src: usable[i].src }); break; }
@@ -191,7 +193,7 @@ $.bulwark.setOutline = function (width, scope) {
         }
         return out;
     }
-    $.bulwark.subjectFrames = function (dir, per) {
+    $.bulwark.subjectFrames = function (dir, per, phase) {
         try {
             var seq = app.project.activeSequence;
             if (!seq) return "ERR|No sequence is open.";
@@ -221,7 +223,7 @@ $.bulwark.setOutline = function (width, scope) {
             app.enableQE();
             var lines = ["OK"], n = 0, i, j;
             for (i = 0; i < order.length; i++) {
-                var who = people[order[i]], picks = spread(who.spans, per);
+                var who = people[order[i]], picks = spread(who.spans, per, phase);
                 if (!picks.length) continue;
                 app.project.openSequence(who.seq.sequenceID);
                 var q = qe.project.getActiveSequence();
@@ -234,7 +236,7 @@ $.bulwark.setOutline = function (width, scope) {
             }
             app.project.openSequence(seq.sequenceID);
             if (media.length) {
-                var mq = qe.project.getActiveSequence(), mp = spread(media, Math.max(5, per));
+                var mq = qe.project.getActiveSequence(), mp = spread(media, Math.max(5, per), phase);
                 for (j = 0; j < mp.length; j++) {
                     var kind = shotKindAt(seq, mp[j].t), mbase = dir + "/pick_" + (n++);
                     var mold = new File(mbase + ".png"); if (mold.exists) mold.remove();

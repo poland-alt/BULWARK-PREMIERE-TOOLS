@@ -517,7 +517,7 @@
   // windows). Templates ship in the panel (templates/thumbs) and can be added on this Mac (Bulwark Tools/thumbnail
   // templates). See "HOW TO ADD A THUMBNAIL TEMPLATE.txt".
   var TPL_SHIPPED = EXT + '/templates/thumbs', TPL_LOCAL = WORK + '/thumbnail templates';
-  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '' };      // pics[i]: { img, source, kind, region }
+  var thumb = { tpls: [], tpl: null, pics: [], slot: 0, name: '', pulls: 0 };      // pics[i]: { img, source, kind, region }
   function imageFrom(b64, cb) {
     var img = new Image(); img.onload = function () { cb(img); }; img.onerror = function () { cb(null); };
     img.src = 'data:image/png;base64,' + String(b64).replace(/\s+/g, '');
@@ -710,11 +710,14 @@
     say(st, 'Pulling pictures of everyone in this clip (Premiere flips through its sequences for a moment)…');
     jsx('$.bulwark.seqInfo()', function (ri) { thumb.name = ri.split('|').slice(6).join('|') || thumb.name; });
     setTimeout(function () {
-      jsx('$.bulwark.subjectFrames(' + q(dir) + ',8)', function (r) {
+      // each pull takes different moments: the first from the middle of each stretch, later ones slid along
+      var phases = [0.5, 0.2, 0.8, 0.35, 0.65, 0.05, 0.95], phase = phases[thumb.pulls % phases.length];
+      jsx('$.bulwark.subjectFrames(' + q(dir) + ',8,' + phase + ')', function (r) {
         $('tpicksbtn').disabled = false;
         var lines = r.split('\n');
         if (lines[0] !== 'OK') return say(st, r.split('|').slice(1).join('|') || 'Premiere did not answer.', 'err');
         lines.shift();
+        thumb.pulls++; $('tpicksbtn').textContent = 'Give me more options';
         var groups = {}, order = [], left = lines.length, shown = 0;
         lines.forEach(function (line) {
           var f = line.split('\t'), who = f[1] || 'Picture';
