@@ -698,14 +698,15 @@
         jsx('$.bulwark.grabFrame(' + q(base) + ',' + (kind === 1) + ')', function (r) {
           var p = r.split('|');
           if (p[0] !== 'OK') return say(st, p.slice(1).join('|') || 'Premiere did not answer.', 'err');
-          if (+p[2] > +p[3]) return say(st, 'This sequence is 16x9. Open the vertical clip to make a thumbnail from it.', 'err');
-          thumb.name = p.slice(5).join('|');
+          var flat = +p[2] > +p[3];                       // parked in a 16x9 sequence: the frame is used whole
+          if (!flat || !thumb.name) thumb.name = p.slice(5).join('|');      // the thumbnail keeps the vertical clip's name
+          if (flat) kind = 1;
           waitImage(base + '.png', function (img) {
             if (!img) return say(st, 'Premiere did not save the frame. Try again.', 'err');
             // on a 2-up / 3-UP shot the first window takes the top picture and the last window the bottom one
             var region = kind === 1 ? 'whole' : (slot === thumb.tpl.windows.length - 1 ? 'bottom' : 'top');
             thumb.slot = slot; setPicture({ img: img, source: p[4] === 'source', kind: kind, region: region });
-            say(st, 'Picture set from ' + E.clock(t) + (p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? '' : ' (the ' + region + ' window of that shot)') + '.', 'ok');
+            say(st, 'Picture set from ' + E.clock(t) + (flat ? ' of "' + p.slice(5).join('|') + '" (its 16x9 frame)' : p[4] === 'source' ? ' (solo shot: the full camera picture)' : kind === 1 ? '' : ' (the ' + region + ' window of that shot)') + '.', 'ok');
           });
         });
       });

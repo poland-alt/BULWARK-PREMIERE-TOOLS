@@ -125,6 +125,12 @@ $.bulwark.setOutline = function (width, scope) {
             var old = new File(basePath + ".png");
             if (old.exists) old.remove();
             var st = seq.getSettings(), pos = seq.getPlayerPosition(), t = Number(pos.ticks) / TICKS, how = "render";
+            if (seq.frameSizeHorizontal > seq.frameSizeVertical) {
+                // parked inside a 16x9 sequence (a camera's nest, the 16x9 edit): its frame, as it is
+                var hq = qe.project.getActiveSequence(), hh = textOff(seq, t);
+                try { hq.exportFramePNG(hq.CTI.timecode, basePath); } finally { textOn(hh); }
+                return "OK|" + t + "|" + st.videoFrameWidth + "|" + st.videoFrameHeight + "|source|" + clean(seq.name);
+            }
             if (wide) {
                 // the picture on top at this moment
                 var top = null;
