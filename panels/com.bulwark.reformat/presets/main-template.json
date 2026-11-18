@@ -1,0 +1,12 @@
+{
+ "id": "6f414e8b-13dd-4bc3-8783-4deb5f0c2782",
+ "from": "the Bulwark default",
+ "video": 7,
+ "audio": 7,
+ "fx": [
+  "Audio 1: Parametric Equalizer, Dynamics, Automatic Click Remover",
+  "Audio 2: Parametric Equalizer, Dynamics",
+  "Audio 3: Parametric Equalizer, Dynamics",
+  "Mix: Hard Limiter (no input boost)"
+ ]
+}

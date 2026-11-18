@@ -1,0 +1,268 @@
+{
+ "name": "Bulwark voice tracks",
+ "from": "TNL Nov 17 - YouTube, Audio 1",
+ "note": "Values are the 0-1 settings Premiere stores for each control.",
+ "tracks": [
+  {
+   "track": 1,
+   "fx": [
+    {
+     "slot": 3,
+     "name": "Parametric Equalizer",
+     "params": [
+      [
+       "Bypass",
+       "false"
+      ],
+      [
+       "Low Shelf Frequency",
+       "0.000834028"
+      ],
+      [
+       "Low Shelf Gain",
+       "0.5"
+      ],
+      [
+       "High Shelf Frequency",
+       "0.74979198"
+      ],
+      [
+       "High Shelf Gain",
+       "0.5"
+      ],
+      [
+       "EQ Band 1 Center Frequency",
+       "0.00125104"
+      ],
+      [
+       "EQ Band 1 Q",
+       "0.00019999"
+      ],
+      [
+       "EQ Band 1 Gain",
+       "0.5"
+      ],
+      [
+       "EQ Band 1 Enable",
+       "1.00"
+      ],
+      [
+       "EQ Band 2 Center Frequency",
+       "0.008131777"
+      ],
+      [
+       "EQ Band 2 Q",
+       "0.00019999"
+      ],
+      [
+       "EQ Band 2 Gain",
+       "0.524999976"
+      ],
+      [
+       "EQ Band 2 Enable",
+       "1.00"
+      ],
+      [
+       "EQ Band 3 Center Frequency",
+       "0.0325271"
+      ],
+      [
+       "EQ Band 3 Q",
+       "0.00019999"
+      ],
+      [
+       "EQ Band 3 Gain",
+       "0.5"
+      ],
+      [
+       "EQ Band 3 Enable",
+       "1.00"
+      ],
+      [
+       "EQ Band 4 Center Frequency",
+       "0.127898246"
+      ],
+      [
+       "EQ Band 4 Q",
+       "0.00019999"
+      ],
+      [
+       "EQ Band 4 Gain",
+       "0.478125006"
+      ],
+      [
+       "EQ Band 4 Enable",
+       "1.00"
+      ],
+      [
+       "EQ Band 5 Center Frequency",
+       "0.532944024"
+      ],
+      [
+       "EQ Band 5 Q",
+       "0.00019999"
+      ],
+      [
+       "EQ Band 5 Gain",
+       "0.5"
+      ],
+      [
+       "EQ Band 5 Enable",
+       "1.00"
+      ],
+      [
+       "Gain",
+       "0.666666687"
+      ],
+      [
+       "ConstantQ",
+       "1.00"
+      ],
+      [
+       "Low Shelf Filter Order",
+       "0"
+      ],
+      [
+       "High Shelf Filter Order",
+       "0"
+      ],
+      [
+       "Ultra-Quiet Mode",
+       "0"
+      ],
+      [
+       "Low Shelf Enable",
+       "1.00"
+      ],
+      [
+       "High Shelf Enable",
+       "1.00"
+      ],
+      [
+       "EQ Band 1 Bandwidth",
+       "0.002499987"
+      ],
+      [
+       "EQ Band 2 Bandwidth",
+       "0.010749991"
+      ],
+      [
+       "EQ Band 3 Bandwidth",
+       "0.039999984"
+      ],
+      [
+       "EQ Band 4 Bandwidth",
+       "0.154349983"
+      ],
+      [
+       "EQ Band 5 Bandwidth",
+       "0.639999926"
+      ],
+      [
+       "High-Pass Filter Enable",
+       "1.00"
+      ],
+      [
+       "High-Pass Cutoff Frequency",
+       "0.000834028"
+      ],
+      [
+       "High-Pass Slope",
+       "0.400000006"
+      ],
+      [
+       "Low-Pass Filter Enable",
+       "0"
+      ],
+      [
+       "Low-Pass Cutoff Frequency",
+       "0.74979198"
+      ],
+      [
+       "Low-Pass Slope",
+       "0.400000006"
+      ]
+     ]
+    },
+    {
+     "slot": 4,
+     "name": "Dynamics",
+     "params": [
+      [
+       "Bypass",
+       "false"
+      ],
+      [
+       "AutoGate Enabled",
+       "0"
+      ],
+      [
+       "AutoGate Threshold",
+       "0.666666687"
+      ],
+      [
+       "AutoGate Attack",
+       "0.090909094"
+      ],
+      [
+       "AutoGate Release",
+       "0.111111112"
+      ],
+      [
+       "AutoGate Hold",
+       "0.009009008"
+      ],
+      [
+       "Compressor Enabled",
+       "1.00"
+      ],
+      [
+       "Compressor Threshold",
+       "0.800000012"
+      ],
+      [
+       "Compressor Ratio",
+       "0.585714281"
+      ],
+      [
+       "Compressor Attack",
+       "0.696969748"
+      ],
+      [
+       "Compressor Release",
+       "0.393469393"
+      ],
+      [
+       "Compressor MakeUp Gain",
+       "0.462500006"
+      ],
+      [
+       "Expander Enabled",
+       "0"
+      ],
+      [
+       "Expander Threshold",
+       "0.666666687"
+      ],
+      [
+       "Expander Ratio",
+       "0"
+      ],
+      [
+       "Limiter Enabled",
+       "0"
+      ],
+      [
+       "Limiter Threshold",
+       "0.983333349"
+      ],
+      [
+       "Limiter Release",
+       "0.081632651"
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,5 +1,53 @@
-BULWARK PREMIERE TOOLS - v2.5 test build
+BULWARK PREMIERE TOOLS - v2.6 test build
 ========================================
+
+WHAT'S NEW IN v2.6
+------------------
+ - New Setup tab: builds a new project's working structure from the
+   recordings.
+     1. Pick "Raw video" (everyone's file starts at the same moment) or
+        "Livestream" (each person's recording is lined up to the master
+        recording of the stream).
+     2. "Add video files..." and choose the recordings. Each row has a
+        role: Person (gets a nest), Master (the stream's own recording,
+        Livestream only) or Media (just imported). Names are guessed
+        from the file names; fix them, they become the nest names. The
+        order of the people, top to bottom, is left to right in the
+        wide shot; the arrows change it.
+     3. Choose the wide shot and the media layout (or none).
+     4. "Set up project". It makes:
+          - a nest for each person (bin NESTS)
+          - "WS", the wide shot, with everyone placed and the frame on
+            top
+          - "WS MEDIA", the people beside an empty media window, with
+            the media frame on top
+          - the main sequence (bin *SEQUENCES): each person stacked on
+            their own track, the wide shot above them, and the track
+            mixer effects in place
+        The files go into the bin 01-media (media files into
+        01-media > MEDIA). "Undo" under the result deletes the
+        sequences it made.
+   Livestream: the sync is found from the sound, to within a frame, and
+   takes about 15 seconds for an hour and a half of recordings. Each
+   person's nest starts their clip where it belongs, and the master
+   recording is put on V8 / A8 of the main sequence, switched off, to
+   check against. If a match looks weak the panel stops and says so.
+   Track mixer: the main sequence starts from a template with the
+   Parametric Equalizer and Dynamics on voice tracks 1-3 and a Hard
+   Limiter (no input boost) on the Mix track. A fourth or fifth voice
+   track gets the same Equalizer and Dynamics.
+   Options:
+     - "Save open sequence as a wide shot layout" / "as a media layout":
+       open a finished wide shot nest and press it; its positions,
+       sizes, crops and frame are remembered and offered whenever that
+       many people are listed. Shipped layouts: the TNL three-person
+       frame, the Three Frame Media layout, and plain side-by-side
+       layouts with no frame for 2, 3 and 4 people.
+     - "Save open sequence's track mixer as the template": open a main
+       sequence whose Audio Track Mixer is the way you want it; new
+       main sequences then start from it (takes up to a minute).
+   Frames are looked up by name in the project, so import the frame
+   assets before running Setup, or drop the frame in afterwards.
 
 WHAT'S NEW IN v2.5
 ------------------

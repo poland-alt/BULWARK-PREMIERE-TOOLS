@@ -188,6 +188,16 @@
   #tpicks .own .del { position: absolute; top: 2px; right: 2px; width: 15px; height: 15px; line-height: 14px; text-align: center; border-radius: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
   #tpicks .own .del:hover { background: var(--red); }
   #update:empty { display: none; }
+  /* setup tab: one row per recording */
+  #sfiles .srow { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+  #sfiles .srow .picker { flex: 0 0 92px; }
+  #sfiles .srow input[type=text] { flex: 1 1 60px; min-width: 0; }
+  #sfiles .srow .fname { flex: 1 1 40px; min-width: 0; color: var(--text3); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #sfiles .srow .mv { flex: 0 0 auto; width: 20px; height: 22px; line-height: 21px; text-align: center; border-radius: 4px; color: var(--text2); cursor: pointer; user-select: none; }
+  #sfiles .srow .mv:hover { background: var(--raise); color: #fff; }
+  #sfiles .srow .off { color: var(--gold); font-size: 10.5px; white-space: nowrap; }
+  #sfiles:empty:before { content: "No recordings yet. Add each person's video file; in Livestream mode add the master recording too."; color: var(--text3); font-size: 11.5px; }
+  #snotes .rv { display: flex; gap: 6px; padding: 5px 0; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text2); }
   /* no cut-off labels: a button, chip or dropdown that is too narrow for its words wraps them, and a row of buttons
      that does not fit side by side goes onto a second line */
   button { white-space: normal; height: auto; min-height: 30px; padding-top: 5px; padding-bottom: 5px; line-height: 1.2; }
@@ -211,7 +221,7 @@
   </div>
   <div id="update"></div>
   <div id="seqbar" title="The sequence that is open in Premiere. Every step works on this one."><span id="seqname">No sequence open</span><span id="seqmeta"></span><span id="seqbadge" class="badge"></span></div>
-  <div id="tabs"><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="thumb">Thumbnail</span><span data-tab="settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></span></div>
+  <div id="tabs"><span data-tab="setup">Setup</span><span data-tab="clips">Clips</span><span data-tab="reframe">Reframe</span><span data-tab="captions">Captions</span><span data-tab="thumb">Thumbnail</span><span data-tab="settings" title="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></span></div>
 
   <div class="tab" id="tab-reframe">
   <div class="card">
@@ -251,6 +261,32 @@
     <div id="bout" class="hint"></div>
     <div class="hint">Select an image in any sequence and click. A sharp copy is fitted to the frame over a blurred copy that fills it. Click again to switch it back.</div>
   </div></details>
+  </div>
+
+  <div class="tab" id="tab-setup">
+  <div class="card">
+    <h2>Set up a new project</h2>
+    <div class="sub">Give it the recordings and it builds the working structure: a nest for each person, the wide shot, the media layout, and the main sequence with everyone stacked and the usual track mixer effects.</div>
+    <div id="smode" class="chips"><span data-mode="raw" title="Each person's file starts at the same moment (Riverside and the like)">Raw video</span><span data-mode="live" title="Each person's recording is lined up to the master recording of the stream, by its sound">Livestream</span></div>
+    <div id="smodehint" class="hint" style="margin:0 0 8px"></div>
+    <div id="sfiles"></div>
+    <div class="row" style="margin:6px 0 8px"><button id="sadd" class="secondary" style="margin:0">Add video files…</button></div>
+    <div class="field"><label for="smain">Main sequence</label><input id="smain" type="text" placeholder="Name of the main sequence"></div>
+    <div class="field"><label for="swide">Wide shot</label><select id="swide"></select></div>
+    <div class="field"><label for="smedia">Media layout</label><select id="smedia"></select></div>
+    <button id="srun">Set up project</button>
+    <div id="sstat" class="status"></div>
+    <div id="snotes"></div>
+    <details><summary>Options</summary><div class="in">
+      <label class="check"><input type="checkbox" id="smixer" checked> Put the track mixer effects on the main sequence</label>
+      <div class="hint" id="stplinfo" style="margin:0 0 8px"></div>
+      <div class="field"><label for="sfps">Frame rate</label><select id="sfps"><option value="23.976">23.976</option><option value="25">25</option><option value="29.97">29.97</option><option value="50">50</option><option value="59.94">59.94</option></select></div>
+      <div class="hint" style="margin:8px 0 4px">Teach it your own setups from a finished project:</div>
+      <div class="row" style="margin:0 0 4px"><button id="ssavewide" class="secondary" style="margin:0" title="Open the wide shot nest (for example WS), then press this. Its positions, sizes, crops and frame are saved as a wide shot layout.">Save open sequence as a wide shot layout</button><button id="ssavemedia" class="secondary" style="margin:0" title="Open a nest laid out with the people beside a media window, then press this.">Save it as a media layout</button></div>
+      <div class="row" style="margin:0 0 4px"><button id="ssavetpl" class="secondary" style="margin:0" title="Open a main sequence whose Audio Track Mixer is set the way you want (voice tracks and the Mix track). An empty copy is kept and every new main sequence starts from it. Takes about a minute on a full episode.">Save open sequence's track mixer as the template</button><button id="sresettpl" class="secondary" style="margin:0">Back to the Bulwark template</button></div>
+      <div id="slayouts" class="hint"></div>
+    </div></details>
+  </div>
   </div>
 
   <div class="tab" id="tab-clips">
@@ -654,6 +690,7 @@
   </script>
   <script src="lib/engine.js"></script>
   <script src="lib/app.js"></script>
+  <script src="lib/setup.js"></script>
   <script src="lib/ui.js"></script>
 </body>
 </html>

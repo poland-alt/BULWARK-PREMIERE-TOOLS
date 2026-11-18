@@ -42,12 +42,15 @@
       var cur = menu.querySelector('.sel'); if (cur) menu.scrollTop = Math.max(0, cur.offsetTop - 60);
     });
     refresh();
-    pickers.push(refresh);
+    pickers.push({ sel: sel, refresh: refresh });
   }
+  window.bulwarkPicker = picker;                  // for dropdowns made after the page loads (the Setup tab's rows)
   [].forEach.call(document.querySelectorAll('select'), picker);
   document.addEventListener('click', closeMenu);
   document.addEventListener('keydown', function (ev) { if (ev.keyCode === 27) closeMenu(); });
-  setInterval(function () { for (var i = 0; i < pickers.length; i++) pickers[i](); }, 350);     // the other scripts change selects without saying so
+  setInterval(function () {
+    for (var i = pickers.length - 1; i >= 0; i--) { if (document.body.contains(pickers[i].sel)) pickers[i].refresh(); else pickers.splice(i, 1); }      // a dropdown that has left the page is dropped
+  }, 350);     // the other scripts change selects without saying so
 
   // ---- the open sequence, always in view ----
   function clock(secs) {
