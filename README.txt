@@ -34,7 +34,7 @@ WHAT'S NEW IN v2.6
    check against. If a match looks weak the panel stops and says so.
    Track mixer: the main sequence starts from a template with Automatic
    Click Remover, DeNoise, Parametric Equalizer and Dynamics on voice
-   tracks 1-3 and a Hard Limiter (+10 dB input boost) on the Mix track.
+   tracks 1-3 and a Hard Limiter (no input boost) on the Mix track.
    A fourth or fifth voice track gets the same four effects.
    A master recording with no picture goes on A8 only. While a setup is
    running the list cannot be changed, and if anything fails the

@@ -127,8 +127,8 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf",
         "presets/layouts.json": "49b5d2d2d949918a28a8479f15765b75538d8204fc0d34f0ffa105be56c49b04",
-        "presets/main-template.json": "8848955a0476d1c149514a91b23a0ba2ba88a65438420595146b74930f4a8f80",
-        "presets/main-template.prproj.b64": "070d06f54495f04ce00948e2f09ad889026612f055e695e2dc45f287e3f5255f",
+        "presets/main-template.json": "647804288a9390fe6b469a509ea41229fc9fa2808182f489f860ffcdba0ed9bc",
+        "presets/main-template.prproj.b64": "8c708afdd607065ac249cab9f30fa3d7be6ffb926d1142813e9da054a7bbb6ad",
         "presets/mixer-default.json": "50b2f567a4564c9cfcfb0a44efa0caa0c5521cb0a3700ee80dfe38175b67468b",
         "templates/Bulwark Word Fill Vertical.mogrt.b64": "334008921638903beb40acac8e586d6ee8aa230acc321f3c1c2a87f60f707cd9",
         "templates/thumbs/HOW TO ADD A THUMBNAIL TEMPLATE.txt": "bc96371cb6bbd660907271bff8d2ea7b61b9e710c8418084f4eca6577d65b8a8",
@@ -187,7 +187,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "MgOBQYwPGLUMeoqETAacaEMq/PKvLUZ7my88wn5LhUFnr4A41ww1tv5/AgZxlN+x7nlPECUKB3E/y08RNeyI6g=="
+      "sig": "oGKxYCWAtjCiq6aqNFxT6DbfA+M/6eh63HTvnlaPCMgc5Jz5QJimbbkPUDI2bYMOtTwgTUr8GP2xmc7Zwtmhew=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -210,7 +210,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "4ZL7YyqxfdkV/HS8n2Pf5b3YCEIJCUF4I2NthVigYmEBxfNGX63k1wplkwhWibfkcD14/phqkIqTk0dtPUDtdQ=="
+      "sig": "6oHYE2YRAZFfkekSiF700TdXExHYFPkKT0103cDsgvwTjYGzBY0SH+JA60avWB8/ngygqc0z3+ppOoixmcxZEA=="
     }
   }
 }
