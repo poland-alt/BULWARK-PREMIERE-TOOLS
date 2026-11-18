@@ -20,6 +20,14 @@ WHAT'S NEW IN v2.5
  - Clips tab: "Export transcript" saves the open sequence's transcript
    as text with times, plain text, a spreadsheet (.csv) or subtitles
    (.srt). You choose where it is saved.
+ - Reframe: the 9x16 frames are found even when the project's bins are
+   named differently. The panel still looks for a "9x16 Frames" bin
+   first; failing that it takes a bin with a similar name, and failing
+   that it finds the frame files themselves (named like
+   "9x16 2-up TNL.png", "9x16 3-UP TNL.png", "3-PERSON VERT PIP
+   TNL.png") and treats each bin holding them as a show. Frame names
+   are read loosely too ("2-up", "2 up", "2up"). The end card bins are
+   found by similar names as well.
  - Reframe: each new vertical recut is filed in a bin called
    "SOCIAL CLIPS 9X16" (made at the top of the project if it is not
    there yet).

@@ -84,6 +84,98 @@ $.bulwark.vert = {
         }
         return false;
     }
+    // ---- finding the 9x16 frames, however the project's bins are named ----
+    // A frame file is a still named for its layout: "9x16 2-up TNL.png", "9x16 3-UP TNL.png", "3-PERSON VERT PIP TNL.png".
+    var RE_2UP = /(^|[^0-9a-z])2\s*[-_ ]?\s*up/i, RE_3UP = /(^|[^0-9a-z])3\s*[-_ ]?\s*up/i, RE_PIP = /PIP/i;
+    function isFrameFile(item) {
+        var n = String(item.name);
+        if (item.type === ProjectItemType.BIN || !CFG.stillExt.test(n)) return false;
+        if (/16\s*[x:]\s*9/i.test(n) && !/9\s*[x:]\s*16/i.test(n)) return false;       // a 16x9 frame is not one of these
+        return RE_2UP.test(n) || RE_3UP.test(n) || RE_PIP.test(n);
+    }
+    function squash(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+    // The frame of one kind ("2up", "3up", "pip") in a show's bin. Names are read loosely: "2-up", "2 up", "2up", "2_UP".
+    function frameIn(showBin, kind) {
+        if (kind === "pip") return childMatching(showBin, RE_PIP);
+        if (kind === "2up") return childMatching(showBin, RE_2UP);
+        return childMatching(showBin, /^9x16\s*3\s*[-_ ]?\s*up/i) || (function () {       // any other 3-up that is not the PIP frame
+            for (var i = 0; i < showBin.children.numItems; i++) { var c = showBin.children[i]; if (c.type !== ProjectItemType.BIN && RE_3UP.test(c.name) && !RE_PIP.test(c.name)) return c; }
+            return null;
+        })();
+    }
+    // Where the shows' frames are: { bin, shows: [bin, ...], how }.
+    //   1. the bin named "9x16 Frames": every sub-bin with something in it is a show (as it has always been);
+    //   2. a bin named much like it ("9X16 FRAMES", "Frames 9x16", "Vertical Frames", "9x16 Frame Assets"...);
+    //   3. no such bin: wherever the frame files themselves are. Each bin holding frame files is a show, and the
+    //      bin with the most of those inside it is taken as the frames bin.
+    function locateFrames(only) {                  // only: "like" or "files" skips the earlier steps (for checking)
+        var all = [];                                 // every bin: { bin, parent, frames: frame files directly in it }
+        (function walk(parent) {
+            for (var i = 0; i < parent.children.numItems; i++) {
+                var c = parent.children[i];
+                if (c.type !== ProjectItemType.BIN) continue;
+                var n = 0;
+                for (var j = 0; j < c.children.numItems; j++) if (isFrameFile(c.children[j])) n++;
+                all.push({ bin: c, parent: parent, frames: n });
+                walk(c);
+            }
+        })(app.project.rootItem);
+        function subBins(bin, needFrames) {
+            var out = [];
+            for (var i = 0; i < all.length; i++) if (all[i].parent.nodeId === bin.nodeId && (needFrames ? all[i].frames : all[i].bin.children.numItems)) out.push(all[i].bin);
+            return out;
+        }
+        var i, exact = findBin(app.project.rootItem, CFG.framesBin);
+        if (exact && !only) return { bin: exact, shows: subBins(exact, false), how: "name" };
+        var best = null;
+        for (i = 0; only !== "files" && i < all.length; i++) {
+            var k = squash(all[i].bin.name);
+            if (!/frame/.test(k) || !(/9x16|916|vert|social/.test(k)) || /16x9/.test(k.replace(/9x16/g, ""))) continue;
+            var sh = subBins(all[i].bin, true);
+            if (sh.length && (!best || sh.length > best.shows.length)) best = { bin: all[i].bin, shows: subBins(all[i].bin, false), n: sh.length, how: "like" };
+        }
+        if (best) return best;
+        var byParent = {}, top = null;
+        for (i = 0; i < all.length; i++) {
+            if (!all[i].frames) continue;
+            var id = all[i].parent.nodeId, g = byParent[id] || (byParent[id] = { bin: all[i].parent, shows: [], how: "files" });
+            g.shows.push(all[i].bin);
+            if (!top || g.shows.length > top.shows.length) top = g;
+        }
+        return top;
+    }
+    // What was found, for checking a project: "OK|<how>|<frames bin>|<show>: <2-up> / <3-UP> / <PIP>|..."
+    $.bulwark.findFrames = function (only) {
+        try {
+            var f = locateFrames(only || ""), out = [];
+            if (!f || !f.shows.length) return "ERR|" + NO_FRAMES;
+            function nm(x) { return x ? x.name : "none"; }
+            for (var i = 0; i < f.shows.length; i++) out.push(f.shows[i].name + ": " + nm(frameIn(f.shows[i], "2up")) + " / " + nm(frameIn(f.shows[i], "3up")) + " / " + nm(frameIn(f.shows[i], "pip")));
+            return "OK|" + f.how + "|" + f.bin.name + "|" + out.join("|");
+        } catch (err) { return "ERR|" + String(err); }
+    };
+    var NO_FRAMES = "No 9x16 frames were found in this project. The panel looks for a bin named \"" + CFG.framesBin + "\" with a bin per show inside it, or failing that for any bins holding frame files named like \"9x16 2-up TNL.png\", \"9x16 3-UP TNL.png\" or \"3-PERSON VERT PIP TNL.png\". Import the frames (BULWARK VIDEO ASSETS > 9x16 Assets), then press Refresh names.";
+    function showBinNamed(found, name) {
+        var i, want = squash(name);
+        for (i = 0; i < found.shows.length; i++) if (found.shows[i].name === name) return found.shows[i];
+        for (i = 0; i < found.shows.length; i++) if (squash(found.shows[i].name) === want) return found.shows[i];
+        return null;
+    }
+    // A bin by the words in its name, when it is not named exactly as expected ("9x16 End Cards - Social", "END CARDS 16x9").
+    function findBinWith(parent, must, mustNot) {
+        if (!parent || !parent.children) return null;
+        for (var i = 0; i < parent.children.numItems; i++) {
+            var c = parent.children[i];
+            if (c.type !== ProjectItemType.BIN) continue;
+            var k = squash(c.name), ok = true;
+            for (var m = 0; m < must.length; m++) if (k.indexOf(must[m]) < 0) ok = false;
+            if (ok && mustNot && k.replace(new RegExp(must[0], "g"), "").indexOf(mustNot) >= 0) ok = false;
+            if (ok) return c;
+            var hit = findBinWith(c, must, mustNot);
+            if (hit) return hit;
+        }
+        return null;
+    }
     function childMatching(bin, re) {
         if (!bin) return null;
         for (var i = 0; i < bin.children.numItems; i++) {
@@ -515,7 +607,7 @@ $.bulwark.vert = {
             }
             if (shortfall) review.push("\"" + nest.name + "\": the media does not fill its window, so there is nothing behind its edges. Add a background plate under it if needed.");
         }
-        var frame = three ? childMatching(showBin, /^9x16\s*3\s*-\s*up/i) : childMatching(showBin, /2\s*-\s*up/i);
+        var frame = frameIn(showBin, three ? "3up" : "2up");
         if (!frame) review.push("\"" + showBin.name + "\" has no " + (three ? "3-UP" : "2-up") + " frame, so \"" + nest.name + "\" has no frame on it.");
         else {
             var ft = firstFreeTrack(nest, top + 1, 0, end);
@@ -528,13 +620,10 @@ $.bulwark.vert = {
     $.bulwark.listShows = function () {
         try {
             if (!app.project) return "ERR|No project is open.";
-            var bin = findBin(app.project.rootItem, CFG.framesBin);
-            if (!bin) return "ERR|This project has no \"" + CFG.framesBin + "\" bin (BULWARK VIDEO ASSETS > 9x16 Assets).";
+            var found = locateFrames();
+            if (!found || !found.shows.length) return "ERR|" + NO_FRAMES;
             var out = [];
-            for (var i = 0; i < bin.children.numItems; i++) {
-                var c = bin.children[i];
-                if (c.type === ProjectItemType.BIN && c.children.numItems) out.push(c.name);
-            }
+            for (var i = 0; i < found.shows.length; i++) out.push(found.shows[i].name);
             return "OK|" + out.join("|");
         } catch (err) { return "ERR|" + String(err); }
     };
@@ -866,12 +955,13 @@ $.bulwark.vert = {
             var srcW = src.frameSizeHorizontal, srcH = src.frameSizeVertical;
             if (srcH >= srcW) return "ERR|\"" + src.name + "\" is already vertical (" + srcW + "x" + srcH + "). Open the 16x9 version.";
 
-            var framesBin = findBin(app.project.rootItem, CFG.framesBin);
-            var showBin = framesBin ? findBin(framesBin, showBinName) : null;
-            if (!showBin) return "ERR|Could not find the \"" + showBinName + "\" bin inside \"" + CFG.framesBin + "\".";
-            function frameFor(l) { return childMatching(showBin, l === "pip" ? /PIP/i : (l === "mid3" ? /^9x16\s*3\s*-\s*up/i : /2\s*-\s*up/i)); } // frame laid over a media section
-            var cards169 = findBinLike(app.project.rootItem, CFG.endCards169Bin);
-            var cards916 = findBinLike(app.project.rootItem, CFG.endCards916Bin);
+            var found = locateFrames();
+            if (!found || !found.shows.length) return "ERR|" + NO_FRAMES;
+            var showBin = showBinNamed(found, showBinName);
+            if (!showBin) return "ERR|Could not find the \"" + showBinName + "\" frames in \"" + found.bin.name + "\". Press Refresh names and pick the show again.";
+            function frameFor(l) { return frameIn(showBin, l === "pip" ? "pip" : (l === "mid3" ? "3up" : "2up")); } // frame laid over a media section
+            var cards169 = findBinLike(app.project.rootItem, CFG.endCards169Bin) || findBinWith(app.project.rootItem, ["16x9", "endcard"], "9x16");
+            var cards916 = findBinLike(app.project.rootItem, CFG.endCards916Bin) || findBinWith(app.project.rootItem, ["9x16", "endcard"], "16x9");
 
             function match916(cardName) {
                 var prefix = cardName.replace(/[-_ ]*(4K|16[x.:]*9).*$/i, "").toUpperCase();
