@@ -126,7 +126,7 @@
         "lib/update-key.js": "8d73f1bc112834d2e0f562eb9390e6e7ad6fa3b0762ceb4a172e02f672a0686e",
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf",
-        "presets/layouts.json": "49b5d2d2d949918a28a8479f15765b75538d8204fc0d34f0ffa105be56c49b04",
+        "presets/layouts.json": "7dc493cfe5385b6e43183880082d6a9fe40c6ea0242ff1e6c2d05d7653ee2274",
         "presets/main-template.json": "647804288a9390fe6b469a509ea41229fc9fa2808182f489f860ffcdba0ed9bc",
         "presets/main-template.prproj.b64": "8c708afdd607065ac249cab9f30fa3d7be6ffb926d1142813e9da054a7bbb6ad",
         "presets/mixer-default.json": "50b2f567a4564c9cfcfb0a44efa0caa0c5521cb0a3700ee80dfe38175b67468b",
@@ -187,7 +187,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "MK52wgGyMRkHNG8Xbdc7vXy7DeH5Ww4U0nD1L/K+SNuecnuZPnn7XWj/pKXnYaat4pdBQPBh8NMYwdjVkNW92w=="
+      "sig": "s0XGvYnoYWnylODd9y9LQC+GyBn0gEVdy3qhb3XdjNBsfM1SyG5Wfb3i90tjTnSe7i/xyq+YXyUhe5/HF763Qg=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -210,7 +210,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "o6U7HZ4xQWDFVa8kgLbwqyhjX6f8hWKY42ADCnsONmczBJF1I+m0jAMDiJzX5TDeKvsE4AzJKzh+c4l7nH+oFw=="
+      "sig": "bUVBaQJNC3UBvpL7fFI1hf0pqui8C/TtlNd4bWLghHS/UX+Mm6UIOhBS05IArqY5aDnnOwX+GcWYXO/WW2rF2Q=="
     }
   }
 }

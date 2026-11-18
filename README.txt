@@ -43,9 +43,10 @@ WHAT'S NEW IN v2.6
      - "Save open sequence as a wide shot layout" / "as a media layout":
        open a finished wide shot nest and press it; its positions,
        sizes, crops and frame are remembered and offered whenever that
-       many people are listed. Shipped layouts: the TNL three-person
-       frame, the Three Frame Media layout, and plain side-by-side
-       layouts with no frame for 2, 3 and 4 people.
+       many people are listed. Shipped layouts: the two-up with the
+       divider, the TNL three-person frame, the Two Frame Media and
+       Three Frame Media layouts, and plain side-by-side layouts with
+       no frame for 2, 3 and 4 people.
      - "Save open sequence's track mixer as the template": open a main
        sequence whose Audio Track Mixer is the way you want it; new
        main sequences then start from it (takes up to a minute).
