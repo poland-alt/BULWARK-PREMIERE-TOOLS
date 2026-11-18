@@ -1,6 +1,13 @@
 BULWARK PREMIERE TOOLS - v2.6 test build
 ========================================
 
+WHAT'S NEW IN v2.6.1
+--------------------
+ - Setup: a layout's frame is found even when a project calls it
+   something else. The two-up takes "divider.png" or, failing that,
+   "16x9 2-UP.png", and frame names are matched whatever their
+   capitals, spacing or file type.
+
 WHAT'S NEW IN v2.6
 ------------------
  - New Setup tab: builds a new project's working structure from the

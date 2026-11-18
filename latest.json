@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.6.0",
-      "notes": "New Setup tab: builds a project's nests, wide shot, media layout and main sequence from the recordings, syncs livestream recordings and media to the master by sound, and puts the track mixer effects in place.",
+      "version": "2.6.1",
+      "notes": "Setup: the two-up uses 16x9 2-UP when a project has no divider, and frame names are matched whatever their capitals, spacing or file type.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
@@ -96,7 +96,7 @@
         "templates/thumbs/trio-maga-monday/top.jpg.b64"
       ],
       "hashes": {
-        "CSXS/manifest.xml": "a64f90199f33381af529d044b23b9ce503e8a473e3766266c5905c08afef0604",
+        "CSXS/manifest.xml": "98d8180048eb2951d8a62d4b89aa193149c08a0c93c9e79485640c6980783543",
         "bin/THIRD-PARTY-LICENSES.txt": "182773a2ce2264b671f4b930f1fd6c2e125c0c860682e3ad2015d5caa4fb324a",
         "bin/ai.b64": "f3d528f0eb9fe5d2983d14f30493558685df72d8dbc3eba80b711bae6ad25c6e",
         "bin/ai.swift": "fe8d26e757a802626dbf547f84dfababdc899f76d595e5d6ccf679cfaa77d818",
@@ -187,7 +187,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "xZhZkK4H0nj+2pO1K3Oins/F9FIvfDXjyKAkd383ZMmUR/GYhElhOujKwwwS+k+2T6LIHouLVuFkeQ1VVjsP/Q=="
+      "sig": "99oHJphWel1h08DkXhiwsSzcopiYGt7LoXqOuu9sV4UBIeWORaakWApBkyX2SGF5cdeBQQFotQ2tdJewNP7Egw=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -210,7 +210,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "Tr2NS6smMLU7+2+lK0JnYRxqPM8lxmd3uPScd8zMSawVpX8jDEMyy9vuvYxh/L0TMkjJ57pGyuvWVKFEEgTXUA=="
+      "sig": "jp5NKsK6cKMkNoeCDXEz14oDU61A6xkPsJWRLhmLprt5TnRM71K2f9pnU7XrUlmSn1OdJw9akwHiQShz0u+JyA=="
     }
   }
 }
