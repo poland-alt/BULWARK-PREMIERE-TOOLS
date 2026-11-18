@@ -195,6 +195,7 @@
       <div class="mini"><span>Left / right</span><input id="tmx" type="range" min="-100" max="100" step="2" value="0"></div>
       <div class="mini"><span>Up / down</span><input id="tmy" type="range" min="-100" max="100" step="2" value="0"></div>
       <div class="mini"><span>Zoom</span><input id="tz" type="range" min="100" max="300" step="5" value="100"></div>
+      <div class="row" style="margin:4px 0 0;gap:4px"><button id="tundo" class="secondary" title="Undo (Cmd+Z)">Undo</button><button id="tredo" class="secondary" title="Redo (Shift+Cmd+Z)">Redo</button></div>
       <button id="tsave">Save thumbnail</button>
     </div>
   </div>
@@ -206,7 +207,7 @@
   <label for="ttpl">Template</label>
   <select id="ttpl" size="3"></select>
   <a class="link" id="ttplfolder">Open my thumbnail templates folder</a>
-  <div class="hint">Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest: park on the frame you want and press it. Drag a picture in the preview to move it. Double-click a picture option to jump the playhead there.</div>
+  <div class="hint">Cmd+Z undoes the last change to the thumbnail (Shift+Cmd+Z redoes it) while this tab is showing. Open the vertical clip. Click a window in the preview (or its name) to mark it, then click a picture to fill it. "Use playhead frame" also works inside any 16x9 sequence, such as a person's camera nest: park on the frame you want and press it. Drag a picture in the preview to move it. Double-click a picture option to jump the playhead there.</div>
   </div>
 
   <div class="tab" id="tab-settings">

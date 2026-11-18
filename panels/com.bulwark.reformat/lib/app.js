@@ -673,8 +673,43 @@
     if (t.overlayImg) ctx.drawImage(t.overlayImg, 0, 0, W, Hh);
     drawHeadline(ctx, t, W);
   }
+  // -- undo / redo: what is in each window, how each picture is placed, the template and the headline --
+  var undoStack = [], redoStack = [];
+  function snap() {
+    return { tpl: thumb.tpl ? thumb.tpl.id : '', slot: thumb.slot, head: $('thead').value,
+      pics: thumb.pics.map(function (p) { return p ? { p: p, mx: p.mx, my: p.my, zoom: p.zoom } : null; }) };
+  }
+  function undoButtons() { $('tundo').disabled = !undoStack.length; $('tredo').disabled = !redoStack.length; }
+  function remember() { undoStack.push(snap()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; undoButtons(); }
+  function restore(st) {
+    if (thumb.tpl && st.tpl && st.tpl !== thumb.tpl.id) { $('ttpl').value = st.tpl; pickTemplate(st.tpl); }
+    thumb.pics = st.pics.map(function (x) { if (!x) return undefined; x.p.mx = x.mx; x.p.my = x.my; x.p.zoom = x.zoom; return x.p; });
+    thumb.slot = st.slot; $('thead').value = st.head;
+    markSlots(); undoButtons();
+  }
+  function undo() { if (!undoStack.length) return; redoStack.push(snap()); restore(undoStack.pop()); say($('tstat'), 'Undone.'); }
+  function redo() { if (!redoStack.length) return; undoStack.push(snap()); restore(redoStack.pop()); say($('tstat'), 'Redone.'); }
+  $('tundo').addEventListener('click', undo); $('tredo').addEventListener('click', redo);
+  // Cmd+Z / Shift+Cmd+Z. Premiere normally keeps those keys for itself, so the panel asks for them, and only while
+  // the Thumbnail tab is showing: on the other tabs Cmd+Z stays Premiere's own undo.
+  function wantUndoKeys() {
+    var on = $('tab-thumb').className.indexOf('on') >= 0;
+    try { csi.registerKeyEventsInterest(JSON.stringify(on ? [{ keyCode: 6, metaKey: true }, { keyCode: 6, metaKey: true, shiftKey: true }, { keyCode: 90, ctrlKey: true }, { keyCode: 90, ctrlKey: true, shiftKey: true }] : [])); } catch (e) {}
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (!(ev.metaKey || ev.ctrlKey) || String(ev.key).toLowerCase() !== 'z' || $('tab-thumb').className.indexOf('on') < 0) return;
+    var tgt = ev.target, typing = tgt && (tgt.tagName === 'INPUT' && /text|password/.test(tgt.type) || tgt.tagName === 'TEXTAREA');
+    if (typing) return;                          // in a text box Cmd+Z undoes typing, as usual
+    ev.preventDefault();
+    if (ev.shiftKey) redo(); else undo();
+  });
+  [].forEach.call(document.querySelectorAll('#tabs span'), function (el) { el.addEventListener('click', function () { setTimeout(wantUndoKeys, 0); }); });
+  var showTab0 = window.bulwarkShowTab;
+  window.bulwarkShowTab = function (name) { showTab0(name); wantUndoKeys(); };
+
   function setPicture(pic) {
     if (!thumb.tpl) return;
+    remember();
     var i = thumb.slot, n = thumb.tpl.windows.length;
     pic.mx = 0; pic.my = 0; pic.zoom = pic.source ? 1.15 : 1;
     thumb.pics[i] = pic;
@@ -758,6 +793,7 @@
   });
   // sliders for the marked window's picture
   ['tmx', 'tmy', 'tz'].forEach(function (id) {
+    $(id).addEventListener('mousedown', function () { if (thumb.pics[thumb.slot]) remember(); });
     $(id).addEventListener('input', function () {
       var pic = thumb.pics[thumb.slot]; if (!pic) return;
       pic.mx = +$('tmx').value; pic.my = +$('tmy').value; pic.zoom = +$('tz').value / 100;
@@ -781,6 +817,7 @@
       // pixels moved on screen per canvas pixel: the canvas's own width, times the panel's size setting.
       // The pointer's position in the panel is used, not its position on the screen: the host reports screen
       // positions with the vertical axis (and on some setups both axes) running the other way.
+      if (pic) remember();
       drag = pic ? { x: ev.clientX, y: ev.clientY, mx: pic.mx, my: pic.my, pic: pic, win: thumb.tpl.windows[i], k: cv.width / (cv.clientWidth * zoom) } : null;
       ev.preventDefault();
     });
@@ -795,7 +832,8 @@
     });
     window.addEventListener('mouseup', function () { drag = null; });
   })();
-  $('ttpl').addEventListener('change', function () { pickTemplate($('ttpl').value); });
+  $('ttpl').addEventListener('change', function () { remember(); pickTemplate($('ttpl').value); });
+  $('thead').addEventListener('focus', function () { remember(); });
   $('thead').addEventListener('input', drawThumb);
   $('ttplfolder').addEventListener('click', function () {
     cep.fs.makedir(WORK); cep.fs.makedir(TPL_LOCAL);
@@ -815,6 +853,7 @@
     a.addEventListener('click', function () { cep.process.createProcess('/usr/bin/open', '-R', path); }); st.appendChild(a);
   });
   listTemplates();
+  undoButtons(); wantUndoKeys();
   // templates may have been added, or the show changed on the Reframe tab, since the panel opened
   document.querySelector('#tabs span[data-tab=thumb]').addEventListener('click', listTemplates);
 
