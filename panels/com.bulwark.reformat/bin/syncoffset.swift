@@ -161,7 +161,44 @@ func jsonString(_ s: String) -> String {
     return String(t.dropFirst().dropLast())
 }
 
+// Where the sound in a recording starts and stops: for media recorded on the same clock as everything else, which
+// sits black and silent until the moment it was played.
+//   syncoffset --sound <out.json> <file> [<file> ...]   ->   { "items": [ { "path", "duration", "start", "end", "ok" } ] }
+// Sound is anything within 45 dB of the file's loudest moment (and above -60 dB), lasting at least 0.15 s.
+func soundSpan(_ x: [Float]) -> (Double, Double)? {
+    let n = x.count / HOP
+    if n < 20 { return nil }
+    var e = [Float](repeating: 0, count: n)
+    x.withUnsafeBufferPointer { p in
+        for i in 0..<n { var s: Float = 0; vDSP_measqv(p.baseAddress! + i * HOP, 1, &s, vDSP_Length(HOP)); e[i] = 10 * log10(s + 1e-12) }
+    }
+    var peak: Float = -200
+    vDSP_maxv(e, 1, &peak, vDSP_Length(n))
+    let floor = max(peak - 45, -60)
+    if peak < -60 { return nil }
+    let need = 15                                      // 0.15 s of it in a row
+    var first = -1, last = -1, run = 0
+    for i in 0..<n {
+        if e[i] > floor { run += 1; if run >= need { if first < 0 { first = i - need + 1 }; last = i } } else { run = 0 }
+    }
+    if first < 0 { return nil }
+    return (Double(first) * Double(HOP) / RATE, Double(last + 1) * Double(HOP) / RATE)
+}
+
 let args = CommandLine.arguments
+if args.count >= 4 && args[1] == "--sound" {
+    var rows = [String]()
+    for p in args[3...] {
+        say("read|" + (p as NSString).lastPathComponent)
+        guard let x = try? decode(p) else { rows.append("{\"path\":\(jsonString(p)),\"ok\":false}"); continue }
+        let dur = Double(x.count) / RATE
+        if let span = soundSpan(x) { rows.append(String(format: "{\"path\":%@,\"duration\":%.3f,\"start\":%.3f,\"end\":%.3f,\"ok\":true}", jsonString(p), dur, span.0, span.1)) }
+        else { rows.append(String(format: "{\"path\":%@,\"duration\":%.3f,\"ok\":false}", jsonString(p), dur)) }
+    }
+    try? "{\"items\":[\(rows.joined(separator: ","))]}".write(toFile: args[2], atomically: true, encoding: .utf8)
+    say("done")
+    exit(0)
+}
 if args.count < 4 {
     FileHandle.standardError.write("usage: syncoffset <out.json> <master> <recording> [<recording> ...]\n".data(using: .utf8)!)
     exit(2)

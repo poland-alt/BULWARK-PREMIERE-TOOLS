@@ -162,6 +162,34 @@
  ],
  "media": [
   {
+   "name": "Divider: person left, media right",
+   "people": [
+    {
+     "scale": 100,
+     "pos": [
+      0.23333,
+      0.5
+     ],
+     "track": 1
+    }
+   ],
+   "media": {
+    "pos": [
+     0.75781,
+     0.5
+    ],
+    "scale": 100,
+    "cropL": 24
+   },
+   "frame": "divider.png",
+   "frameAlt": [
+    "16x9 2-UP.png",
+    "2-UP.png",
+    "16x9 2-up frame.png"
+   ],
+   "frameScale": 100
+  },
+  {
    "name": "Three Frame Media",
    "people": [
     {

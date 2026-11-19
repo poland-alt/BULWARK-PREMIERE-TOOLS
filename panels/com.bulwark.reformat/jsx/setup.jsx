@@ -143,13 +143,43 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
     };
     // Lays an item on a video track at a time; its sound lands on the audio track of the same number.
     // In and out marks left on the item would cut it short and shift it, so they are lifted while it is placed.
-    function place(seq, trackIndex, item, at) {
-        var tr = seq.videoTracks[trackIndex], n = tr.clips.numItems, ip = null, op = null;
-        try { ip = item.getInPoint().seconds; op = item.getOutPoint().seconds; item.clearInPoint(); item.clearOutPoint(); } catch (eMarks) {}
+    function place(seq, trackIndex, item, at, maxLen) {
+        var tr = seq.videoTracks[trackIndex], n = tr.clips.numItems, ip = null, op = null, full = null;
+        try { ip = item.getInPoint().seconds; op = item.getOutPoint().seconds; item.clearInPoint(); item.clearOutPoint(); full = item.getOutPoint().seconds; } catch (eMarks) {}
+        try { if (maxLen && full !== null && maxLen < full) item.setOutPoint(maxLen, 4); } catch (eLen) {}       // lay only this much of it
         tr.overwriteClip(item, at || 0);
-        try { if (ip !== null && (ip > 0 || op < item.getOutPoint().seconds - 0.001)) { item.setInPoint(ip, 4); item.setOutPoint(op, 4); } } catch (eMarks2) {}
+        try {
+            item.clearOutPoint();
+            if (ip !== null && full !== null && (ip > 0 || op < full - 0.001)) { item.setInPoint(ip, 4); item.setOutPoint(op, 4); }
+        } catch (eMarks2) {}
         if (tr.clips.numItems <= n) throw new Error("Premiere would not place \"" + item.name + "\" in \"" + seq.name + "\". A person's file needs a picture: a sound-only file can only be the Master or Media.");
-        return lastClip(tr);
+        return clipAt(tr, at || 0) || lastClip(tr);
+    }
+    function clipAt(track, at) {                       // the clip that starts at (or within a frame of) a time
+        for (var i = track.clips.numItems - 1; i >= 0; i--) if (Math.abs(track.clips[i].start.seconds - at) < 0.05) return track.clips[i];
+        return null;
+    }
+    // Lays media on one track, each clip at its own time: list = [{ item, at, skip }] in playing order. `skip` is how
+    // much of the front to cut (a recording that sits black and silent until it is played): the cut keeps what is left
+    // in time. Later clips go down first, because a clip lands whole before it is trimmed, and would wipe out anything
+    // after its start. One that would run into the next is cut short there. Returns [{ at, end, clip }] in order.
+    function layMedia(seq, trackIndex, list) {
+        var spans = [], next = 1e12, aTrack = trackIndex < seq.audioTracks.numTracks ? seq.audioTracks[trackIndex] : null;
+        for (var k = list.length - 1; k >= 0; k--) {
+            var m = list[k], skip = m.skip || 0, begins = m.at + skip;
+            if (begins >= next - 0.05) continue;                     // nothing of it would show before the next one
+            var cl;
+            try { cl = place(seq, trackIndex, m.item, m.at, next < 1e11 ? next - m.at : 0); } catch (ePlace) { continue; }
+            var ac = aTrack ? clipAt(aTrack, m.at) : null;
+            if (skip > 0.0005) {
+                // in point first, then start: the clip then shows source time `skip` at sequence time `at + skip`
+                cl.inPoint = secs(skip); cl.start = secs(begins);
+                if (ac) { ac.inPoint = secs(skip); ac.start = secs(begins); }
+            }
+            next = cl.start.seconds;
+            spans.unshift({ at: cl.start.seconds, end: cl.end.seconds, clip: cl, item: m.item });
+        }
+        return spans;
     }
     function dropAudio(seq, trackIndex) {              // takes the sound that came along with a clip off its track
         if (trackIndex >= seq.audioTracks.numTracks) return;
@@ -361,8 +391,8 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
 
             // livestream media that was matched to the master, in the order it played: [{ path, offset, item, at }]
             var timedMedia = [];
-            for (i = 0; i < M.length; i++) if (M[i].offset !== undefined && M[i].offset !== null) { M[i].item = itemByPath(M[i].path); M[i].at = M[i].offset - base; if (M[i].item && M[i].at >= 0) timedMedia.push(M[i]); }
-            timedMedia.sort(function (a, b) { return a.at - b.at; });
+            for (i = 0; i < M.length; i++) if (M[i].offset !== undefined && M[i].offset !== null) { M[i].item = itemByPath(M[i].path); M[i].at = M[i].offset - base; M[i].skip = +M[i].skip || 0; if (M[i].item && M[i].at + M[i].skip >= 0) timedMedia.push(M[i]); }
+            timedMedia.sort(function (a, b) { return (a.at + a.skip) - (b.at + b.skip); });
             var mediaSpans = [];                         // where media sits in the media layout nest: [{ at, end }]
             function fitInside(item) {                   // 100 for a 1920x1080 clip; smaller or larger ones are brought to that size
                 try { var m = /VideoInfo>\s*(\d+)\s*x\s*(\d+)/.exec(item.getProjectMetadata()); if (m && +m[1] > 0 && +m[2] > 0) return Math.min(1920 / +m[1], 1080 / +m[2]) * 100; } catch (e) {}
@@ -382,20 +412,16 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 if (emptyTrack && timedMedia.length) {
                     // The media goes in its window, each clip where it played. This nest then carries the media's sound
                     // only: the voices are already on the main sequence's own tracks, and would double up.
-                    var win = layout.media || { pos: [0.6432, 0.5], scale: 65 }, lastEnd = 0;
+                    var win = layout.media || { pos: [0.6432, 0.5], scale: 65 };
                     for (k = 0; k < P.length; k++) dropAudio(s, trackOf(layout, k));
-                    for (k = 0; k < timedMedia.length; k++) {
-                        if (timedMedia[k].at < lastEnd - 0.0005) continue;         // overlaps the clip before it: left for the editor
-                        try {
-                            var mcl = place(s, top, timedMedia[k].item, timedMedia[k].at);
-                            setMotion(mcl, { pos: win.pos, scale: Math.round(win.scale * fitInside(timedMedia[k].item)) / 100 });
-                            lastEnd = mcl.end.seconds;
-                            mediaSpans.push({ at: timedMedia[k].at, end: mcl.end.seconds });
-                        } catch (eM) {}
+                    var laid = layMedia(s, top, timedMedia);
+                    for (k = 0; k < laid.length; k++) {
+                        var mm = { pos: win.pos, scale: Math.round(win.scale * fitInside(laid[k].item)) / 100 };
+                        if (win.cropL) mm.cropL = win.cropL; if (win.cropR) mm.cropR = win.cropR;
+                        setMotion(laid[k].clip, mm);
+                        mediaSpans.push({ at: laid[k].at, end: laid[k].end });
                     }
                 }
-                // The layout's frame, by name. Projects differ in what the same frame is called, so the name is read
-                // loosely (capitals, spaces, extension), and a layout can list other names it goes by.
                 var frame = null, wanted = layout.frame ? [layout.frame].concat(layout.frameAlt || []) : [], usedAlt = false;
                 for (k = 0; k < wanted.length && !frame; k++) { frame = itemByName(wanted[k]) || stillLike(wanted[k]); usedAlt = k > 0; }
                 if (frame && usedAlt) notes.push("\"" + name + "\": this project has no \"" + layout.frame + "\", so \"" + frame.name + "\" was used as the frame.");
@@ -458,8 +484,11 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
             // 4b. livestream media on the main sequence, on the track above the wide shot. With a media layout, the
             //     media-frame nest is shown for as long as each clip plays (the people beside the media); without one,
             //     the clips themselves go on, full screen.
-            var placedMedia = 0, skipped = 0, mTrack = P.length + (wide ? 1 : 0), ends = [0, 0], topUsable = main.videoTracks.numTracks - (masterItem ? 1 : 0);
+            var placedMedia = 0, skipped = 0, mTrack = P.length + (wide ? 1 : 0), topUsable = main.videoTracks.numTracks - (masterItem ? 1 : 0);
             for (i = 0; i < P.length; i++) mTrack = Math.max(mTrack, trackOf(cfg.wide, i) + 1 + (wide ? 1 : 0));
+            // Its sound lands on the audio track of the same number, and the first three audio tracks carry the voice
+            // effects: media goes no lower than track 4, so it is not run through them.
+            mTrack = Math.max(mTrack, 3);
             if (mediaNest && mediaSpans.length && mTrack < topUsable) {
                 var mAudio = main.audioTracks[Math.min(mTrack, main.audioTracks.numTracks - 1)];
                 for (i = 0; i < mediaSpans.length; i++) {
@@ -476,12 +505,9 @@ if (typeof $.bulwark === "undefined") $.bulwark = {};
                 skipped += timedMedia.length - mediaSpans.length;
                 if (placedMedia) notes.push("\"" + mediaNest.name + "\" has the " + mediaSpans.length + " media clip" + (mediaSpans.length === 1 ? "" : "s") + " in its window, and is on V" + (mTrack + 1) + " of the main sequence for as long as each one plays.");
             } else {
-                for (i = 0; i < timedMedia.length; i++) {
-                    var mAt = timedMedia[i].at, lane = mAt >= ends[0] - 0.0005 ? 0 : (mAt >= ends[1] - 0.0005 ? 1 : -1);
-                    if (lane < 0 || mTrack + lane >= topUsable) { skipped++; continue; }
-                    try { var mcl2 = place(main, mTrack + lane, timedMedia[i].item, mAt); ends[lane] = mcl2.end.seconds; placedMedia++; } catch (eMedia) { skipped++; }
-                }
-                if (placedMedia) notes.push(placedMedia + " media clip" + (placedMedia === 1 ? "" : "s") + " placed full screen on V" + (mTrack + 1) + (ends[1] ? " and V" + (mTrack + 2) : "") + " of the main sequence, where " + (placedMedia === 1 ? "it" : "they") + " played in the stream. Choose a media layout to have them in the media frame instead.");
+                if (mTrack < topUsable) placedMedia = layMedia(main, mTrack, timedMedia).length;
+                skipped += timedMedia.length - placedMedia;
+                if (placedMedia) notes.push(placedMedia + " media clip" + (placedMedia === 1 ? "" : "s") + " placed full screen on V" + (mTrack + 1) + " of the main sequence, where " + (placedMedia === 1 ? "it" : "they") + " played. Choose a media layout to have them in the media frame instead.");
             }
             if (skipped) notes.push(skipped + " media clip" + (skipped === 1 ? " was" : "s were") + " imported but not placed (it overlaps another, or there was no room): place by hand.");
 

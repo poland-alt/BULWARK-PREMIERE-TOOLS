@@ -1,6 +1,17 @@
 BULWARK PREMIERE TOOLS - v2.6 test build
 ========================================
 
+WHAT'S NEW IN v2.6.2
+--------------------
+ - Setup, Raw video: media recorded alongside everyone (a media board
+   file that is black and silent until the media is played) is put in
+   time with the recordings, and its black front is cut off: the clip
+   starts where its sound starts.
+ - Setup, one person: a new media layout, "Divider: person left, media
+   right". The person takes the left half, the media the right half,
+   with the divider between them, and it is shown on the main sequence
+   whenever media plays.
+
 WHAT'S NEW IN v2.6.1
 --------------------
  - Setup: a layout's frame is found even when a project calls it

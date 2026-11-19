@@ -106,8 +106,8 @@
         row.appendChild(name);
       }
       var fn = document.createElement('span'); fn.className = 'fname'; fn.textContent = f.path.split('/').pop(); fn.title = f.path; row.appendChild(fn);
-      if (f.role !== 'master' && f.offset !== undefined && mode === 'live') {
-        var off = document.createElement('span'); off.className = 'off'; off.textContent = clock(f.offset); off.title = 'Where this starts on the master recording'; row.appendChild(off);
+      if (f.role !== 'master' && f.offset !== undefined && (mode === 'live' || f.role === 'media')) {
+        var off = document.createElement('span'); off.className = 'off'; off.textContent = clock(f.offset + (f.skip || 0)); off.title = 'Where this starts on the master recording'; row.appendChild(off);
       }
       function btn(text, title, fn2) { var b = document.createElement('span'); b.className = 'mv'; b.textContent = text; b.title = title; b.addEventListener('click', fn2); row.appendChild(b); }
       if (f.role === 'person') {
@@ -184,8 +184,8 @@
     [].forEach.call($('smode').children, function (c) { c.className = 'chip' + (c.getAttribute('data-mode') === mode ? ' on' : ''); });
     $('smodehint').textContent = mode === 'live'
       ? 'Add each person\'s recording and the master recording of the stream. Each person is lined up to the master by sound, so they all play in sync.'
-      : 'Add each person\'s recording. They are taken to start at the same moment. The order here is left to right in the wide shot.';
-    if (mode !== 'live') files.forEach(function (f) { if (f.role === 'master') f.role = 'person'; f.offset = undefined; });
+      : 'Add each person\'s recording. They are taken to start at the same moment. The order here is left to right in the wide shot. Media recorded alongside (a media board) has its black, silent front cut off and stays in time.';
+    if (mode !== 'live') files.forEach(function (f) { if (f.role === 'master') f.role = 'person'; f.offset = undefined; f.skip = 0; });
     drawFiles();
   }
   [].forEach.call($('smode').children, function (c) { c.addEventListener('click', function () { if (busy) return; mode = c.getAttribute('data-mode'); store('bulwark_setupmode', mode); drawMode(); }); });
@@ -208,6 +208,33 @@
   });
 
   // ---- livestream: where each person's recording starts on the master ----
+  // ---- raw video: media recorded on the same clock sits black and silent until it is played. Find where its
+  //      sound starts, so that front can be cut off and the rest left in time. ----
+  function soundStarts(cb) {
+    var M = files.filter(function (f) { return f.role === 'media' && !/\.(png|jpe?g|gif|psd|tiff?|webp|heic)$/i.test(f.path); }), out = DIR + '/sound.json';
+    files.forEach(function (f) { if (f.role === 'media') { f.offset = undefined; f.skip = 0; } });
+    if (!M.length) return cb(null);
+    unpack(function (err) {
+      if (err) return cb(err);
+      cep.fs.deleteFile(out);
+      say('Finding where each media clip starts playing…');
+      var proc = cep.process.createProcess.apply(cep.process, [SYNC, '--sound', out].concat(M.map(function (f) { return f.path; }))), done = false;
+      if (proc.err) return cb('Could not start the helper.');
+      function fin() {
+        if (done) return; done = true;
+        var res = readJSON(out, null);
+        if (!res) return cb('The helper did not finish reading the media.');
+        M.forEach(function (f) {
+          var it = (res.items || []).filter(function (x) { return x.path === f.path; })[0];
+          if (!it || !it.ok) return;                 // no sound to go by: imported, left for the editor to place
+          f.offset = 0; f.skip = Math.max(0, it.start - 0.1);       // a touch before the sound, where the picture comes up
+        });
+        cb(null);
+      }
+      cep.process.onquit(proc.data, function () { setTimeout(fin, 300); });
+      setTimeout(fin, 10 * 60000);
+    });
+  }
   function sync(cb) {
     var master = files.filter(function (f) { return f.role === 'master'; })[0], out = DIR + '/sync.json';
     // everyone's recordings, and any media that is video or sound (a still has nothing to match)
@@ -289,8 +316,10 @@
         fps: $('sfps').value, mainName: $('smain').value.replace(/^\s+|\s+$/g, '') || 'MAIN SEQUENCE',
         people: grouped(),
         master: mode === 'live' && master ? { path: master.path } : null,
-        media: files.filter(function (f) { return f.role === 'media'; }).map(function (f) { return { path: f.path, offset: mode === 'live' && f.offset !== undefined ? f.offset : null }; }),
-        wide: P.length > 1 ? withFrame(pick('wide', 'swide'), 'swframe') : null, mediaLayout: P.length > 1 ? withFrame(pick('media', 'smedia'), 'smframe') : null,
+        // media with a place on the clock is put there: found by sound on a stream; in raw video it started with
+        // everything else, and its silent, black front (`skip`) is cut off
+        media: files.filter(function (f) { return f.role === 'media'; }).map(function (f) { return { path: f.path, offset: f.offset !== undefined ? f.offset : null, skip: f.skip || 0 }; }),
+        wide: P.length > 1 ? withFrame(pick('wide', 'swide'), 'swframe') : null, mediaLayout: withFrame(pick('media', 'smedia'), 'smframe'),
         template: tpl ? { path: tpl.path, id: tpl.id, from: tpl.from } : null, mixer: $('smixer').checked ? mixer : null
       };
       var path = DIR + '/config.json';
@@ -314,7 +343,7 @@
     for (var i = 0; i < P.length; i++) if (!P[i].name.replace(/^\s+|\s+$/g, '')) return say('Give every person a name: it becomes the name of their nest.', 'err');
     if (mode === 'live' && !master) return say('Livestream mode needs the master recording. Add it and set its role to Master, or switch to Raw video.', 'err');
     lock(true);
-    if (mode !== 'live') return build();
+    if (mode !== 'live') return soundStarts(function (err) { if (err) { lock(false); return say(err, 'err'); } drawFiles(); build(); });
     say('Sync: starting…');
     sync(function (err, bad) {
       drawFiles();
