@@ -1,6 +1,15 @@
 BULWARK PREMIERE TOOLS - v2.6 test build
 ========================================
 
+WHAT'S NEW IN v2.6.3
+--------------------
+ - Fix: sequences built by Setup, and clips cut from them, could not be
+   exported. The Export page showed an empty Location and Export
+   failed with "it is locked. Access is denied". New setups are not
+   affected. For a sequence made before this update: on the Export
+   page click the empty space to the right of "Location" and choose a
+   folder, or use "Send to Media Encoder" and set the output there.
+
 WHAT'S NEW IN v2.6.2
 --------------------
  - Setup, Raw video: media recorded alongside everyone (a media board

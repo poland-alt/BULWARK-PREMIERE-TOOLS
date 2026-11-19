@@ -1,8 +1,8 @@
 {
   "panels": {
     "com.bulwark.reformat": {
-      "version": "2.6.2",
-      "notes": "Setup, Raw video: media-board recordings are put in time and their black front is cut off. One person: a divider layout with the media on the right.",
+      "version": "2.6.3",
+      "notes": "Fix: sequences built by Setup could not be exported (empty Location, 'locked, access is denied'). New setups export normally.",
       "files": [
         "CSXS/manifest.xml",
         "bin/THIRD-PARTY-LICENSES.txt",
@@ -96,7 +96,7 @@
         "templates/thumbs/trio-maga-monday/top.jpg.b64"
       ],
       "hashes": {
-        "CSXS/manifest.xml": "3804abdc059eac32a0cc6d98e774a1ffd1eecb6b9221b9f3a90553883b6f4b69",
+        "CSXS/manifest.xml": "0f1d17f2512c24d29c9cf9ad6e768ead6f2532a158621ef98c4a1cfadb8570e0",
         "bin/THIRD-PARTY-LICENSES.txt": "182773a2ce2264b671f4b930f1fd6c2e125c0c860682e3ad2015d5caa4fb324a",
         "bin/ai.b64": "f3d528f0eb9fe5d2983d14f30493558685df72d8dbc3eba80b711bae6ad25c6e",
         "bin/ai.swift": "fe8d26e757a802626dbf547f84dfababdc899f76d595e5d6ccf679cfaa77d818",
@@ -128,7 +128,7 @@
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf",
         "presets/layouts.json": "3e886b3ca183be5910999d05c3ecd761c28a14c3ccf52221779cf0f9ef67327a",
         "presets/main-template.json": "647804288a9390fe6b469a509ea41229fc9fa2808182f489f860ffcdba0ed9bc",
-        "presets/main-template.prproj.b64": "8c708afdd607065ac249cab9f30fa3d7be6ffb926d1142813e9da054a7bbb6ad",
+        "presets/main-template.prproj.b64": "63eb19e881712885b06703ab9596c48dad15cacc2aefb97bc7bb658bf3cb8abb",
         "presets/mixer-default.json": "50b2f567a4564c9cfcfb0a44efa0caa0c5521cb0a3700ee80dfe38175b67468b",
         "templates/Bulwark Word Fill Vertical.mogrt.b64": "334008921638903beb40acac8e586d6ee8aa230acc321f3c1c2a87f60f707cd9",
         "templates/thumbs/HOW TO ADD A THUMBNAIL TEMPLATE.txt": "bc96371cb6bbd660907271bff8d2ea7b61b9e710c8418084f4eca6577d65b8a8",
@@ -187,7 +187,7 @@
         "templates/thumbs/trio-maga-monday/template.json": "bbad111001b8565e587f346ae22ec1b38b3e17eccee01b8866cf06cbf9988b43",
         "templates/thumbs/trio-maga-monday/top.jpg.b64": "4b054c869412fd0b0adc2987aead3966291d15d7e994510e40f38e9f71ca89fc"
       },
-      "sig": "8xG/t1CVnJ7y5/9xUWbfspTQUo5DnR5Wyma1572jF7yIxVyrqORZXfed6Mf60q5wqA6s/E+6Q8gL1dnbNNIhdQ=="
+      "sig": "K7msYNjiNiAgWmxwMs4q4VLfwZ5SGGwqaGoVQmVCEud9aWoIzMs0akN5uVv0UgwuN/SKeAvyT47D4Uc3cKRKnA=="
     },
     "com.bulwark.captiontools": {
       "version": "2.1.1",
@@ -210,7 +210,7 @@
         "lib/update-source.js": "7f2fa1d72d957dadd3943f39c8681975acdc58770e29b78a697c209a48e6b765",
         "lib/updater.js": "be6f0c42e1d3116a78404a5892d25852f8a3c92cb27fe11366b6b5ee5c8a39bf"
       },
-      "sig": "CZO7hrcvkkJFzDJRk2KI8rNgIsaedHm3bE6+v99mjY2uL265wFt3riqMfZxrUU32hd8IsLjnwaZjNE7Xzs6lGw=="
+      "sig": "KyF/DhxXB/IWXEqixAuZFWTJXDDLpKuvhtzI4cSp7ZPECPrPEabdEcIkHY7lr4d6qNfqGK3SllFmLQOpio7SUw=="
     }
   }
 }
